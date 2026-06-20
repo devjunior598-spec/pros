@@ -275,7 +275,6 @@ export default function ApplicationsPage() {
                     .select("role")
                     .eq("id", user.id)
                     .single()
-                    .abortSignal(controller.signal)
 
                 if (controller.signal.aborted) return
                 const userRole = profile?.role as "tenant" | "landlord"
