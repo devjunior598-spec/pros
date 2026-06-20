@@ -1,0 +1,1 @@
+﻿app/(dashboard)/withdrawals/page.tsx(45,41): error TS2551: Property 'full_name' does not exist on type '{ fullname: any; }'. Did you mean 'fullname'?

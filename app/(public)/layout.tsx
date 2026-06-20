@@ -1,0 +1,14 @@
+import { SiteHeader } from "@/components/site-header"
+
+interface PublicLayoutProps {
+    children: React.ReactNode
+}
+
+export default function PublicLayout({ children }: PublicLayoutProps) {
+    return (
+        <div className="relative min-h-screen flex flex-col">
+            <SiteHeader />
+            <main className="flex-1">{children}</main>
+        </div>
+    )
+}
