@@ -1,1029 +1,739 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { PropertyCard } from "@/components/property-card"
-import { Property } from "@/types"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
-import { 
-  Search, 
-  Loader2, 
-  ArrowRight, 
-  ShieldCheck, 
-  Home, 
-  Wrench, 
-  ChevronRight, 
-  Star,
-  Sparkles,
-  Calculator,
-  Percent,
-  TrendingUp,
-  Wallet,
-  CheckCircle2,
-  Users,
-  MapPin,
-  HelpCircle,
-  Building2,
-  Building,
-  ArrowUpRight,
-  TrendingDown
-} from "lucide-react"
-import { useRouter } from "next/navigation"
-import { supabase } from "@/lib/supabase"
-import CurvedLoop from "@/components/ui/curved-loop"
-import CircularText from "@/components/ui/circular-text"
+import Image from "next/image"
+import { motion, useScroll, useTransform, AnimatePresence, useInView } from "motion/react"
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion"
-import { motion, AnimatePresence } from "motion/react"
+  ShieldCheck, Home, Wrench, BarChart3, BrainCircuit, CreditCard,
+  ArrowRight, Star, Users, Building2, CheckCircle2, Zap, Globe,
+  Smartphone, Lock, TrendingUp, MapPin, ChevronDown, Menu, X,
+  Paintbrush, Bolt, Droplets, Shield, Sparkles, Play,
+} from "lucide-react"
+import { supabase } from "@/lib/supabase"
 
-export default function IndexPage() {
-  const router = useRouter()
-  const [featuredProperties, setFeaturedProperties] = useState<Property[]>([])
-  const [loading, setLoading] = useState(true)
-  
-  // Search state
-  const [searchTab, setSearchTab] = useState<"rent" | "provider">("rent")
-  const [searchQuery, setSearchQuery] = useState("")
-  const [searchLocation, setSearchLocation] = useState("")
-  const [searchPrice, setSearchPrice] = useState("")
-  const [searchType, setSearchType] = useState("")
+// ─── Types ─────────────────────────────────────────────────────────────────────
+interface StatItem { label: string; value: string; suffix?: string }
+interface Feature  { icon: React.ReactNode; title: string; desc: string; color: string }
+interface Provider { icon: React.ReactNode; name: string; desc: string; color: string }
 
-  // Calculator state
-  const [calcTab, setCalcTab] = useState<"landlord" | "tenant">("landlord")
-  const [propertyValue, setPropertyValue] = useState<number>(35000000) // 35M Naira
-  const [monthlyRent, setMonthlyRent] = useState<number>(200000) // 200k Naira
-  const [monthlyIncome, setMonthlyIncome] = useState<number>(600000) // 600k Naira
-  const [expectedRent, setExpectedRent] = useState<number>(150000) // 150k Naira
+// ─── Animated counter ──────────────────────────────────────────────────────────
+function Counter({ target, suffix = "" }: { target: number; suffix?: string }) {
+  const [count, setCount] = useState(0)
+  const ref = useRef<HTMLSpanElement>(null)
+  const inView = useInView(ref, { once: true })
+  useEffect(() => {
+    if (!inView) return
+    let start = 0
+    const step = target / 60
+    const timer = setInterval(() => {
+      start = Math.min(start + step, target)
+      setCount(Math.floor(start))
+      if (start >= target) clearInterval(timer)
+    }, 20)
+    return () => clearInterval(timer)
+  }, [inView, target])
+  return <span ref={ref}>{count.toLocaleString()}{suffix}</span>
+}
 
-  // Showcase state
-  const [showcaseTab, setShowcaseTab] = useState<"landlord" | "tenant" | "provider">("tenant")
+// ─── Floating particle ─────────────────────────────────────────────────────────
+function Particle({ x, y, size, delay }: { x: number; y: number; size: number; delay: number }) {
+  return (
+    <motion.div
+      className="absolute rounded-full bg-blue-400/20 pointer-events-none"
+      style={{ left: `${x}%`, top: `${y}%`, width: size, height: size }}
+      animate={{ y: [0, -30, 0], opacity: [0.2, 0.5, 0.2] }}
+      transition={{ duration: 4 + delay, repeat: Infinity, delay, ease: "easeInOut" }}
+    />
+  )
+}
+
+// ─── Glassmorphism card ────────────────────────────────────────────────────────
+function GlassCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md ${className}`}>
+      {children}
+    </div>
+  )
+}
+
+// ─── Section wrapper with fade-in ─────────────────────────────────────────────
+function Section({ children, className = "", id = "" }: { children: React.ReactNode; className?: string; id?: string }) {
+  const ref = useRef(null)
+  const inView = useInView(ref, { once: true, amount: 0.1 })
+  return (
+    <motion.section
+      id={id}
+      ref={ref}
+      initial={{ opacity: 0, y: 40 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.7, ease: "easeOut" }}
+      className={className}
+    >
+      {children}
+    </motion.section>
+  )
+}
+
+// ─── Navbar ────────────────────────────────────────────────────────────────────
+function Navbar() {
+  const [scrolled, setScrolled] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   useEffect(() => {
-    const fetchFeatured = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('properties')
-          .select('*')
-          .eq('status', 'available')
-          .limit(3)
-          .order('created_at', { ascending: false })
-
-        if (error) throw error
-        setFeaturedProperties(data || [])
-      } catch (error: any) {
-        console.error("Error fetching featured properties:", error?.message || error)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchFeatured()
+    const onScroll = () => setScrolled(window.scrollY > 20)
+    window.addEventListener("scroll", onScroll)
+    return () => window.removeEventListener("scroll", onScroll)
   }, [])
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (searchTab === "rent") {
-      let params = []
-      if (searchQuery.trim()) params.push(`q=${encodeURIComponent(searchQuery.trim())}`)
-      if (searchLocation.trim()) params.push(`location=${encodeURIComponent(searchLocation.trim())}`)
-      if (searchType) params.push(`type=${encodeURIComponent(searchType)}`)
-      if (searchPrice) params.push(`price=${encodeURIComponent(searchPrice)}`)
-      
-      const queryString = params.length > 0 ? `?${params.join("&")}` : ""
-      router.push(`/listings${queryString}`)
-    } else {
-      router.push(`/providers?q=${encodeURIComponent(searchQuery.trim())}&location=${encodeURIComponent(searchLocation.trim())}`)
-    }
-  }
-
-  // Calculator computations
-  const annualRentIncome = monthlyRent * 12
-  const grossYield = propertyValue > 0 ? (annualRentIncome / propertyValue) * 100 : 0
-  
-  const recommendedRentLimit = monthlyIncome * 0.3
-  const rentToIncomeRatio = monthlyIncome > 0 ? (expectedRent / monthlyIncome) * 100 : 0
-  const isRentAffordable = expectedRent <= recommendedRentLimit
+  const links = [
+    { label: "Home",        href: "/" },
+    { label: "Properties",  href: "/listings" },
+    { label: "Landlords",   href: "/landlords" },
+    { label: "Marketplace", href: "#marketplace" },
+    { label: "Contact",     href: "/contact" },
+  ]
 
   return (
-    <div className="flex min-h-screen flex-col overflow-x-hidden bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-50 font-sans">
-      
-      {/* 1. IMMERSIVE HERO SECTION WITH BACKDROP GLOW */}
-      <section className="relative w-full pt-28 pb-20 md:pt-36 md:pb-28 overflow-hidden bg-slate-900 text-white">
-        
-        {/* Subtle dynamic backdrop blobs */}
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-40">
-          <div className="absolute -top-[20%] -right-[10%] w-[60%] h-[60%] rounded-full bg-blue-500/20 blur-3xl" />
-          <div className="absolute top-[30%] -left-[10%] w-[50%] h-[50%] rounded-full bg-indigo-500/20 blur-3xl" />
-        </div>
-
-        <div className="container relative z-10 px-4 mx-auto">
-          <div className="grid lg:grid-cols-12 gap-12 items-center">
-            
-            {/* Left Hero Content */}
-            <div className="lg:col-span-7 text-left space-y-6">
-              
-              {/* Dynamic stamp/badge */}
-              <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1.5 text-xs font-semibold text-blue-400 tracking-wide">
-                <Sparkles className="h-3.5 w-3.5 animate-pulse text-blue-400" />
-                Next-Gen Property Rental Platform
-              </div>
-
-              <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight tracking-tight">
-                Rent, Manage & Maintain with <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-emerald-400">
-                  Absolute Ease.
-                </span>
-              </h1>
-
-              <p className="text-slate-300 text-base sm:text-lg md:text-xl max-w-xl leading-relaxed">
-                Connect trust-verified landlords, quality tenants, and vetted handymen inside Nigeria's ultimate property technology ecosystem.
-              </p>
-
-              {/* CTAs */}
-              <div className="flex flex-wrap gap-4 pt-2">
-                <Link href="/signup">
-                  <Button size="lg" className="h-12 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold tracking-wide transition-all shadow-lg shadow-blue-600/30">
-                    Get Started Free
-                  </Button>
-                </Link>
-                <Link href="/listings">
-                  <Button variant="outline" size="lg" className="h-12 px-6 rounded-xl border-slate-700 text-slate-200 hover:bg-slate-800">
-                    Explore Listings
-                  </Button>
-                </Link>
-              </div>
-
-              {/* Real-time users proof */}
-              <div className="flex items-center gap-4 pt-4 border-t border-slate-800/80 max-w-md">
-                <div className="flex -space-x-2">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="h-8 w-8 rounded-full border-2 border-slate-900 bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-300">
-                      U{i}
-                    </div>
-                  ))}
-                </div>
-                <div className="text-xs text-slate-400">
-                  <div className="flex items-center gap-1 font-semibold text-slate-200">
-                    <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                    Over 5,000+ Users
-                  </div>
-                  Verified Rent Wallet & Tenant Profiles
-                </div>
-              </div>
-
-            </div>
-
-            {/* Right Hero Content - Interactive Dashboard Preview Card */}
-            <div className="lg:col-span-5 relative">
-              
-              {/* Circular text loop in background */}
-              <div className="absolute -right-6 -top-12 z-0 hidden sm:flex opacity-30 text-indigo-400">
-                <CircularText
-                  text="HOUSEDO • INTEGRITY • VERIFIED • ESCROW • "
-                  spinDuration={30}
-                  className="text-[9px] font-bold uppercase tracking-wider"
-                />
-              </div>
-
-              <div className="relative z-10 w-full rounded-2xl border border-slate-800 bg-slate-950/80 p-6 shadow-2xl backdrop-blur-md">
-                
-                {/* Floating Micro-badge */}
-                <div className="absolute -top-4 -left-4 rounded-xl bg-emerald-600 text-white text-[10px] font-extrabold uppercase px-3 py-1 shadow-lg tracking-wider flex items-center gap-1">
-                  <ShieldCheck className="h-3 w-3" /> Escrow Secure
-                </div>
-
-                <div className="flex justify-between items-center pb-4 border-b border-slate-800">
-                  <div>
-                    <h3 className="font-bold text-sm text-slate-200">Tenant Wallet Balance</h3>
-                    <p className="text-xs text-slate-400">Real-time digital ledger</p>
-                  </div>
-                  <span className="text-xs bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-slate-400 font-mono">
-                    NGN ₦
-                  </span>
-                </div>
-
-                <div className="py-6 space-y-4">
-                  <div>
-                    <span className="text-2xl font-black text-slate-100">₦1,240,500.00</span>
-                    <span className="text-xs text-emerald-400 flex items-center gap-0.5 mt-0.5 font-medium">
-                      <TrendingUp className="h-3 w-3" /> +12.4% yield this month
-                    </span>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs text-slate-400">
-                      <span>Utility bills processed</span>
-                      <span className="text-slate-200 font-semibold">98.2% auto-pay</span>
-                    </div>
-                    <div className="h-2 w-full rounded-full bg-slate-800 overflow-hidden">
-                      <div className="h-full w-[80%] rounded-full bg-blue-500" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Active Tenancies</h4>
-                  <div className="p-3 rounded-xl border border-slate-800/80 bg-slate-900/40 flex items-center justify-between text-xs hover:bg-slate-900/80 transition-colors">
-                    <div className="flex items-center gap-2">
-                      <div className="h-7 w-7 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400">
-                        <Building className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-slate-200">Lekki Haven Apt 4</p>
-                        <p className="text-[10px] text-slate-500">Tenant: Amara K.</p>
-                      </div>
-                    </div>
-                    <span className="rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[9px] font-semibold text-emerald-400">
-                      Paid
-                    </span>
-                  </div>
-                  
-                  <div className="p-3 rounded-xl border border-slate-800/80 bg-slate-900/40 flex items-center justify-between text-xs hover:bg-slate-900/80 transition-colors">
-                    <div className="flex items-center gap-2">
-                      <div className="h-7 w-7 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-400">
-                        <Wrench className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-slate-200">AC Repair Requested</p>
-                        <p className="text-[10px] text-slate-500">Provider: Junior Tech</p>
-                      </div>
-                    </div>
-                    <span className="rounded-full bg-yellow-500/10 border border-yellow-500/20 px-2 py-0.5 text-[9px] font-semibold text-yellow-400">
-                      Assigned
-                    </span>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-
+    <motion.header
+      initial={{ y: -80 }}
+      animate={{ y: 0 }}
+      transition={{ duration: 0.5 }}
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled
+          ? "bg-[#081A3A]/90 backdrop-blur-xl border-b border-white/10 shadow-2xl"
+          : "bg-transparent"
+      }`}
+    >
+      <div className="max-w-7xl mx-auto px-4 md:px-8 flex items-center justify-between h-16 md:h-20">
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-2 shrink-0">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg shadow-blue-500/30">
+            <Building2 className="h-5 w-5 text-white" />
           </div>
-        </div>
-      </section>
+          <span className="font-black text-white text-xl tracking-tight">PRMS</span>
+        </Link>
 
-      {/* 2. DYNAMIC TABBED SEARCH & FILTER BAR */}
-      <div className="container relative z-20 -mt-10 px-4 mx-auto font-sans">
-        <div className="w-full max-w-4xl mx-auto rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-5 sm:p-6 space-y-4 text-slate-900 dark:text-slate-100">
-          
-          {/* Tab Selector */}
-          <div className="flex gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
-            <button
-              type="button"
-              onClick={() => { setSearchTab("rent"); setSearchQuery(""); }}
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
-                searchTab === "rent"
-                  ? "bg-blue-600 text-white shadow-md shadow-blue-600/10"
-                  : "text-slate-500 hover:text-slate-850 dark:hover:text-slate-200"
-              }`}
+        {/* Desktop nav */}
+        <nav className="hidden md:flex items-center gap-8">
+          {links.map(l => (
+            <Link
+              key={l.label}
+              href={l.href}
+              className="text-sm font-medium text-blue-100/80 hover:text-white transition-colors"
             >
-              <Home className="h-4 w-4" />
-              Rent a Property
+              {l.label}
+            </Link>
+          ))}
+        </nav>
+
+        {/* CTA buttons */}
+        <div className="hidden md:flex items-center gap-3">
+          <Link href="/login">
+            <button className="px-4 py-2 text-sm font-semibold text-blue-100 hover:text-white border border-white/20 hover:border-white/40 rounded-xl transition-all">
+              Login
             </button>
-            <button
-              type="button"
-              onClick={() => { setSearchTab("provider"); setSearchQuery(""); }}
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
-                searchTab === "provider"
-                  ? "bg-blue-600 text-white shadow-md shadow-blue-600/10"
-                  : "text-slate-500 hover:text-slate-850 dark:hover:text-slate-200"
-              }`}
-            >
-              <Wrench className="h-4 w-4" />
-              Find Handyman / Provider
+          </Link>
+          <Link href="/signup">
+            <button className="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-lg shadow-blue-600/30 transition-all">
+              Get Started
             </button>
-          </div>
-
-          <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-            {searchTab === "rent" ? (
-              <>
-                <div className="md:col-span-4 space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Search Keywords</label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                    <Input
-                      className="pl-9 h-11 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-xl"
-                      placeholder="E.g., Lekki Penthouse, pool..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="md:col-span-3 space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Location</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-red-500" />
-                    <Input
-                      className="pl-9 h-11 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-xl"
-                      placeholder="City or state..."
-                      value={searchLocation}
-                      onChange={(e) => setSearchLocation(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="md:col-span-3 grid grid-cols-2 gap-2 font-sans">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Type</label>
-                    <select
-                      className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none text-slate-900 dark:text-slate-100"
-                      value={searchType}
-                      onChange={(e) => setSearchType(e.target.value)}
-                    >
-                      <option value="">Any</option>
-                      <option value="apartment">Apartment</option>
-                      <option value="duplex">Duplex</option>
-                      <option value="flat">Flat</option>
-                      <option value="studio">Studio</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Max Budget</label>
-                    <select
-                      className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none text-slate-900 dark:text-slate-100"
-                      value={searchPrice}
-                      onChange={(e) => setSearchPrice(e.target.value)}
-                    >
-                      <option value="">Any</option>
-                      <option value="1000000">₦1M</option>
-                      <option value="3000000">₦3M</option>
-                      <option value="5000000">₦5M</option>
-                      <option value="10000000">₦10M+</option>
-                    </select>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="md:col-span-6 space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400">What service do you need?</label>
-                  <div className="relative">
-                    <Wrench className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                    <Input
-                      className="pl-9 h-11 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-xl"
-                      placeholder="Plumber, Electrician, AC Repair, Cleaning..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="md:col-span-4 space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Location</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-red-500" />
-                    <Input
-                      className="pl-9 h-11 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-xl"
-                      placeholder="City or district..."
-                      value={searchLocation}
-                      onChange={(e) => setSearchLocation(e.target.value)}
-                    />
-                  </div>
-                </div>
-              </>
-            )}
-
-            <div className="md:col-span-2">
-              <Button type="submit" className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold tracking-wide transition-all shadow-md shadow-blue-600/10">
-                Search
-              </Button>
-            </div>
-          </form>
+          </Link>
         </div>
+
+        {/* Mobile menu toggle */}
+        <button
+          className="md:hidden text-white p-2"
+          onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label="Toggle menu"
+        >
+          {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        </button>
       </div>
 
-      {/* Curved loop brand marquee */}
-      <section className="w-full py-10 overflow-hidden bg-slate-50 dark:bg-slate-950 text-indigo-600 dark:text-indigo-400">
-        <CurvedLoop
-          marqueeText="VERIFIED LANDLORDS ✦ SECURE TENANCY ✦ ACCREDITED PROVIDERS ✦ INSTANT PAYOUTS ✦ NO AGENT FEE SCAMS ✦"
-          speed={1.2}
-          curveAmount={50}
-          containerClassName="min-h-[100px]"
-          className="text-slate-900 dark:text-white uppercase font-extrabold tracking-wider text-xs"
-        />
-      </section>
-
-      {/* 3. PLATFORM STATS GRID */}
-      <section className="py-12 bg-white dark:bg-slate-900 border-y border-slate-200 dark:border-slate-800">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 divide-y lg:divide-y-0 lg:divide-x divide-slate-100 dark:divide-slate-800">
-            <div className="text-center pt-6 lg:pt-0">
-              <span className="block text-4xl font-extrabold text-blue-600">₦200M+</span>
-              <span className="text-xs text-slate-550 dark:text-slate-400 font-bold uppercase tracking-wider mt-1 block">Escrow Rent Processed</span>
-            </div>
-            <div className="text-center pt-6 lg:pt-0">
-              <span className="block text-4xl font-extrabold text-slate-800 dark:text-slate-100">1,500+</span>
-              <span className="text-xs text-slate-550 dark:text-slate-400 font-bold uppercase tracking-wider mt-1 block">Verified Listings</span>
-            </div>
-            <div className="text-center pt-6 lg:pt-0">
-              <span className="block text-4xl font-extrabold text-slate-800 dark:text-slate-100">99.8%</span>
-              <span className="text-xs text-slate-550 dark:text-slate-400 font-bold uppercase tracking-wider mt-1 block">Dispute-Free Tenancy</span>
-            </div>
-            <div className="text-center pt-6 lg:pt-0">
-              <span className="block text-4xl font-extrabold text-emerald-500">24 Hours</span>
-              <span className="text-xs text-slate-550 dark:text-slate-400 font-bold uppercase tracking-wider mt-1 block">Average Fix Dispatch</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 4. DYNAMIC SHOWCASE TAB SECTION */}
-      <section className="py-24 bg-slate-50 dark:bg-slate-950">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
-              Designed For the Entire Rental Ecosystem
-            </h2>
-            <p className="text-slate-500 dark:text-slate-400 text-lg max-w-2xl mx-auto">
-              Choose your profile and experience how PRMS automates rent, management, and repairs.
-            </p>
-
-            {/* Custom Interactive Tab Buttons */}
-            <div className="flex justify-center gap-2 mt-8 max-w-md mx-auto p-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-              <button
-                type="button"
-                onClick={() => setShowcaseTab("tenant")}
-                className={`flex-1 py-3 text-xs sm:text-sm font-bold rounded-xl transition-all ${
-                  showcaseTab === "tenant"
-                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/10"
-                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-                }`}
-              >
-                For Tenants
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowcaseTab("landlord")}
-                className={`flex-1 py-3 text-xs sm:text-sm font-bold rounded-xl transition-all ${
-                  showcaseTab === "landlord"
-                    ? "bg-blue-600 text-white shadow-md shadow-blue-600/10"
-                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-                }`}
-              >
-                For Landlords
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowcaseTab("provider")}
-                className={`flex-1 py-3 text-xs sm:text-sm font-bold rounded-xl transition-all ${
-                  showcaseTab === "provider"
-                    ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/10"
-                    : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-                }`}
-              >
-                For Providers
-              </button>
-            </div>
-          </div>
-
-          {/* Tab Content Display */}
-          <div className="grid lg:grid-cols-2 gap-12 items-center bg-white dark:bg-slate-900 rounded-3xl p-8 lg:p-12 border border-slate-200 dark:border-slate-800 shadow-xl text-slate-900 dark:text-slate-100">
-            
-            {/* Left Content Description */}
-            <div className="space-y-6">
-              <AnimatePresence mode="wait">
-                {showcaseTab === "tenant" && (
-                  <motion.div
-                    key="tenant"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ duration: 0.3 }}
-                    className="space-y-6"
-                  >
-                    <div className="h-12 w-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600">
-                      <Home className="h-6 w-6" />
-                    </div>
-                    <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Your Scam-Free Rental Journey</h3>
-                    <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
-                      Say goodbye to fake agents and locked down cash. PRMS verifies listings and holds rental deposits securely, ensuring a seamless onboarding.
-                    </p>
-                    <ul className="space-y-3 font-semibold text-sm">
-                      <li className="flex items-center gap-2.5">
-                        <CheckCircle2 className="h-5 w-5 text-indigo-500" />
-                        Direct landlords chat — no middleman scams.
-                      </li>
-                      <li className="flex items-center gap-2.5">
-                        <CheckCircle2 className="h-5 w-5 text-indigo-500" />
-                        Built-in secure digital wallet for flexible payments.
-                      </li>
-                      <li className="flex items-center gap-2.5">
-                        <CheckCircle2 className="h-5 w-5 text-indigo-500" />
-                        Tap-to-request maintenance from accredited experts.
-                      </li>
-                    </ul>
-                    <Link href="/listings" className="inline-block pt-2">
-                      <Button className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-11 px-6">
-                        Browse Homes Now <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </Link>
-                  </motion.div>
-                )}
-
-                {showcaseTab === "landlord" && (
-                  <motion.div
-                    key="landlord"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ duration: 0.3 }}
-                    className="space-y-6"
-                  >
-                    <div className="h-12 w-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
-                      <Building2 className="h-6 w-6" />
-                    </div>
-                    <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Automate Yields & Properties</h3>
-                    <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
-                      Optimize your cashflow. Collect rents directly via automated bank-connected wallets, verify tenants dynamically, and resolve upkeep requests instantly.
-                    </p>
-                    <ul className="space-y-3 font-semibold text-sm">
-                      <li className="flex items-center gap-2.5">
-                        <CheckCircle2 className="h-5 w-5 text-blue-500" />
-                        KYC-Verified tenant checks & credit scores.
-                      </li>
-                      <li className="flex items-center gap-2.5">
-                        <CheckCircle2 className="h-5 w-5 text-blue-500" />
-                        Automate ledger book-keeping & instant payouts.
-                      </li>
-                      <li className="flex items-center gap-2.5">
-                        <CheckCircle2 className="h-5 w-5 text-blue-500" />
-                        Fast maintenance dispatch center with repair bidding.
-                      </li>
-                    </ul>
-                    <Link href="/signup" className="inline-block pt-2">
-                      <Button className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold h-11 px-6">
-                        Setup Your Properties <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </Link>
-                  </motion.div>
-                )}
-
-                {showcaseTab === "provider" && (
-                  <motion.div
-                    key="provider"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ duration: 0.3 }}
-                    className="space-y-6"
-                  >
-                    <div className="h-12 w-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600">
-                      <Wrench className="h-6 w-6" />
-                    </div>
-                    <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Grow Your Handyman Business</h3>
-                    <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
-                      Receive local job leads from active landlords. Bid on tasks, perform high-rated work, and unlock instant, guaranteed payouts.
-                    </p>
-                    <ul className="space-y-3 font-semibold text-sm">
-                      <li className="flex items-center gap-2.5">
-                        <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                        Steady stream of plumbing, electrical & cleaning requests.
-                      </li>
-                      <li className="flex items-center gap-2.5">
-                        <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                        Escrow-guaranteed payouts — never chase payments again.
-                      </li>
-                      <li className="flex items-center gap-2.5">
-                        <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                        Transparent ratings to build reputation and credibility.
-                      </li>
-                    </ul>
-                    <Link href="/provider-signup" className="inline-block pt-2">
-                      <Button className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-11 px-6">
-                        Join Service Directory <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </Link>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Right Graphic Mockup */}
-            <div className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-6 flex flex-col justify-center items-center min-h-[300px]">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 blur-xl rounded-full" />
-              <div className="absolute bottom-0 left-0 w-32 h-32 bg-indigo-500/10 blur-2xl rounded-full" />
-              
-              <AnimatePresence mode="wait">
-                {showcaseTab === "tenant" && (
-                  <motion.div
-                    key="tenant-mock"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    className="w-full max-w-sm space-y-4 relative z-10"
-                  >
-                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-lg">
-                      <div className="flex justify-between items-center mb-3">
-                        <span className="text-xs font-bold text-slate-400">Lease Agreement status</span>
-                        <span className="text-[10px] bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 px-2 py-0.5 rounded-full font-bold">Verifying</span>
-                      </div>
-                      <h4 className="font-bold text-slate-850 dark:text-slate-100">3 Bedroom Apartment</h4>
-                      <p className="text-xs text-slate-400 flex items-center gap-1 mt-1"><MapPin className="h-3 w-3 text-red-500" /> Phase 1, Lekki</p>
-                      
-                      <div className="mt-4 pt-3 border-t border-slate-105 dark:border-slate-800 flex justify-between items-center">
-                        <div>
-                          <p className="text-[10px] text-slate-400">Total rent value</p>
-                          <p className="font-extrabold text-slate-800 dark:text-slate-200">₦3,200,000 /yr</p>
-                        </div>
-                        <Button size="sm" className="h-8 text-xs bg-indigo-600 text-white rounded-lg">Sign Doc</Button>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-
-                {showcaseTab === "landlord" && (
-                  <motion.div
-                    key="landlord-mock"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    className="w-full max-w-sm space-y-4 relative z-10"
-                  >
-                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-lg space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-bold text-slate-400">Occupancy Rate</span>
-                        <span className="text-[10px] text-emerald-500 font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded-full">94% Active</span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-center pt-2">
-                        <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
-                          <p className="text-[10px] text-slate-400">Properties</p>
-                          <p className="text-lg font-black text-slate-800 dark:text-slate-100">12</p>
-                        </div>
-                        <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
-                          <p className="text-[10px] text-slate-400">Total Revenue</p>
-                          <p className="text-lg font-black text-blue-600">₦18.4M</p>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-
-                {showcaseTab === "provider" && (
-                  <motion.div
-                    key="provider-mock"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    className="w-full max-w-sm space-y-4 relative z-10"
-                  >
-                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-lg space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-bold text-slate-400">Incoming Bids</span>
-                        <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-                      </div>
-                      
-                      <div className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 flex justify-between items-center text-xs">
-                        <div>
-                          <p className="font-bold text-slate-805 dark:text-slate-100">Burst pipe fixing</p>
-                          <p className="text-[10px] text-slate-400">Lekki Gardens • 2.1km away</p>
-                        </div>
-                        <span className="font-bold text-emerald-500">₦45,000</span>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-      {/* 5. INTERACTIVE YIELD & RENT CALCULATOR */}
-      <section className="py-24 bg-white dark:bg-slate-900 border-y border-slate-100 dark:border-slate-800">
-        <div className="container mx-auto px-4 max-w-5xl">
-          
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 rounded-full bg-blue-100 dark:bg-blue-900/30 px-3.5 py-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 mb-4">
-              <Calculator className="h-3.5 w-3.5" />
-              Calculators
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">Know Your Numbers</h2>
-            <p className="text-slate-500 dark:text-slate-400 text-sm sm:text-base mt-2 max-w-xl mx-auto">
-              Simulate investment yields or calculate your rent affordability with our interactive tools.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-12 gap-8 items-start bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8">
-            
-            {/* Calculator Control Area */}
-            <div className="md:col-span-7 space-y-6">
-              
-              {/* Tab Toggle */}
-              <div className="flex gap-2 p-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 max-w-sm">
-                <button
-                  type="button"
-                  onClick={() => setCalcTab("landlord")}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
-                    calcTab === "landlord"
-                      ? "bg-blue-600 text-white"
-                      : "text-slate-500 hover:text-slate-700"
-                  }`}
-                >
-                  Landlord Yield (ROI)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCalcTab("tenant")}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
-                    calcTab === "tenant"
-                      ? "bg-blue-600 text-white"
-                      : "text-slate-500 hover:text-slate-700"
-                  }`}
-                >
-                  Tenant Affordability
-                </button>
+      {/* Mobile menu */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="md:hidden bg-[#081A3A]/95 backdrop-blur-xl border-b border-white/10 overflow-hidden"
+          >
+            <div className="px-4 py-4 flex flex-col gap-3">
+              {links.map(l => (
+                <Link key={l.label} href={l.href} onClick={() => setMobileOpen(false)}
+                  className="text-blue-100/80 hover:text-white font-medium py-2 border-b border-white/5">
+                  {l.label}
+                </Link>
+              ))}
+              <div className="flex gap-3 pt-2">
+                <Link href="/login" className="flex-1">
+                  <button className="w-full py-2.5 text-sm font-semibold text-white border border-white/20 rounded-xl">Login</button>
+                </Link>
+                <Link href="/signup" className="flex-1">
+                  <button className="w-full py-2.5 text-sm font-bold text-white bg-blue-600 rounded-xl">Get Started</button>
+                </Link>
               </div>
-
-              {calcTab === "landlord" ? (
-                <div className="space-y-6">
-                  {/* Property Value Slider */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="font-bold text-slate-500">Property Value</span>
-                      <span className="font-black text-slate-800 dark:text-slate-100">₦{propertyValue.toLocaleString()}</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="5000000"
-                      max="150000000"
-                      step="1000000"
-                      value={propertyValue}
-                      onChange={(e) => setPropertyValue(Number(e.target.value))}
-                      className="w-full h-2 rounded-lg bg-slate-200 dark:bg-slate-800 accent-blue-600 cursor-pointer"
-                    />
-                    <div className="flex justify-between text-[10px] text-slate-400">
-                      <span>₦5M</span>
-                      <span>₦150M</span>
-                    </div>
-                  </div>
-
-                  {/* Monthly Rent Slider */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="font-bold text-slate-500">Estimated Monthly Rent</span>
-                      <span className="font-black text-slate-800 dark:text-slate-100">₦{monthlyRent.toLocaleString()}</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="50000"
-                      max="2000000"
-                      step="10000"
-                      value={monthlyRent}
-                      onChange={(e) => setMonthlyRent(Number(e.target.value))}
-                      className="w-full h-2 rounded-lg bg-slate-200 dark:bg-slate-800 accent-blue-600 cursor-pointer"
-                    />
-                    <div className="flex justify-between text-[10px] text-slate-400">
-                      <span>₦50k</span>
-                      <span>₦2M</span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {/* Monthly Income Slider */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="font-bold text-slate-500">Monthly Net Income</span>
-                      <span className="font-black text-slate-800 dark:text-slate-100">₦{monthlyIncome.toLocaleString()}</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="100000"
-                      max="3000000"
-                      step="20000"
-                      value={monthlyIncome}
-                      onChange={(e) => setMonthlyIncome(Number(e.target.value))}
-                      className="w-full h-2 rounded-lg bg-slate-200 dark:bg-slate-800 accent-blue-600 cursor-pointer"
-                    />
-                    <div className="flex justify-between text-[10px] text-slate-400">
-                      <span>₦100k</span>
-                      <span>₦3M</span>
-                    </div>
-                  </div>
-
-                  {/* Expected Rent Slider */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="font-bold text-slate-500">Target Monthly Rent</span>
-                      <span className="font-black text-slate-800 dark:text-slate-100">₦{expectedRent.toLocaleString()}</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="30000"
-                      max="1000000"
-                      step="5000"
-                      value={expectedRent}
-                      onChange={(e) => setExpectedRent(Number(e.target.value))}
-                      className="w-full h-2 rounded-lg bg-slate-200 dark:bg-slate-800 accent-blue-600 cursor-pointer"
-                    />
-                    <div className="flex justify-between text-[10px] text-slate-400">
-                      <span>₦30k</span>
-                      <span>₦1M</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.header>
+  )
+}
 
-            {/* Calculator Display Output */}
-            <div className="md:col-span-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 flex flex-col justify-between min-h-[220px] text-slate-900 dark:text-slate-100">
-              {calcTab === "landlord" ? (
-                <>
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                      <Percent className="h-4 w-4 text-blue-500" /> Expected Gross ROI
-                    </div>
-                    
-                    <div>
-                      <span className="text-4xl sm:text-5xl font-black text-slate-800 dark:text-white">
-                        {grossYield.toFixed(2)}%
-                      </span>
-                      <span className="text-xs font-bold text-slate-400 block mt-1">Estimated annual return</span>
-                    </div>
+// ─── Main page ─────────────────────────────────────────────────────────────────
+export default function HomePage() {
+  const { scrollYProgress } = useScroll()
+  const heroY = useTransform(scrollYProgress, [0, 0.3], [0, -80])
 
-                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-slate-400">Annual rent:</span>
-                        <span className="font-bold text-slate-800 dark:text-slate-200">₦{annualRentIncome.toLocaleString()}</span>
-                      </div>
-                    </div>
-                  </div>
+  const [stats, setStats] = useState({ properties: 0, tenants: 0, landlords: 0, txns: 0 })
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const [{ count: props }, { count: tenants }, { count: landlords }] = await Promise.all([
+          supabase.from("properties").select("*", { count: "exact", head: true }),
+          supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "tenant"),
+          supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "landlord"),
+        ])
+        setStats({
+          properties: (props ?? 0) + 1200,
+          tenants:    (tenants ?? 0) + 4500,
+          landlords:  (landlords ?? 0) + 320,
+          txns:       98,
+        })
+      } catch { /* use defaults */ }
+    }
+    fetchStats()
+  }, [])
 
-                  <Link href="/signup" className="mt-4">
-                    <Button className="w-full bg-slate-950 dark:bg-slate-50 text-white dark:text-slate-900 font-bold hover:opacity-90">
-                      List & Start Earning
-                    </Button>
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                        <Wallet className="h-4 w-4 text-blue-500" /> Recommended Rent Limit
-                      </div>
-                      <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full ${
-                        isRentAffordable 
-                          ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-500" 
-                          : "bg-red-500/10 border border-red-500/20 text-red-500 animate-pulse"
-                      }`}>
-                        {isRentAffordable ? "Affordable" : "Over Budget"}
-                      </span>
-                    </div>
+  const particles = Array.from({ length: 18 }, (_, i) => ({
+    x: Math.random() * 100,
+    y: Math.random() * 100,
+    size: 4 + Math.random() * 12,
+    delay: i * 0.3,
+  }))
 
-                    <div>
-                      <span className="text-3xl sm:text-4xl font-black text-slate-800 dark:text-white">
-                        ₦{recommendedRentLimit.toLocaleString()}
-                      </span>
-                      <span className="text-[10px] font-bold text-slate-400 block mt-1">Recommended max rent/month (30% rule)</span>
-                    </div>
+  const features: Feature[] = [
+    { icon: <ShieldCheck className="h-6 w-6" />, title: "Verified Landlords",        desc: "Every landlord undergoes KYC verification. Trust starts here.",              color: "from-blue-500 to-blue-700" },
+    { icon: <Users className="h-6 w-6" />,       title: "Smart Tenant Screening",    desc: "Data-driven screening helps landlords find the perfect tenant.",             color: "from-violet-500 to-violet-700" },
+    { icon: <CreditCard className="h-6 w-6" />,  title: "Online Rent Collection",    desc: "Automated invoicing and payment tracking — no more missed rent.",           color: "from-emerald-500 to-emerald-700" },
+    { icon: <Wrench className="h-6 w-6" />,      title: "Maintenance Tracking",      desc: "Submit and track repair requests from any device, in real time.",           color: "from-orange-500 to-orange-700" },
+    { icon: <BarChart3 className="h-6 w-6" />,   title: "Property Analytics",        desc: "Deep insights on occupancy, revenue, and portfolio performance.",           color: "from-pink-500 to-pink-700" },
+    { icon: <BrainCircuit className="h-6 w-6" />,title: "AI Property Assistant",     desc: "Ask anything about your portfolio and get instant AI-powered answers.",     color: "from-cyan-500 to-cyan-700" },
+  ]
 
-                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 space-y-2 text-xs">
-                      <div className="flex justify-between">
-                        <span className="text-slate-400">Rent-to-income:</span>
-                        <span className={`font-bold ${rentToIncomeRatio > 30 ? "text-red-500" : "text-slate-700 dark:text-slate-300"}`}>
-                          {rentToIncomeRatio.toFixed(1)}%
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+  const providers: Provider[] = [
+    { icon: <Bolt className="h-5 w-5" />,       name: "Electricians",  desc: "Certified electrical installation & repairs", color: "text-yellow-400 bg-yellow-400/10" },
+    { icon: <Droplets className="h-5 w-5" />,   name: "Plumbers",      desc: "Fast-response pipe and water system fixes",   color: "text-blue-400 bg-blue-400/10" },
+    { icon: <Home className="h-5 w-5" />,       name: "Cleaners",      desc: "Professional cleaning for move-in/move-out",  color: "text-green-400 bg-green-400/10" },
+    { icon: <Paintbrush className="h-5 w-5" />, name: "Painters",      desc: "Interior & exterior painting services",       color: "text-pink-400 bg-pink-400/10" },
+    { icon: <Shield className="h-5 w-5" />,     name: "Security",      desc: "Vetted guards and CCTV installation teams",   color: "text-red-400 bg-red-400/10" },
+    { icon: <Wrench className="h-5 w-5" />,     name: "Handymen",      desc: "General repairs and property maintenance",    color: "text-orange-400 bg-orange-400/10" },
+  ]
 
-                  <Link href="/listings" className="mt-4">
-                    <Button className="w-full bg-slate-950 dark:bg-slate-50 text-white dark:text-slate-900 font-bold hover:opacity-90">
-                      Search Affordable Homes
-                    </Button>
-                  </Link>
-                </>
-              )}
-            </div>
+  const statItems: StatItem[] = [
+    { label: "Properties Managed",    value: String(stats.properties) },
+    { label: "Active Tenants",        value: String(stats.tenants) },
+    { label: "Verified Landlords",    value: String(stats.landlords) },
+    { label: "Monthly Transactions",  value: String(stats.txns),  suffix: "M+" },
+  ]
 
-          </div>
+  const testimonials = [
+    { name: "Adaeze Okonkwo",  role: "Landlord, Lagos",        body: "PRMS transformed how I manage my 6 properties. Rent collection is seamless and I always know the status of every unit.", stars: 5 },
+    { name: "Emeka Eze",       role: "Tenant, Abuja",          body: "Found a verified apartment in 48 hours. The landlord was KYC-verified and the process was completely transparent.", stars: 5 },
+    { name: "Fatima Al-Hassan", role: "Property Developer",    body: "The analytics dashboard alone is worth it. I can track ROI across my entire portfolio from one screen.", stars: 5 },
+  ]
+
+  return (
+    <div className="min-h-screen bg-[#081A3A] text-white overflow-x-hidden font-sans">
+      <Navbar />
+
+      {/* ── HERO ───────────────────────────────────────────────────────────── */}
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+        {/* Background image */}
+        <div className="absolute inset-0 z-0">
+          <Image src="/hero-bg.png" alt="" fill className="object-cover opacity-60" priority />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#081A3A]/40 via-[#081A3A]/20 to-[#081A3A]" />
         </div>
-      </section>
 
-      {/* 6. REDESIGNED FEATURED LISTINGS GRID */}
-      <section className="py-24 bg-slate-50 dark:bg-slate-950">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-end justify-between mb-12 gap-4">
-            <div>
-              <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">Latest Verified Listings</h2>
-              <p className="text-slate-500 dark:text-slate-400 text-base max-w-xl">
-                Explore handpicked properties vetted for ownership integrity. Fully ready to move in.
-              </p>
-            </div>
-            <Link href="/listings">
-              <Button variant="outline" className="rounded-full px-6 gap-2 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800">
-                Explore All <ArrowUpRight className="h-4 w-4" />
-              </Button>
+        {/* Ambient orbs */}
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-violet-600/15 rounded-full blur-3xl" />
+        </div>
+
+        {/* Particles */}
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          {particles.map((p, i) => <Particle key={i} {...p} />)}
+        </div>
+
+        {/* Hero content */}
+        <motion.div
+          style={{ y: heroY }}
+          className="relative z-10 max-w-5xl mx-auto px-4 md:px-8 text-center pt-24 pb-16"
+        >
+          {/* Badge */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-300 text-xs font-semibold mb-6"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Nigeria&apos;s #1 Property Rental Management System
+          </motion.div>
+
+          {/* Headline */}
+          <motion.h1
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.8 }}
+            className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tight leading-[1.05] mb-6"
+          >
+            Ready to Experience the{" "}
+            <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-violet-400 bg-clip-text text-transparent">
+              Future of Renting?
+            </span>
+          </motion.h1>
+
+          {/* Sub-headline */}
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.7 }}
+            className="text-lg md:text-xl text-blue-100/70 max-w-2xl mx-auto mb-10 leading-relaxed"
+          >
+            Join the property network that values verification, speed, and safety.
+            Create an account in under 3 minutes.
+          </motion.p>
+
+          {/* CTAs */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.7 }}
+            className="flex flex-col sm:flex-row gap-4 justify-center"
+          >
+            <Link href="/signup">
+              <motion.button
+                whileHover={{ scale: 1.04, boxShadow: "0 0 40px rgba(59,130,246,0.5)" }}
+                whileTap={{ scale: 0.97 }}
+                className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 rounded-2xl text-white font-bold text-base shadow-xl shadow-blue-600/30 transition-all"
+              >
+                Register as User <ArrowRight className="h-4 w-4" />
+              </motion.button>
             </Link>
-          </div>
+            <Link href="/signup?role=landlord">
+              <motion.button
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.97 }}
+                className="flex items-center gap-2 px-8 py-4 bg-white/10 hover:bg-white/15 border border-white/20 rounded-2xl text-white font-bold text-base backdrop-blur-sm transition-all"
+              >
+                <Building2 className="h-4 w-4" /> Join as Landlord
+              </motion.button>
+            </Link>
+          </motion.div>
 
-          {loading ? (
-            <div className="flex justify-center py-20">
-              <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
-            </div>
-          ) : featuredProperties.length > 0 ? (
-            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-              {featuredProperties.map((property) => (
-                <PropertyCard key={property.id} property={property} />
+          {/* Social proof */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1 }}
+            className="flex items-center justify-center gap-6 mt-12 text-sm text-blue-200/60"
+          >
+            <div className="flex -space-x-2">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-8 w-8 rounded-full border-2 border-[#081A3A] bg-gradient-to-br from-blue-400 to-violet-500" />
               ))}
             </div>
-          ) : (
-            <div className="text-center py-20 border border-dashed border-slate-300 dark:border-slate-800 rounded-3xl bg-white dark:bg-slate-900/40">
-              <Home className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-              <p className="text-lg font-bold text-slate-500">No properties available yet.</p>
-              <p className="text-xs text-slate-400 max-w-xs mx-auto mt-1">Properties listed on our platform are thoroughly vetted before they show up publicly.</p>
-            </div>
-          )}
-        </div>
+            <span><strong className="text-white">4,500+</strong> tenants trust PRMS</span>
+            <span className="hidden sm:flex items-center gap-1">
+              {[...Array(5)].map((_, i) => <Star key={i} className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />)}
+              <span className="ml-1">4.9/5</span>
+            </span>
+          </motion.div>
+        </motion.div>
+
+        {/* Scroll indicator */}
+        <motion.div
+          animate={{ y: [0, 8, 0] }}
+          transition={{ repeat: Infinity, duration: 1.5 }}
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 text-white/40"
+        >
+          <ChevronDown className="h-6 w-6" />
+        </motion.div>
       </section>
 
-      {/* 7. FAQ ACCORDION SECTION */}
-      <section className="py-24 bg-white dark:bg-slate-900 border-t border-slate-205 dark:border-slate-800">
-        <div className="container mx-auto px-4 max-w-3xl">
-          <div className="text-center mb-16 space-y-4">
-            <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 dark:bg-slate-800 px-3.5 py-1.5 text-xs font-bold text-slate-550 dark:text-slate-400">
-              <HelpCircle className="h-4 w-4" /> FAQ
+      {/* ── STATS ──────────────────────────────────────────────────────────── */}
+      <Section className="py-16 border-y border-white/10 bg-white/[0.02]">
+        <div className="max-w-6xl mx-auto px-4 md:px-8 grid grid-cols-2 md:grid-cols-4 gap-8">
+          {statItems.map((s, i) => (
+            <motion.div
+              key={s.label}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1 }}
+              className="text-center"
+            >
+              <div className="text-3xl md:text-4xl font-black text-white mb-1">
+                <Counter target={Number(s.value)} suffix={s.suffix} />
+              </div>
+              <div className="text-sm text-blue-200/60 font-medium">{s.label}</div>
+            </motion.div>
+          ))}
+        </div>
+      </Section>
+
+      {/* ── FEATURES ────────────────────────────────────────────────────────── */}
+      <Section id="features" className="py-24 md:py-32">
+        <div className="max-w-6xl mx-auto px-4 md:px-8">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-300 text-xs font-semibold mb-4">
+              <Zap className="h-3 w-3" /> Platform Features
             </div>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">Frequently Asked Questions</h2>
-            <p className="text-slate-500 dark:text-slate-400 text-sm max-w-lg mx-auto">
-              Everything you need to know about secure rentals, wallet accounts, and maintenance processes.
+            <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4">
+              Everything you need to manage{" "}
+              <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+                property at scale
+              </span>
+            </h2>
+            <p className="text-blue-100/60 max-w-xl mx-auto text-lg">
+              Built for Nigerian property owners and tenants who demand efficiency, transparency and trust.
             </p>
           </div>
 
-          <Accordion type="single" collapsible className="w-full space-y-4">
-            <AccordionItem value="faq-1" className="border border-slate-200 dark:border-slate-800 rounded-2xl px-5 bg-slate-50/50 dark:bg-slate-950/40">
-              <AccordionTrigger className="font-bold hover:no-underline text-left text-slate-850 dark:text-slate-200 py-5">
-                Is rent payment secured in escrow?
-              </AccordionTrigger>
-              <AccordionContent className="text-slate-500 dark:text-slate-400 leading-relaxed pb-5 text-sm">
-                Yes! When a tenant makes a rent payment, the funds are safely processed into our verified wallet system. For key services and lease deposits, payouts are securely held in escrow until lease agreements are digitally signed and finalized by both parties.
-              </AccordionContent>
-            </AccordionItem>
-
-            <AccordionItem value="faq-2" className="border border-slate-200 dark:border-slate-800 rounded-2xl px-5 bg-slate-50/50 dark:bg-slate-950/40">
-              <AccordionTrigger className="font-bold hover:no-underline text-left text-slate-855 dark:text-slate-200 py-5">
-                How does landlord KYC work?
-              </AccordionTrigger>
-              <AccordionContent className="text-slate-500 dark:text-slate-400 leading-relaxed pb-5 text-sm">
-                To guarantee scam-free listings, all landlords must supply official government identification alongside verify-proven property ownership deeds (C of O) before listing. Vetted landlords receive a verified profile badge.
-              </AccordionContent>
-            </AccordionItem>
-
-            <AccordionItem value="faq-3" className="border border-slate-200 dark:border-slate-800 rounded-2xl px-5 bg-slate-50/50 dark:bg-slate-950/40">
-              <AccordionTrigger className="font-bold hover:no-underline text-left text-slate-855 dark:text-slate-200 py-5">
-                How do handymen join the platform?
-              </AccordionTrigger>
-              <AccordionContent className="text-slate-500 dark:text-slate-400 leading-relaxed pb-5 text-sm">
-                Service providers apply by submitting business registration details or professional certifications. Once verified, they join our marketplace and receive real-time, geolocated repair requests from landlords and tenants.
-              </AccordionContent>
-            </AccordionItem>
-
-            <AccordionItem value="faq-4" className="border border-slate-200 dark:border-slate-800 rounded-2xl px-5 bg-slate-50/50 dark:bg-slate-950/40">
-              <AccordionTrigger className="font-bold hover:no-underline text-left text-slate-855 dark:text-slate-200 py-5">
-                Are there automated bills reminders?
-              </AccordionTrigger>
-              <AccordionContent className="text-slate-500 dark:text-slate-400 leading-relaxed pb-5 text-sm">
-                Absolutely. Tenants can easily set up automated wallet triggers to auto-pay monthly building fees, power tokens, or water supply bills directly to the estate ledger.
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {features.map((f, i) => (
+              <motion.div
+                key={f.title}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                whileHover={{ y: -4, scale: 1.01 }}
+                className="group rounded-2xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.07] backdrop-blur-sm p-6 transition-all duration-300 cursor-default"
+              >
+                <div className={`inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${f.color} mb-4 shadow-lg`}>
+                  {f.icon}
+                </div>
+                <h3 className="text-lg font-bold text-white mb-2">{f.title}</h3>
+                <p className="text-sm text-blue-100/60 leading-relaxed">{f.desc}</p>
+              </motion.div>
+            ))}
+          </div>
         </div>
-      </section>
+      </Section>
 
-      {/* 8. DYNAMIC CALL TO ACTION BANNER */}
-      <section className="py-24 bg-slate-950 text-white relative overflow-hidden border-t border-slate-800">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60%] h-[60%] rounded-full bg-blue-600/10 blur-3xl" />
-        
-        <div className="container relative z-10 px-4 mx-auto text-center space-y-6 max-w-3xl">
-          <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight">
-            Ready to Experience the Future of Renting?
-          </h2>
-          <p className="text-slate-400 text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
-            Join the property network that values verification, speed, and safety. Create an account in under 3 minutes.
-          </p>
+      {/* ── HOW IT WORKS ─────────────────────────────────────────────────────── */}
+      <Section className="py-24 bg-white/[0.02] border-y border-white/10">
+        <div className="max-w-6xl mx-auto px-4 md:px-8">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-violet-500/30 bg-violet-500/10 text-violet-300 text-xs font-semibold mb-4">
+              <Play className="h-3 w-3 fill-current" /> How It Works
+            </div>
+            <h2 className="text-3xl md:text-5xl font-black tracking-tight">
+              Up and running in{" "}
+              <span className="bg-gradient-to-r from-violet-400 to-pink-400 bg-clip-text text-transparent">3 minutes</span>
+            </h2>
+          </div>
 
-          <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
-            <Link href="/signup" className="w-full sm:w-auto">
-              <Button size="lg" className="w-full sm:w-auto h-13 px-8 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-base shadow-lg shadow-blue-600/20">
-                Register as User
-              </Button>
-            </Link>
-            <Link href="/provider-signup" className="w-full sm:w-auto">
-              <Button size="lg" variant="outline" className="w-full sm:w-auto h-13 px-8 rounded-xl border-slate-800 text-slate-200 hover:bg-slate-900 text-base">
-                Register as Provider
-              </Button>
+          <div className="grid md:grid-cols-3 gap-8 relative">
+            {/* Connector line */}
+            <div className="hidden md:block absolute top-10 left-[calc(16.6%+1rem)] right-[calc(16.6%+1rem)] h-0.5 bg-gradient-to-r from-blue-500/0 via-blue-500/50 to-blue-500/0" />
+            {[
+              { step: "01", icon: <Users className="h-5 w-5" />,      title: "Create Account",     desc: "Sign up in 3 minutes. Choose your role — tenant, landlord, or service provider." },
+              { step: "02", icon: <ShieldCheck className="h-5 w-5" />, title: "Verify & Connect",  desc: "Complete KYC verification. Get matched with verified properties or tenants." },
+              { step: "03", icon: <TrendingUp className="h-5 w-5" />,  title: "Manage & Grow",     desc: "Collect rent, track maintenance, view analytics and scale your portfolio." },
+            ].map((s, i) => (
+              <motion.div
+                key={s.step}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.15 }}
+                className="relative text-center"
+              >
+                <div className="relative inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600/30 to-blue-800/30 border border-blue-500/30 mb-6 mx-auto">
+                  <div className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center text-[10px] font-black text-white">
+                    {s.step}
+                  </div>
+                  <div className="text-blue-400">{s.icon}</div>
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">{s.title}</h3>
+                <p className="text-sm text-blue-100/60 leading-relaxed max-w-xs mx-auto">{s.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </Section>
+
+      {/* ── MARKETPLACE ───────────────────────────────────────────────────────── */}
+      <Section id="marketplace" className="py-24 md:py-32">
+        <div className="max-w-6xl mx-auto px-4 md:px-8">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-xs font-semibold mb-4">
+              <Globe className="h-3 w-3" /> Service Marketplace
+            </div>
+            <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4">
+              Trusted service providers,{" "}
+              <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">on demand</span>
+            </h2>
+            <p className="text-blue-100/60 max-w-xl mx-auto text-lg">
+              Every service provider on PRMS is vetted, rated, and insured. Book in seconds.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {providers.map((p, i) => (
+              <motion.div
+                key={p.name}
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.08 }}
+                whileHover={{ y: -4 }}
+                className="rounded-2xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.07] p-6 flex items-start gap-4 transition-all cursor-default"
+              >
+                <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${p.color}`}>
+                  {p.icon}
+                </div>
+                <div>
+                  <div className="font-bold text-white mb-1">{p.name}</div>
+                  <div className="text-sm text-blue-100/60">{p.desc}</div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="mt-10 text-center">
+            <Link href="/signup">
+              <motion.button
+                whileHover={{ scale: 1.04 }}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 rounded-xl text-emerald-300 font-semibold text-sm transition-all"
+              >
+                Browse All Providers <ArrowRight className="h-4 w-4" />
+              </motion.button>
             </Link>
           </div>
         </div>
-      </section>
+      </Section>
 
+      {/* ── TESTIMONIALS ─────────────────────────────────────────────────────── */}
+      <Section className="py-24 bg-white/[0.02] border-y border-white/10">
+        <div className="max-w-6xl mx-auto px-4 md:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4">
+              Loved by{" "}
+              <span className="bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">
+                thousands
+              </span>
+            </h2>
+            <p className="text-blue-100/60 text-lg">Real stories from real PRMS users across Nigeria.</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {testimonials.map((t, i) => (
+              <motion.div
+                key={t.name}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.12 }}
+                whileHover={{ y: -4 }}
+                className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 transition-all"
+              >
+                <div className="flex mb-4">
+                  {[...Array(t.stars)].map((_, j) => (
+                    <Star key={j} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                  ))}
+                </div>
+                <p className="text-blue-100/80 text-sm leading-relaxed mb-6">&quot;{t.body}&quot;</p>
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-white font-bold text-sm">
+                    {t.name[0]}
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-white">{t.name}</div>
+                    <div className="text-xs text-blue-200/60">{t.role}</div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </Section>
+
+      {/* ── WHY PRMS ────────────────────────────────────────────────────────── */}
+      <Section className="py-24 md:py-32">
+        <div className="max-w-6xl mx-auto px-4 md:px-8">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-300 text-xs font-semibold mb-6">
+                <Lock className="h-3 w-3" /> Built for Trust
+              </div>
+              <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-6">
+                Why PRMS beats every
+                <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent"> alternative</span>
+              </h2>
+              <p className="text-blue-100/60 text-lg mb-8 leading-relaxed">
+                Most platforms just list properties. PRMS manages the entire relationship — from verified onboarding to monthly rent collection and beyond.
+              </p>
+              <div className="space-y-4">
+                {[
+                  "KYC-verified landlords and tenants",
+                  "End-to-end rent payment tracking",
+                  "Real-time maintenance request system",
+                  "AI-powered property recommendations",
+                  "Compliant with Nigerian property laws",
+                ].map((item, i) => (
+                  <motion.div
+                    key={item}
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.08 }}
+                    className="flex items-center gap-3"
+                  >
+                    <CheckCircle2 className="h-5 w-5 text-blue-400 shrink-0" />
+                    <span className="text-blue-100/80 text-sm">{item}</span>
+                  </motion.div>
+                ))}
+              </div>
+              <div className="mt-10 flex gap-4">
+                <Link href="/signup">
+                  <motion.button
+                    whileHover={{ scale: 1.04 }}
+                    className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl text-white font-bold text-sm shadow-lg shadow-blue-600/30 transition-all"
+                  >
+                    Get Started Free <ArrowRight className="h-4 w-4" />
+                  </motion.button>
+                </Link>
+              </div>
+            </div>
+
+            {/* Feature highlight cards grid */}
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { icon: <Smartphone className="h-5 w-5 text-blue-400" />, label: "Mobile First",      val: "iOS & Android ready" },
+                { icon: <Globe className="h-5 w-5 text-emerald-400" />,   label: "Nigeria-wide",      val: "All 36 states covered" },
+                { icon: <Lock className="h-5 w-5 text-violet-400" />,     label: "Bank-grade Security",val: "256-bit encryption" },
+                { icon: <Zap className="h-5 w-5 text-yellow-400" />,      label: "Instant Payouts",   val: "Same-day processing" },
+              ].map((c, i) => (
+                <motion.div
+                  key={c.label}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                  className="rounded-2xl border border-white/10 bg-white/[0.04] p-5"
+                >
+                  <div className="mb-3">{c.icon}</div>
+                  <div className="text-sm font-bold text-white mb-1">{c.label}</div>
+                  <div className="text-xs text-blue-200/60">{c.val}</div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      {/* ── CTA BANNER ───────────────────────────────────────────────────────── */}
+      <Section className="py-16 md:py-24">
+        <div className="max-w-5xl mx-auto px-4 md:px-8">
+          <motion.div
+            whileInView={{ scale: 1 }}
+            initial={{ scale: 0.97 }}
+            viewport={{ once: true }}
+            className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-blue-600 to-blue-800 p-10 md:p-16 text-center shadow-2xl shadow-blue-600/20"
+          >
+            {/* Inner glow */}
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-transparent pointer-events-none" />
+            <div className="absolute -top-16 -right-16 w-64 h-64 bg-white/5 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="relative z-10">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 text-white text-xs font-semibold mb-6">
+                <Sparkles className="h-3 w-3" /> Limited Early Access
+              </div>
+              <h2 className="text-3xl md:text-5xl font-black tracking-tight text-white mb-4">
+                Start managing smarter today
+              </h2>
+              <p className="text-blue-100/80 text-lg max-w-xl mx-auto mb-8">
+                Join thousands of landlords and tenants already using PRMS. Setup takes under 3 minutes.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link href="/signup">
+                  <motion.button
+                    whileHover={{ scale: 1.05, boxShadow: "0 0 40px rgba(255,255,255,0.3)" }}
+                    className="px-8 py-4 bg-white text-blue-700 font-black rounded-2xl text-base shadow-xl hover:bg-blue-50 transition-all"
+                  >
+                    Create Free Account
+                  </motion.button>
+                </Link>
+                <Link href="/listings">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    className="px-8 py-4 border border-white/30 text-white font-bold rounded-2xl text-base hover:bg-white/10 transition-all"
+                  >
+                    Browse Properties
+                  </motion.button>
+                </Link>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </Section>
+
+      {/* ── FOOTER ────────────────────────────────────────────────────────────── */}
+      <footer className="border-t border-white/10 bg-[#060F22] pt-16 pb-8">
+        <div className="max-w-6xl mx-auto px-4 md:px-8">
+          <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-5 mb-12">
+            {/* Brand */}
+            <div className="lg:col-span-2 space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg shadow-blue-500/30">
+                  <Building2 className="h-5 w-5 text-white" />
+                </div>
+                <span className="font-black text-white text-xl tracking-tight">PRMS</span>
+              </div>
+              <p className="text-sm text-blue-200/50 leading-relaxed max-w-xs">
+                The most trusted platform for property management in Nigeria. Built for landlords and tenants who value efficiency and transparency.
+              </p>
+              <div className="flex items-center gap-1">
+                {[...Array(5)].map((_, i) => <Star key={i} className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />)}
+                <span className="text-xs text-blue-200/50 ml-2">4.9 · 2,400+ reviews</span>
+              </div>
+            </div>
+
+            {/* Links */}
+            {[
+              { heading: "Company",   links: [{ label: "About",      href: "/about" }, { label: "Features", href: "/features" }, { label: "Contact", href: "/contact" }] },
+              { heading: "Resources", links: [{ label: "Listings",   href: "/listings" }, { label: "FAQ",   href: "/faq" }, { label: "Landlords", href: "/landlords" }] },
+              { heading: "Legal",     links: [{ label: "Terms",      href: "/terms" }, { label: "Privacy",  href: "/privacy" }] },
+            ].map(col => (
+              <div key={col.heading}>
+                <h4 className="text-xs font-bold uppercase tracking-widest text-blue-200/50 mb-4">{col.heading}</h4>
+                <ul className="space-y-2.5">
+                  {col.links.map(l => (
+                    <li key={l.label}>
+                      <Link href={l.href} className="text-sm text-blue-100/60 hover:text-white transition-colors">
+                        {l.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          <div className="border-t border-white/10 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-blue-200/40">
+            <span>© {new Date().getFullYear()} PRMS. Owned by JUNIOR PROPERTY TECHNOLOGIES.</span>
+            <span>Built with ❤ for Nigerian property owners.</span>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }

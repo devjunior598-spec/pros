@@ -4,12 +4,27 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { notFound } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Badge } from '@/components/ui/badge'
-import { Star, Building2, ShieldCheck, Calendar, Home, Bed, Bath, MapPin, Loader2, User } from 'lucide-react'
+import {
+  Star,
+  Building2,
+  ShieldCheck,
+  Calendar,
+  Home,
+  Bed,
+  Bath,
+  MapPin,
+  Loader2,
+  User,
+  Link as LinkIcon,
+} from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
+import { motion } from 'motion/react'
+import { PublicPageShell } from '@/components/public-page-shell'
+
+// ─── Interfaces ───────────────────────────────────────────────────────────────
 
 interface LandlordProfile {
   id: string
@@ -44,6 +59,8 @@ interface Review {
   profiles: { name: string; profile_image_url?: string } | null
 }
 
+// ─── Star Display Component ───────────────────────────────────────────────────
+
 function StarDisplay({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'lg' }) {
   const sz = size === 'lg' ? 'h-5 w-5' : 'h-3.5 w-3.5'
   return (
@@ -51,12 +68,19 @@ function StarDisplay({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'l
       {[1, 2, 3, 4, 5].map((s) => (
         <Star
           key={s}
-          className={cn(sz, s <= Math.round(rating) ? 'fill-amber-400 text-amber-400' : 'fill-slate-700 text-slate-700')}
+          className={cn(
+            sz,
+            s <= Math.round(rating)
+              ? 'fill-amber-400 text-amber-400'
+              : 'fill-white/10 text-white/10'
+          )}
         />
       ))}
     </div>
   )
 }
+
+// ─── Page Component ───────────────────────────────────────────────────────────
 
 export default function LandlordPublicProfilePage() {
   const params = useParams()
@@ -133,20 +157,35 @@ export default function LandlordPublicProfilePage() {
     fetchAll()
   }, [landlordId])
 
+  // ── Loading State ────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
-      </div>
+      <PublicPageShell showBanner={false}>
+        <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
+          <div className="relative">
+            <div className="h-16 w-16 rounded-2xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
+            </div>
+            <div className="absolute inset-0 rounded-2xl bg-blue-500/10 blur-xl pointer-events-none" />
+          </div>
+          <p className="text-sm font-semibold text-blue-200/50">Loading profile...</p>
+        </div>
+      </PublicPageShell>
     )
   }
 
+  // ── Not Found State ──────────────────────────────────────────────────────────
   if (notFoundFlag || !profile) {
     notFound()
   }
 
   const initials = profile.name
-    ? profile.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
+    ? profile.name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2)
     : '?'
 
   const joinDate = profile.created_at
@@ -154,217 +193,359 @@ export default function LandlordPublicProfilePage() {
     : 'Unknown'
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      {/* Hero Banner */}
-      <div className="relative h-52 md:h-72 bg-gradient-to-br from-blue-900 via-slate-900 to-slate-950 overflow-hidden">
-        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-600 via-transparent to-transparent" />
-        <div className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%236366f1' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-          }}
-        />
-      </div>
+    <PublicPageShell showBanner={false}>
+      <div className="max-w-6xl mx-auto px-4 md:px-8 py-10 pb-24">
 
-      <div className="container max-w-5xl mx-auto px-4">
-        {/* Profile Card overlapping the banner */}
-        <div className="-mt-20 relative z-10 mb-8">
-          <div className="bg-slate-900/90 backdrop-blur border border-slate-800/70 rounded-2xl p-6 shadow-2xl">
-            <div className="flex flex-col sm:flex-row items-start sm:items-end gap-5">
+        {/* ── Hero Row ─────────────────────────────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="relative rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm overflow-hidden mb-6"
+        >
+          {/* Background glow */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute top-0 left-1/3 w-72 h-48 bg-blue-600/10 rounded-full blur-3xl" />
+            <div className="absolute top-0 right-1/4 w-48 h-32 bg-violet-600/10 rounded-full blur-3xl" />
+          </div>
+
+          <div className="relative z-10 p-6 md:p-10">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+
               {/* Avatar */}
-              <div className="h-24 w-24 rounded-2xl border-4 border-slate-800 bg-slate-800 overflow-hidden flex items-center justify-center flex-shrink-0 shadow-xl">
-                {profile.profile_image_url ? (
-                  <img
-                    src={profile.profile_image_url}
-                    alt={profile.name}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <span className="text-3xl font-black text-slate-400">{initials}</span>
+              <div className="relative flex-shrink-0">
+                <div className="h-24 w-24 md:h-28 md:w-28 rounded-2xl bg-gradient-to-br from-blue-600 to-violet-600 flex items-center justify-center overflow-hidden shadow-2xl shadow-blue-600/30 border border-white/10">
+                  {profile.profile_image_url ? (
+                    <img
+                      src={profile.profile_image_url}
+                      alt={profile.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-3xl font-black text-white">{initials}</span>
+                  )}
+                </div>
+                {profile.is_verified && (
+                  <div className="absolute -bottom-2 -right-2 h-8 w-8 rounded-lg bg-blue-600 border-2 border-[#081A3A] flex items-center justify-center shadow-lg">
+                    <ShieldCheck className="h-4 w-4 text-white" />
+                  </div>
                 )}
               </div>
 
               {/* Name & meta */}
-              <div className="flex-1 min-w-0 pb-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-2xl font-black text-white tracking-tight">
+              <div className="flex-1 min-w-0 space-y-2">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <h1 className="text-3xl font-black text-white tracking-tight">
                     {profile.name}
                   </h1>
                   {profile.is_verified && (
-                    <span title="Identity Verified">
-                      <ShieldCheck className="h-5 w-5 text-blue-400" />
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-300 text-xs font-semibold">
+                      <ShieldCheck className="h-3.5 w-3.5" />
+                      Verified Landlord
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-1.5 text-slate-400 text-sm mt-1">
-                  <Calendar className="h-3.5 w-3.5" />
-                  <span>Member since {joinDate}</span>
+
+                <div className="flex flex-wrap items-center gap-4 text-sm text-blue-200/60">
+                  <span className="flex items-center gap-1.5">
+                    <Calendar className="h-4 w-4 text-blue-400/60" />
+                    Member since {joinDate}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <User className="h-4 w-4 text-blue-400/60" />
+                    {profile.role ?? 'Landlord'}
+                  </span>
                 </div>
+
                 {profile.bio && (
-                  <p className="text-sm text-slate-400 mt-2 leading-relaxed max-w-xl line-clamp-2">
+                  <p className="text-sm text-blue-200/50 leading-relaxed max-w-2xl line-clamp-2 mt-1">
                     {profile.bio}
                   </p>
                 )}
               </div>
+            </div>
 
-              {/* Stats row */}
-              <div className="flex items-center gap-6 sm:gap-8 text-center flex-shrink-0">
+            {/* ── Stat pills ──────────────────────────────────────────────── */}
+            <div className="flex flex-wrap gap-3 mt-6 pt-6 border-t border-white/5">
+              <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/10">
+                <Home className="h-4 w-4 text-blue-400" />
                 <div>
-                  <div className="text-2xl font-black text-white">{properties.length}</div>
-                  <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">
-                    Listings
+                  <div className="text-lg font-black text-white leading-none">{properties.length}</div>
+                  <div className="text-[10px] font-bold text-blue-200/40 uppercase tracking-wider mt-0.5">Properties</div>
+                </div>
+              </div>
+
+              {reviews.length > 0 && (
+                <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/10">
+                  <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
+                  <div>
+                    <div className="text-lg font-black text-amber-400 leading-none">{avgRating.toFixed(1)}</div>
+                    <div className="text-[10px] font-bold text-blue-200/40 uppercase tracking-wider mt-0.5">Avg Rating</div>
                   </div>
                 </div>
-                {reviews.length > 0 && (
-                  <div>
-                    <div className="text-2xl font-black text-amber-400">{avgRating.toFixed(1)}</div>
-                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">
-                      Avg Rating
-                    </div>
-                  </div>
-                )}
+              )}
+
+              <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/10">
+                <Building2 className="h-4 w-4 text-violet-400" />
                 <div>
-                  <div className="text-sm font-black">
-                    {profile.is_verified ? (
-                      <span className="text-emerald-400">Verified</span>
-                    ) : (
-                      <span className="text-yellow-500">Pending</span>
-                    )}
-                  </div>
-                  <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">
-                    KYC Status
-                  </div>
+                  <div className="text-lg font-black text-white leading-none">{reviews.length}</div>
+                  <div className="text-[10px] font-bold text-blue-200/40 uppercase tracking-wider mt-0.5">Reviews</div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Properties Grid */}
-        {properties.length > 0 && (
-          <section className="mb-10">
-            <h2 className="text-base font-extrabold uppercase tracking-widest text-slate-400 mb-4">
-              Properties Listed
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {properties.map((prop) => {
-                const thumb = prop.images?.[0]
-                return (
-                  <Link
-                    key={prop.id}
-                    href={`/listings/${prop.id}`}
-                    className="group bg-slate-900/60 border border-slate-800/60 rounded-2xl overflow-hidden hover:border-blue-600/50 transition-all hover:shadow-lg hover:shadow-blue-900/20"
-                  >
-                    <div className="aspect-video w-full bg-slate-800 relative overflow-hidden">
-                      {thumb ? (
-                        <img
-                          src={thumb}
-                          alt={prop.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Building2 className="h-8 w-8 text-slate-700" />
-                        </div>
-                      )}
-                      <Badge
-                        className={cn(
-                          'absolute top-2 right-2 text-[9px] uppercase font-bold px-2 py-0.5 rounded-lg',
-                          prop.status === 'available'
-                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                            : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
-                        )}
+        {/* ── Two-column layout ─────────────────────────────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* LEFT: Properties (2/3 width) */}
+          <div className="lg:col-span-2 space-y-5">
+            {properties.length > 0 && (
+              <motion.section
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.15 }}
+              >
+                {/* Section header */}
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-300 text-xs font-semibold">
+                    <Home className="h-3.5 w-3.5" />
+                    Properties Listed
+                  </span>
+                  <span className="text-xs text-blue-200/30 font-medium">
+                    {properties.length} listing{properties.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {properties.map((prop, i) => {
+                    const thumb = prop.images?.[0]
+                    return (
+                      <motion.div
+                        key={prop.id}
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: i * 0.06 }}
                       >
-                        {prop.status}
-                      </Badge>
-                    </div>
-                    <div className="p-4 space-y-2">
-                      <h3 className="text-sm font-bold text-slate-100 line-clamp-1 group-hover:text-blue-400 transition-colors">
-                        {prop.title}
-                      </h3>
-                      <div className="flex items-center gap-1 text-xs text-slate-500">
-                        <MapPin className="h-3 w-3" />
-                        <span>{prop.city}, {prop.state}</span>
-                      </div>
-                      <div className="flex items-center justify-between pt-1">
-                        <div className="flex items-center gap-3 text-xs text-slate-400">
-                          <span className="flex items-center gap-1">
-                            <Bed className="h-3 w-3" />{prop.bedrooms}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Bath className="h-3 w-3" />{prop.bathrooms}
-                          </span>
-                        </div>
-                        <div className="text-sm font-black text-blue-400">
-                          ₦{prop.price?.toLocaleString()}
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                )
-              })}
-            </div>
-          </section>
-        )}
+                        <Link
+                          href={`/listings/${prop.id}`}
+                          className="group block rounded-2xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.07] hover:border-blue-500/30 transition-all duration-200 overflow-hidden"
+                        >
+                          {/* Thumbnail */}
+                          <div className="aspect-video w-full bg-white/[0.03] relative overflow-hidden">
+                            {thumb ? (
+                              <img
+                                src={thumb}
+                                alt={prop.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Building2 className="h-8 w-8 text-white/10" />
+                              </div>
+                            )}
+                            {/* Status badge */}
+                            <span
+                              className={cn(
+                                'absolute top-2.5 right-2.5 text-[9px] uppercase font-bold px-2 py-0.5 rounded-lg border',
+                                prop.status === 'available'
+                                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 backdrop-blur-sm'
+                                  : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30 backdrop-blur-sm'
+                              )}
+                            >
+                              {prop.status}
+                            </span>
+                            {/* Type badge */}
+                            <span className="absolute top-2.5 left-2.5 text-[9px] uppercase font-bold px-2 py-0.5 rounded-lg border border-white/20 bg-black/40 text-white backdrop-blur-sm">
+                              {prop.type}
+                            </span>
+                          </div>
 
-        {/* Recent Reviews */}
-        {reviews.length > 0 && (
-          <section className="mb-16">
-            <h2 className="text-base font-extrabold uppercase tracking-widest text-slate-400 mb-4">
-              Recent Reviews
-            </h2>
-            <div className="space-y-4">
-              {reviews.map((review) => {
-                const reviewer = review.profiles
-                const initials = reviewer?.name
-                  ? reviewer.name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
-                  : '?'
-                return (
-                  <div
-                    key={review.id}
-                    className="p-4 bg-slate-900/60 border border-slate-800/60 rounded-2xl space-y-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center overflow-hidden flex-shrink-0">
-                        {reviewer?.profile_image_url ? (
-                          <img
-                            src={reviewer.profile_image_url}
-                            alt={reviewer.name}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-xs font-black text-slate-400">{initials}</span>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-slate-100 truncate">
-                          {reviewer?.name || 'Anonymous'}
-                        </p>
-                        <p className="text-[10px] text-slate-500">
-                          {format(new Date(review.created_at), 'MMM d, yyyy')}
-                        </p>
-                      </div>
-                      <StarDisplay rating={review.rating} />
-                    </div>
-                    {review.comment && (
-                      <p className="text-sm text-slate-400 leading-relaxed pl-12">
-                        {review.comment}
-                      </p>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </section>
-        )}
+                          {/* Info */}
+                          <div className="p-4 space-y-2">
+                            <h3 className="text-sm font-bold text-white line-clamp-1 group-hover:text-blue-300 transition-colors">
+                              {prop.title}
+                            </h3>
+                            <div className="flex items-center gap-1 text-xs text-blue-200/50">
+                              <MapPin className="h-3 w-3 text-red-400/70" />
+                              <span>{prop.city}, {prop.state}</span>
+                            </div>
+                            <div className="flex items-center justify-between pt-1">
+                              <div className="flex items-center gap-3 text-xs text-blue-200/40">
+                                <span className="flex items-center gap-1">
+                                  <Bed className="h-3 w-3" />{prop.bedrooms}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Bath className="h-3 w-3" />{prop.bathrooms}
+                                </span>
+                              </div>
+                              <span className="text-sm font-black text-blue-400">
+                                ₦{prop.price?.toLocaleString()}
+                              </span>
+                            </div>
+                          </div>
+                        </Link>
+                      </motion.div>
+                    )
+                  })}
+                </div>
+              </motion.section>
+            )}
 
-        {/* Empty state */}
-        {properties.length === 0 && reviews.length === 0 && (
-          <div className="text-center py-20 text-slate-500">
-            <Building2 className="h-12 w-12 mx-auto mb-4 opacity-30" />
-            <p className="text-sm font-semibold">No active listings found for this landlord.</p>
+            {/* Empty listings state */}
+            {properties.length === 0 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex flex-col items-center justify-center py-16 gap-4 rounded-2xl border border-white/10 bg-white/[0.02]"
+              >
+                <Building2 className="h-10 w-10 text-white/10" />
+                <p className="text-sm text-blue-200/40 font-medium">No active listings from this landlord.</p>
+              </motion.div>
+            )}
           </div>
-        )}
+
+          {/* RIGHT: Contact + Reviews (1/3 width) */}
+          <div className="space-y-5">
+
+            {/* Contact Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+              className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm p-5"
+            >
+              <h2 className="text-sm font-black text-white mb-1 tracking-tight">
+                Contact this Landlord
+              </h2>
+              <p className="text-xs text-blue-200/50 mb-4 leading-relaxed">
+                Send a message directly to {profile.name.split(' ')[0]} about any of their listings.
+              </p>
+
+              <Link
+                href="/messages"
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition-all shadow-lg shadow-blue-600/30"
+              >
+                <LinkIcon className="h-4 w-4" />
+                Send a Message
+              </Link>
+
+              {/* Divider */}
+              <div className="border-t border-white/5 mt-4 pt-4 space-y-2.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-blue-200/40 font-medium">KYC Status</span>
+                  <span
+                    className={cn(
+                      'font-bold',
+                      profile.is_verified ? 'text-emerald-400' : 'text-yellow-400'
+                    )}
+                  >
+                    {profile.is_verified ? '✓ Verified' : 'Pending'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-blue-200/40 font-medium">Member Since</span>
+                  <span className="text-white font-bold">{joinDate}</span>
+                </div>
+                {reviews.length > 0 && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-blue-200/40 font-medium">Avg Rating</span>
+                    <span className="text-amber-400 font-bold">
+                      ★ {avgRating.toFixed(1)} / 5.0
+                    </span>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+
+            {/* Reviews */}
+            {reviews.length > 0 && (
+              <motion.section
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.28 }}
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs font-semibold">
+                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                    Recent Reviews
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  {reviews.map((review, i) => {
+                    const reviewer = review.profiles
+                    const reviewerInitials = reviewer?.name
+                      ? reviewer.name
+                          .split(' ')
+                          .map((n) => n[0])
+                          .join('')
+                          .toUpperCase()
+                          .slice(0, 2)
+                      : '?'
+
+                    return (
+                      <motion.div
+                        key={review.id}
+                        initial={{ opacity: 0, x: 10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3, delay: 0.3 + i * 0.07 }}
+                        className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 space-y-3"
+                      >
+                        {/* Reviewer */}
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-600/40 to-violet-600/40 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+                            {reviewer?.profile_image_url ? (
+                              <img
+                                src={reviewer.profile_image_url}
+                                alt={reviewer.name}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <span className="text-xs font-black text-white">
+                                {reviewerInitials}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-white truncate">
+                              {reviewer?.name || 'Anonymous'}
+                            </p>
+                            <p className="text-[10px] text-blue-200/40">
+                              {format(new Date(review.created_at), 'MMM d, yyyy')}
+                            </p>
+                          </div>
+                          <StarDisplay rating={review.rating} />
+                        </div>
+
+                        {review.comment && (
+                          <p className="text-xs text-blue-200/60 leading-relaxed pl-12">
+                            &ldquo;{review.comment}&rdquo;
+                          </p>
+                        )}
+                      </motion.div>
+                    )
+                  })}
+                </div>
+              </motion.section>
+            )}
+
+            {/* Empty reviews state */}
+            {reviews.length === 0 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 text-center space-y-2"
+              >
+                <Star className="h-8 w-8 text-white/10 mx-auto" />
+                <p className="text-xs text-blue-200/40 font-medium">No reviews yet.</p>
+              </motion.div>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
+    </PublicPageShell>
   )
 }

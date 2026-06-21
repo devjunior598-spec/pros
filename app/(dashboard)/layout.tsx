@@ -12,6 +12,7 @@ import { Building2, ShieldCheck, CheckCircle } from "lucide-react"
 import Link from "next/link"
 import { ChatProvider } from "@/components/chat/chat-provider"
 import { CallModal } from "@/components/chat/call-modal"
+import { Logo } from "@/components/logo"
 
 export default function DashboardLayout({
     children,
@@ -118,11 +119,8 @@ export default function DashboardLayout({
                     <CallModal />
                     {/* Desktop Sidebar */}
                     <aside className="fixed inset-y-0 left-0 z-50 hidden w-64 border-r border-gray-200/60 dark:border-gray-800/60 bg-white dark:bg-gray-950 md:block shadow-[1px_0_10px_rgba(0,0,0,0.02)]">
-                        <div className="flex h-16 items-center border-b px-6">
-                            <Link href="/" className="flex items-center gap-2">
-                                <Building2 className="h-6 w-6 text-blue-600" />
-                                <span className="font-bold text-xl uppercase tracking-tighter dark:text-white">PRMS</span>
-                            </Link>
+                        <div className="flex h-16 items-center border-b px-5">
+                            <Logo height={32} />
                         </div>
                         <ScrollArea className="h-[calc(100vh-64px)] px-3 py-4">
                             <div className="mb-6 px-3">

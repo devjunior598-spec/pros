@@ -8,11 +8,16 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "Landlord-Tenant Platform",
-  description: "Premium property management in Nigeria",
+  title: "PRMS – Property Rental Management System",
+  description: "Nigeria's #1 property rental management platform. Verified landlords, smart tenant screening, online rent collection and more.",
+  keywords: "property management, Nigeria, rental, landlord, tenant, PRMS",
+  openGraph: {
+    title: "PRMS – Property Rental Management System",
+    description: "Join the property network that values verification, speed, and safety.",
+    type: "website",
+  }
 };
 
-import { SiteFooter } from "@/components/site-footer";
 import { GlobalErrorSuppressor } from "@/components/global-error-suppressor";
 import { NotificationsProvider } from "@/components/notifications/notifications-provider";
 import { AuthProvider } from "@/contexts/auth-context";
@@ -61,7 +66,6 @@ export default function RootLayout({
             </div>
           </NotificationsProvider>
         </AuthProvider>
-        <SiteFooter />
       </body>
     </html>
   );

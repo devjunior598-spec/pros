@@ -1,177 +1,343 @@
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, Shield, Home, Target } from "lucide-react"
-import Link from "next/link"
+import PublicPageShell from "@/components/public-page-shell";
+import { motion } from "motion/react";
+import { ShieldCheck, Home, Users, Target, ArrowRight } from "lucide-react";
+import Link from "next/link";
+
+// ─── Data ────────────────────────────────────────────────────────────────────
+
+const stats = [
+  { label: "Year Founded", value: "2023" },
+  { label: "Cities Active", value: "12" },
+  { label: "Properties Listed", value: "1,200+" },
+  { label: "Happy Users", value: "5,000+" },
+];
+
+const values = [
+  {
+    icon: ShieldCheck,
+    title: "Trust & Security",
+    description:
+      "Every listing is verified by our team before going live. We use end-to-end encryption and identity checks to protect both tenants and landlords.",
+    iconBg: "bg-blue-600/20",
+    iconColor: "text-blue-400",
+    border: "border-blue-500/20",
+  },
+  {
+    icon: Home,
+    title: "Quality Listings",
+    description:
+      "We hold every property to a strict quality standard — accurate photos, honest descriptions, and fair pricing are non-negotiable on PRMS.",
+    iconBg: "bg-cyan-500/20",
+    iconColor: "text-cyan-400",
+    border: "border-cyan-500/20",
+  },
+  {
+    icon: Users,
+    title: "Community First",
+    description:
+      "PRMS is built on the relationships between neighbours, landlords, and tenants. We foster a community where everyone feels respected and heard.",
+    iconBg: "bg-violet-500/20",
+    iconColor: "text-violet-400",
+    border: "border-violet-500/20",
+  },
+  {
+    icon: Target,
+    title: "Transparency",
+    description:
+      "No hidden fees. No surprise charges. Our pricing, processes, and policies are always clear so you can make informed decisions with confidence.",
+    iconBg: "bg-emerald-500/20",
+    iconColor: "text-emerald-400",
+    border: "border-emerald-500/20",
+  },
+];
+
+const team = [
+  {
+    initials: "CO",
+    name: "Chinedu Okeke",
+    role: "CEO & Co-Founder",
+    bio: "Former real-estate attorney with 10 years of experience navigating Lagos property law. Chinedu founded PRMS after witnessing firsthand how broken the rental market was for everyday Nigerians.",
+    gradient: "from-blue-600 to-cyan-500",
+  },
+  {
+    initials: "AY",
+    name: "Amina Yusuf",
+    role: "CTO",
+    bio: "Full-stack engineer and ex-Andela fellow who led product engineering at two fintech startups. Amina architects every technical layer of PRMS — from the API to the mobile app.",
+    gradient: "from-violet-600 to-blue-500",
+  },
+  {
+    initials: "DO",
+    name: "David Olatunji",
+    role: "Head of Operations",
+    bio: "Logistics and operations specialist who scaled operations at a leading Nigerian logistics firm. David oversees agent onboarding, property verification, and customer success across all 12 cities.",
+    gradient: "from-cyan-600 to-emerald-500",
+  },
+];
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 32 },
+  visible: (i: number = 0) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.55, ease: "easeOut", delay: i * 0.1 },
+  }),
+};
 
 export default function AboutPage() {
-    const values = [
-        {
-            icon: Shield,
-            title: "Trust & Security",
-            description: "We verify every landlord and property to ensure a safe rental experience for everyone."
-        },
-        {
-            icon: Home,
-            title: "Quality Listings",
-            description: "Our platform only features properties that meet our high standards for comfort and livability."
-        },
-        {
-            icon: Users,
-            title: "Community First",
-            description: "We're building more than a marketplace; we're building a community of reliable tenants and landlords."
-        },
-        {
-            icon: Target,
-            title: "Transparency",
-            description: "No hidden fees or surprises. We believe in clear communication and honest transactions."
-        }
-    ]
+  return (
+    <PublicPageShell
+      pageTitle="About PRMS"
+      pageSubtitle="Building Nigeria's most trusted property management platform, one verified listing at a time."
+      badge="🏢 Our Story"
+    >
+      {/* ── Mission ── */}
+      <section className="relative py-24 px-6 overflow-hidden">
+        <div className="pointer-events-none absolute -top-32 -left-32 w-[480px] h-[480px] rounded-full bg-blue-700/10 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-0 right-0 w-[360px] h-[360px] rounded-full bg-violet-700/10 blur-3xl" />
+        <div className="relative max-w-6xl mx-auto">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            className="flex justify-center mb-6"
+          >
+            <span className="inline-flex items-center gap-2 border border-blue-500/30 bg-blue-500/10 text-blue-400 text-xs font-semibold rounded-full px-3 py-1 uppercase tracking-widest">
+              Our Mission
+            </span>
+          </motion.div>
 
-    const teamMembers = [
-        {
-            name: "Chinedu Okeke",
-            role: "CEO & Co-Founder",
-            bio: "Former real estate agent with a passion for solving housing challenges in Nigeria."
-        },
-        {
-            name: "Amina Yusuf",
-            role: "CTO",
-            bio: "Tech veteran focused on building secure and scalable platforms for everyday users."
-        },
-        {
-            name: "David Olatunji",
-            role: "Head of Operations",
-            bio: "Ensures smooth day-to-day operations and excellent customer support."
-        }
-    ]
+          <motion.h2
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            custom={1}
+            className="text-center text-3xl md:text-4xl lg:text-5xl font-black tracking-tight text-white mb-16"
+          >
+            Reimagining{" "}
+            <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+              Rental Experiences
+            </span>{" "}
+            in Nigeria
+          </motion.h2>
 
-    return (
-        <div className="flex flex-col min-h-screen">
-            {/* Hero Section */}
-            <section className="relative w-full py-12 md:py-24 lg:py-32 bg-muted overflow-hidden">
-                <div className="container relative z-10 px-4 md:px-6">
-                    <div className="flex flex-col items-center text-center space-y-4">
-                        <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
-                            Reimagining Rental <span className="text-primary">Experiences</span>
-                        </h1>
-                        <p className="max-w-[700px] text-lg text-muted-foreground sm:text-xl">
-                            We are on a mission to simplify the property rental process in Nigeria, making it secure, transparent, and hassle-free.
-                        </p>
-                        <div className="flex gap-4 mt-6">
-                            <Link href="/listings">
-                                <Button size="lg">Browse Listings</Button>
-                            </Link>
-                            <Link href="/contact">
-                                <Button variant="outline" size="lg">Contact Us</Button>
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-                {/* Abstract Background Decoration */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] opacity-10 bg-primary rounded-full blur-3xl -z-0"></div>
-            </section>
+          <div className="grid lg:grid-cols-2 gap-12 items-start">
+            {/* Left — founding story */}
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={fadeUp}
+              custom={2}
+              className="space-y-5 text-blue-100/70 text-[1.05rem] leading-relaxed"
+            >
+              <p>
+                PRMS was born in Lagos in 2023 out of a simple frustration: finding a
+                decent, verified rental property in Nigeria was unnecessarily painful.
+                Listings were fake, agents were unreliable, and tenants had no recourse
+                when things went wrong.
+              </p>
+              <p>
+                Our founders decided to build the platform they wished had existed.
+                PRMS started as a small directory of verified Lekki apartments and has
+                since grown into a full property management ecosystem spanning 12
+                Nigerian cities.
+              </p>
+              <p>
+                Today PRMS handles everything from the first listing photo to the final
+                rent receipt. We verify every property, screen every landlord, and give
+                tenants the tools to pay securely, raise maintenance issues, and renew
+                leases — all without leaving the platform.
+              </p>
+              <p>
+                We believe property management in Africa deserves the same level of
+                trust and polish as the best global platforms. That belief drives every
+                feature we ship.
+              </p>
+            </motion.div>
 
-            {/* Mission Section */}
-            <section className="w-full py-12 md:py-24 bg-background">
-                <div className="container px-4 md:px-6">
-                    <div className="grid gap-10 lg:grid-cols-2 lg:gap-16 items-center">
-                        <div className="space-y-4">
-                            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">Our Mission</h2>
-                            <p className="text-muted-foreground text-lg leading-relaxed">
-                                Finding a home should be an exciting journey, not a stressful one. At House Do, we are leveraging technology to bridge the gap between tenants and landlords.
-                            </p>
-                            <p className="text-muted-foreground text-lg leading-relaxed">
-                                We provide a platform where authenticity is guaranteed, payments are secure, and property management is effortless. Whether you are looking for your next home or managing your investment, we are here to support you every step of the way.
-                            </p>
-                        </div>
-                        <div className="rounded-xl overflow-hidden shadow-xl border">
-                            <img
-                                src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&q=80"
-                                alt="Modern building"
-                                className="w-full h-full object-cover"
-                            />
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Values Section */}
-            <section className="w-full py-12 md:py-24 bg-muted/50">
-                <div className="container px-4 md:px-6">
-                    <div className="flex flex-col items-center justify-center space-y-4 text-center mb-10">
-                        <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">Our Core Values</h2>
-                        <p className="max-w-[700px] text-muted-foreground md:text-lg">
-                            The principles that guide everything we do.
-                        </p>
-                    </div>
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                        {values.map((value, index) => (
-                            <Card key={index} className="bg-card border-none shadow-md hover:shadow-lg transition-shadow">
-                                <CardHeader>
-                                    <div className="p-2 w-fit rounded-lg bg-primary/10 text-primary mb-2">
-                                        <value.icon className="h-6 w-6" />
-                                    </div>
-                                    <CardTitle className="text-xl">{value.title}</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <CardDescription className="text-base">
-                                        {value.description}
-                                    </CardDescription>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            {/* Team Section */}
-            <section className="w-full py-12 md:py-24 bg-background">
-                <div className="container px-4 md:px-6">
-                    <div className="flex flex-col items-center justify-center space-y-4 text-center mb-10">
-                        <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">Meet the Team</h2>
-                        <p className="max-w-[700px] text-muted-foreground md:text-lg">
-                            The dedicated individuals working to change the real estate landscape.
-                        </p>
-                    </div>
-                    <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-                        {teamMembers.map((member, index) => (
-                            <Card key={index} className="overflow-hidden">
-                                <div className="h-48 bg-muted flex items-center justify-center">
-                                    {/* Placeholder for team image */}
-                                    <Users className="h-16 w-16 text-muted-foreground/30" />
-                                </div>
-                                <CardHeader className="text-center">
-                                    <CardTitle>{member.name}</CardTitle>
-                                    <CardDescription className="font-medium text-primary">{member.role}</CardDescription>
-                                </CardHeader>
-                                <CardContent className="text-center text-muted-foreground">
-                                    {member.bio}
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            {/* CTA Section */}
-            <section className="w-full py-12 md:py-24 lg:py-32 bg-primary text-primary-foreground">
-                <div className="container px-4 md:px-6">
-                    <div className="flex flex-col items-center justify-center space-y-4 text-center">
-                        <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">Ready to get started?</h2>
-                        <p className="max-w-[600px] text-primary-foreground/80 md:text-xl">
-                            Join thousands of users who trust House Do for their property needs.
-                        </p>
-                        <div className="flex gap-4">
-                            <Link href="/signup">
-                                <Button variant="secondary" size="lg" className="text-primary font-bold">
-                                    Create Account
-                                </Button>
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-            </section>
+            {/* Right — stats grid */}
+            <div className="grid grid-cols-2 gap-4">
+              {stats.map((stat, i) => (
+                <motion.div
+                  key={stat.label}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true }}
+                  variants={fadeUp}
+                  custom={i + 2}
+                  className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm hover:bg-white/[0.07] transition-colors duration-300 p-6 flex flex-col items-center justify-center text-center"
+                >
+                  <p className="text-4xl font-black bg-gradient-to-br from-blue-400 to-cyan-400 bg-clip-text text-transparent mb-2">
+                    {stat.value}
+                  </p>
+                  <p className="text-blue-100/60 text-sm font-medium uppercase tracking-wider">
+                    {stat.label}
+                  </p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
         </div>
-    )
+      </section>
+
+      {/* ── Values ── */}
+      <section className="py-24 px-6 bg-white/[0.02]">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            className="flex justify-center mb-6"
+          >
+            <span className="inline-flex items-center gap-2 border border-violet-500/30 bg-violet-500/10 text-violet-400 text-xs font-semibold rounded-full px-3 py-1 uppercase tracking-widest">
+              What We Stand For
+            </span>
+          </motion.div>
+
+          <motion.h2
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            custom={1}
+            className="text-center text-3xl md:text-4xl font-black tracking-tight text-white mb-14"
+          >
+            Our Core{" "}
+            <span className="bg-gradient-to-r from-violet-400 to-blue-400 bg-clip-text text-transparent">
+              Values
+            </span>
+          </motion.h2>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {values.map((val, i) => {
+              const Icon = val.icon;
+              return (
+                <motion.div
+                  key={val.title}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true }}
+                  variants={fadeUp}
+                  custom={i + 2}
+                  className={`rounded-2xl border ${val.border} bg-white/[0.04] backdrop-blur-sm hover:bg-white/[0.07] transition-all duration-300 p-6 flex flex-col gap-4`}
+                >
+                  <div className={`w-12 h-12 rounded-xl ${val.iconBg} flex items-center justify-center`}>
+                    <Icon className={`w-6 h-6 ${val.iconColor}`} />
+                  </div>
+                  <h3 className="text-white font-bold text-lg">{val.title}</h3>
+                  <p className="text-blue-100/60 text-sm leading-relaxed">{val.description}</p>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Team ── */}
+      <section className="py-24 px-6">
+        <div className="max-w-5xl mx-auto">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            className="flex justify-center mb-6"
+          >
+            <span className="inline-flex items-center gap-2 border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 text-xs font-semibold rounded-full px-3 py-1 uppercase tracking-widest">
+              The People Behind PRMS
+            </span>
+          </motion.div>
+
+          <motion.h2
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            custom={1}
+            className="text-center text-3xl md:text-4xl font-black tracking-tight text-white mb-14"
+          >
+            Meet Our{" "}
+            <span className="bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+              Founding Team
+            </span>
+          </motion.h2>
+
+          <div className="grid sm:grid-cols-3 gap-6">
+            {team.map((member, i) => (
+              <motion.div
+                key={member.name}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                variants={fadeUp}
+                custom={i + 2}
+                className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm hover:bg-white/[0.07] transition-all duration-300 p-8 flex flex-col items-center text-center gap-4"
+              >
+                <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${member.gradient} flex items-center justify-center text-white text-2xl font-black shadow-lg`}>
+                  {member.initials}
+                </div>
+                <div>
+                  <h3 className="text-white font-bold text-lg">{member.name}</h3>
+                  <p className="text-blue-400 text-sm font-semibold mt-0.5">{member.role}</p>
+                </div>
+                <p className="text-blue-100/60 text-sm leading-relaxed">{member.bio}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA Banner ── */}
+      <section className="py-24 px-6">
+        <div className="max-w-4xl mx-auto">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-700/40 via-blue-800/30 to-violet-800/40 border border-white/10 backdrop-blur-sm p-12 text-center"
+          >
+            <div className="pointer-events-none absolute -top-20 -right-20 w-64 h-64 rounded-full bg-blue-500/20 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-20 -left-20 w-64 h-64 rounded-full bg-violet-500/20 blur-3xl" />
+            <div className="relative z-10 space-y-6">
+              <span className="inline-flex items-center gap-2 border border-blue-400/30 bg-blue-400/10 text-blue-300 text-xs font-semibold rounded-full px-3 py-1 uppercase tracking-widest">
+                Get Started Today
+              </span>
+              <h2 className="text-3xl md:text-5xl font-black tracking-tight text-white">
+                Ready to join{" "}
+                <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+                  PRMS?
+                </span>
+              </h2>
+              <p className="text-blue-100/70 text-lg max-w-xl mx-auto">
+                Join thousands of tenants and landlords already using Nigeria's most
+                trusted property management platform.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center pt-2">
+                <Link
+                  href="/signup"
+                  className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 rounded-xl text-white font-bold px-8 py-3 transition-colors duration-200"
+                >
+                  Create Account
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+                <Link
+                  href="/listings"
+                  className="inline-flex items-center justify-center gap-2 border border-white/20 bg-white/10 hover:bg-white/15 rounded-xl text-white font-bold px-8 py-3 transition-colors duration-200"
+                >
+                  Browse Properties
+                </Link>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+    </PublicPageShell>
+  );
 }

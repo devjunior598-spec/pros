@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Building2, ArrowLeft } from "lucide-react"
+import { ArrowLeft, Building2 } from "lucide-react"
 
 export default function AuthLayout({
     children,
@@ -7,35 +7,35 @@ export default function AuthLayout({
     children: React.ReactNode
 }) {
     return (
-        <div className="relative flex min-h-screen flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 p-4 md:p-8 overflow-hidden transition-colors duration-300 font-sans">
-            
-            {/* Ambient glowing blobs */}
-            <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-500/10 dark:bg-blue-600/10 blur-3xl pointer-events-none" />
-            <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/10 dark:bg-indigo-600/10 blur-3xl pointer-events-none" />
+        <div className="relative flex min-h-screen flex-col items-center justify-center bg-[#081A3A] p-4 md:p-8 overflow-hidden font-sans">
 
-            {/* Back to Home Header Link */}
-            <header className="absolute left-4 top-4 md:left-8 md:top-8 z-30">
-                <Link 
-                    href="/" 
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 backdrop-blur text-sm font-bold text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 transition-all hover:shadow-sm"
+            {/* Ambient glowing orbs */}
+            <div className="absolute top-[-15%] left-[-10%] w-[55%] h-[55%] rounded-full bg-blue-600/15 blur-3xl pointer-events-none" />
+            <div className="absolute bottom-[-15%] right-[-10%] w-[50%] h-[50%] rounded-full bg-violet-600/10 blur-3xl pointer-events-none" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[40%] h-[40%] rounded-full bg-blue-500/5 blur-3xl pointer-events-none" />
+
+            {/* Back to Home */}
+            <header className="absolute left-4 top-4 md:left-8 md:top-6 z-30">
+                <Link
+                    href="/"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/10 bg-white/5 backdrop-blur text-sm font-medium text-blue-200/80 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all"
                 >
                     <ArrowLeft className="h-4 w-4" />
-                    <span>Back to Home</span>
+                    Back to Home
                 </Link>
             </header>
 
+            {/* Content */}
             <div className="w-full max-w-md space-y-6 relative z-10">
-                
-                {/* Logo and brand name above the auth card */}
-                <div className="flex flex-col items-center text-center gap-2 mb-2">
-                    <div className="h-11 w-11 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-600/20">
-                        <Building2 className="h-6 w-6" />
+
+                {/* Logo */}
+                <div className="flex flex-col items-center text-center gap-2">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-xl shadow-blue-600/30 mb-1">
+                        <Building2 className="h-7 w-7 text-white" />
                     </div>
-                    <span className="font-black text-xl tracking-tight text-slate-900 dark:text-slate-550 uppercase">
-                        PRMS
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none">
-                        Property Rental & Management
+                    <span className="font-black text-2xl tracking-tight text-white">PRMS</span>
+                    <span className="text-[11px] text-blue-300/60 font-semibold uppercase tracking-widest">
+                        Property Rental Management
                     </span>
                 </div>
 

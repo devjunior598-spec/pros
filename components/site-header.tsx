@@ -3,9 +3,10 @@
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
-import { Building2, Search, User, ShieldCheck } from "lucide-react"
+import { Search, User, ShieldCheck } from "lucide-react"
 
 import { MobileNav } from "@/components/mobile-nav"
+import { Logo } from "@/components/logo"
 import { NotificationBell } from "@/components/notification-manager"
 import { supabase } from "@/lib/supabase"
 import { cn } from "@/lib/utils"
@@ -92,10 +93,11 @@ export function SiteHeader({ hideNav = false }: SiteHeaderProps) {
                     <MobileNav userRole={profile?.role} isVerified={profile?.is_verified} profile={profile} />
 
                     {!isDashboard && (
-                        <Link href="/" className="flex items-center gap-2 shrink-0">
-                            <Building2 className="h-5 w-5" />
-                            <span className="font-bold text-xl tracking-tight">PRMS</span>
-                        </Link>
+                        <Logo
+                            height={32}
+                            invert
+                            className="shrink-0"
+                        />
                     )}
 
                     {isDashboard && (
