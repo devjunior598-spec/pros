@@ -113,6 +113,7 @@ export default function DashboardLayout({
     return (
         <ChatProvider>
             <DashboardGuard>
+                <NotificationManager>
                 <div className="flex min-h-screen bg-[#f8fafc] dark:bg-[#0f172a]">
                     <CallModal />
                     {/* Desktop Sidebar */}
@@ -177,8 +178,8 @@ export default function DashboardLayout({
                         </main>
                         <BottomNav userRole={userRole} />
                     </div>
-                    <NotificationManager />
                 </div>
+                </NotificationManager>
             </DashboardGuard>
         </ChatProvider>
     )

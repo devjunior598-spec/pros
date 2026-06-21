@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useEffect, useState, useCallback, useRef } from "react"
+import { useEffect, useState, useCallback, useRef, createContext, useContext } from "react"
 import { supabase } from "@/lib/supabase"
 import { ToastNotification, NotificationToast } from "./notification-toast"
 import {
@@ -11,7 +11,7 @@ import {
 import { cn } from "@/lib/utils"
 import { formatDistanceToNow } from "date-fns"
 
-// ─── Extended notification type with persistence ───────────────────────────────
+// ─── Types ─────────────────────────────────────────────────────────────────────
 export interface PersistentNotification {
     id: string
     title: string
@@ -24,7 +24,29 @@ export interface PersistentNotification {
 
 type CategoryTab = 'All' | 'Payments' | 'Maintenance' | 'Messages' | 'System'
 
-// ─── Helper: group by date ─────────────────────────────────────────────────────
+// ─── Shared context ────────────────────────────────────────────────────────────
+interface NotifCtx {
+    panelNotifs: PersistentNotification[]
+    toasts: ToastNotification[]
+    panelOpen: boolean
+    unreadCount: number
+    setPanelOpen: (v: boolean) => void
+    markAllRead: () => void
+    markRead: (id: string) => void
+    addPanelNotif: (title: string, description: string, type: PersistentNotification['type']) => void
+    addToast: (notif: Omit<ToastNotification, 'id'>) => void
+    removeToast: (id: string) => void
+}
+
+const NotifContext = createContext<NotifCtx | null>(null)
+
+function useNotifCtx() {
+    const ctx = useContext(NotifContext)
+    if (!ctx) throw new Error("useNotifCtx must be used inside NotificationManager")
+    return ctx
+}
+
+// ─── Helpers ───────────────────────────────────────────────────────────────────
 function getDateGroup(date: Date): string {
     const now = new Date()
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -36,18 +58,16 @@ function getDateGroup(date: Date): string {
     return "Earlier"
 }
 
-// ─── Helper: icon by type ──────────────────────────────────────────────────────
 function NotifIcon({ type, className }: { type: PersistentNotification['type'], className?: string }) {
     const base = cn("h-4 w-4", className)
     switch (type) {
-        case 'payment': return <DollarSign className={cn(base, "text-green-400")} />
+        case 'payment':     return <DollarSign className={cn(base, "text-green-400")} />
         case 'maintenance': return <Wrench className={cn(base, "text-orange-400")} />
-        case 'message': return <MessageSquare className={cn(base, "text-blue-400")} />
-        default: return <Info className={cn(base, "text-slate-400")} />
+        case 'message':     return <MessageSquare className={cn(base, "text-blue-400")} />
+        default:            return <Info className={cn(base, "text-slate-400")} />
     }
 }
 
-// ─── Browser Notification helper ───────────────────────────────────────────────
 async function requestBrowserPermission(): Promise<boolean> {
     if (!("Notification" in window)) return false
     if (Notification.permission === "granted") return true
@@ -58,11 +78,7 @@ async function requestBrowserPermission(): Promise<boolean> {
 
 function sendBrowserNotification(title: string, body: string) {
     if (!("Notification" in window) || Notification.permission !== "granted") return
-    try {
-        new Notification(title, { body, icon: "/favicon.ico" })
-    } catch {
-        // ignore
-    }
+    try { new Notification(title, { body, icon: "/favicon.ico" }) } catch { /* ignore */ }
 }
 
 // ─── Notification Centre Panel ─────────────────────────────────────────────────
@@ -92,7 +108,6 @@ function NotificationCentre({
         ? notifications
         : notifications.filter(n => n.type === typeMap[activeTab])
 
-    // Group
     const groups: Record<string, PersistentNotification[]> = {}
     const ORDER = ['Today', 'Yesterday', 'Earlier']
     for (const n of filtered) {
@@ -165,18 +180,16 @@ function NotificationCentre({
                                             : "bg-blue-500/5 hover:bg-blue-500/10"
                                     )}
                                 >
-                                    {/* Icon bubble */}
                                     <div className={cn(
                                         "mt-0.5 flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center",
-                                        notif.type === 'payment' ? "bg-green-500/10" :
-                                            notif.type === 'maintenance' ? "bg-orange-500/10" :
-                                                notif.type === 'message' ? "bg-blue-500/10" :
-                                                    "bg-slate-500/10"
+                                        notif.type === 'payment'     ? "bg-green-500/10"  :
+                                        notif.type === 'maintenance' ? "bg-orange-500/10" :
+                                        notif.type === 'message'     ? "bg-blue-500/10"   :
+                                                                       "bg-slate-500/10"
                                     )}>
                                         <NotifIcon type={notif.type} />
                                     </div>
 
-                                    {/* Content */}
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-1.5">
                                             {!notif.read && (
@@ -207,32 +220,12 @@ function NotificationCentre({
     )
 }
 
-// ─── Main NotificationManager ──────────────────────────────────────────────────
-export function NotificationManager() {
-    // Toast queue (transient)
-    const [toasts, setToasts] = useState<ToastNotification[]>([])
-    // Persistent panel notifications
-    const [panelNotifs, setPanelNotifs] = useState<PersistentNotification[]>([])
-    const [panelOpen, setPanelOpen] = useState(false)
-    const [userId, setUserId] = useState<string | null>(null)
+// ─── Inline Bell (rendered inside SiteHeader) ──────────────────────────────────
+export function NotificationBell() {
+    const { panelNotifs, panelOpen, unreadCount, setPanelOpen, markAllRead, markRead } = useNotifCtx()
     const panelRef = useRef<HTMLDivElement>(null)
-    const isTabFocused = useRef(true)
 
-    // Track tab focus for browser push notifications
-    useEffect(() => {
-        const onFocus = () => { isTabFocused.current = true }
-        const onBlur = () => { isTabFocused.current = false }
-        window.addEventListener('focus', onFocus)
-        window.addEventListener('blur', onBlur)
-        // Request permission lazily on first interaction
-        requestBrowserPermission()
-        return () => {
-            window.removeEventListener('focus', onFocus)
-            window.removeEventListener('blur', onBlur)
-        }
-    }, [])
-
-    // Close panel on outside click
+    // Close on outside click
     useEffect(() => {
         if (!panelOpen) return
         const handler = (e: MouseEvent) => {
@@ -242,7 +235,74 @@ export function NotificationManager() {
         }
         document.addEventListener('mousedown', handler)
         return () => document.removeEventListener('mousedown', handler)
-    }, [panelOpen])
+    }, [panelOpen, setPanelOpen])
+
+    return (
+        <div ref={panelRef} className="relative flex items-center">
+            {/* Bell button — inherits h-16 row via flex, so it is always vertically centered */}
+            <button
+                onClick={() => setPanelOpen(!panelOpen)}
+                className={cn(
+                    "relative flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200",
+                    panelOpen
+                        ? "bg-blue-600/20 text-blue-400 ring-1 ring-blue-500/30"
+                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800"
+                )}
+                aria-label="Open notifications"
+            >
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none shadow">
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                )}
+            </button>
+
+            {/* Dropdown panel — clamped so it never overflows on any screen size */}
+            <div className={cn(
+                "absolute right-0 top-11",
+                // width: 360 px on desktop, full viewport minus 2 × 1rem gutter on mobile
+                "w-[min(360px,calc(100vw-2rem))]",
+                // height: 520 px on desktop, dynamic viewport height minus header + bottom-nav on mobile
+                "max-h-[min(520px,calc(100dvh-5rem))]",
+                "flex flex-col",
+                "bg-slate-900/95 backdrop-blur-xl border border-slate-700/60 rounded-2xl shadow-2xl",
+                "transition-all duration-200 origin-top-right z-50",
+                panelOpen
+                    ? "opacity-100 scale-100 pointer-events-auto"
+                    : "opacity-0 scale-95 pointer-events-none"
+            )}>
+                <NotificationCentre
+                    notifications={panelNotifs}
+                    onMarkAllRead={markAllRead}
+                    onMarkRead={markRead}
+                    onClose={() => setPanelOpen(false)}
+                />
+            </div>
+        </div>
+    )
+}
+
+// ─── NotificationManager — Provider + Toasts + Realtime subscriptions ──────────
+export function NotificationManager({ children }: { children?: React.ReactNode }) {
+    const [toasts, setToasts]           = useState<ToastNotification[]>([])
+    const [panelNotifs, setPanelNotifs] = useState<PersistentNotification[]>([])
+    const [panelOpen, setPanelOpen]     = useState(false)
+    const [userId, setUserId]           = useState<string | null>(null)
+    const isTabFocused                  = useRef(true)
+
+    // Track tab focus for browser push notifications
+    useEffect(() => {
+        const onFocus = () => { isTabFocused.current = true }
+        const onBlur  = () => { isTabFocused.current = false }
+        window.addEventListener('focus', onFocus)
+        window.addEventListener('blur',  onBlur)
+        requestBrowserPermission()
+        return () => {
+            window.removeEventListener('focus', onFocus)
+            window.removeEventListener('blur',  onBlur)
+        }
+    }, [])
 
     const addToast = useCallback((notif: Omit<ToastNotification, 'id'>) => {
         const id = Math.random().toString(36).substring(7)
@@ -267,14 +327,8 @@ export function NotificationManager() {
             read: false,
         }
         setPanelNotifs(prev => [notif, ...prev])
-
-        // Show toast
         addToast({ title, description, type: type === 'payment' ? 'system' : type as ToastNotification['type'] })
-
-        // Browser push if tab not focused
-        if (!isTabFocused.current) {
-            sendBrowserNotification(title, description)
-        }
+        if (!isTabFocused.current) sendBrowserNotification(title, description)
     }, [addToast])
 
     const markAllRead = useCallback(() => {
@@ -287,7 +341,7 @@ export function NotificationManager() {
 
     const unreadCount = panelNotifs.filter(n => !n.read).length
 
-    // ── Supabase Realtime Subscriptions (preserved) ──────────────────────────
+    // ── Supabase Realtime Subscriptions ──────────────────────────────────────
     useEffect(() => {
         const initSubscriptions = async () => {
             let user
@@ -302,26 +356,17 @@ export function NotificationManager() {
             if (!user) return
             setUserId(user.id)
 
-            // 1. Subscribe to new messages
+            // 1. Messages
             const messageSub = supabase
                 .channel('realtime_messages')
-                .on(
-                    'postgres_changes',
-                    {
-                        event: 'INSERT',
-                        schema: 'public',
-                        table: 'messages'
-                    },
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' },
                     async (payload) => {
                         if (payload.new.sender_id === user.id) return
-
-                        // Verify user is part of this conversation
                         const { data: conv } = await supabase
                             .from('conversations')
                             .select('id, tenant_id, landlord_id')
                             .eq('id', payload.new.conversation_id)
                             .single()
-
                         if (conv && (conv.tenant_id === user.id || conv.landlord_id === user.id)) {
                             addPanelNotif("New Message", payload.new.message, 'message')
                         }
@@ -332,13 +377,7 @@ export function NotificationManager() {
             // 2. Maintenance Requests
             const maintenanceSub = supabase
                 .channel('realtime_maintenance')
-                .on(
-                    'postgres_changes',
-                    {
-                        event: '*',
-                        schema: 'public',
-                        table: 'maintenance_requests'
-                    },
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'maintenance_requests' },
                     async (payload) => {
                         if (payload.eventType === 'INSERT') {
                             const { data: rental } = await supabase
@@ -346,7 +385,6 @@ export function NotificationManager() {
                                 .select('landlord_id, property:properties(title)')
                                 .eq('id', payload.new.rental_id)
                                 .single()
-
                             if (rental && (rental as any).landlord_id === user.id) {
                                 addPanelNotif(
                                     "New Maintenance Request",
@@ -361,7 +399,6 @@ export function NotificationManager() {
                                     .select('title, tenant_id, rental:rentals(landlord_id)')
                                     .eq('id', payload.new.id)
                                     .single()
-
                                 const landlordId = (req as any)?.rental?.landlord_id
                                 if (req && (req.tenant_id === user.id || landlordId === user.id)) {
                                     addPanelNotif(
@@ -379,13 +416,7 @@ export function NotificationManager() {
             // 3. Rental Applications
             const rentalSub = supabase
                 .channel('realtime_rentals')
-                .on(
-                    'postgres_changes',
-                    {
-                        event: '*',
-                        schema: 'public',
-                        table: 'rentals'
-                    },
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'rentals' },
                     async (payload) => {
                         if (payload.eventType === 'INSERT') {
                             if (payload.new.landlord_id === user.id) {
@@ -394,7 +425,6 @@ export function NotificationManager() {
                                     .select('title')
                                     .eq('id', payload.new.property_id)
                                     .single()
-
                                 addPanelNotif(
                                     "New Application",
                                     `A new application has been submitted for ${(prop as any)?.title || 'your property'}.`,
@@ -408,7 +438,6 @@ export function NotificationManager() {
                                     .select('title')
                                     .eq('id', payload.new.property_id)
                                     .single()
-
                                 addPanelNotif(
                                     "Application Updated",
                                     `Your application for ${(prop as any)?.title || 'the property'} has been ${payload.new.status}.`,
@@ -420,16 +449,10 @@ export function NotificationManager() {
                 )
                 .subscribe()
 
-            // 4. Payments — notify on new payment record
+            // 4. Payments
             const paymentSub = supabase
                 .channel('realtime_payments')
-                .on(
-                    'postgres_changes',
-                    {
-                        event: 'INSERT',
-                        schema: 'public',
-                        table: 'payments'
-                    },
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'payments' },
                     async (payload) => {
                         if (payload.new.status === 'success') {
                             addPanelNotif(
@@ -453,49 +476,18 @@ export function NotificationManager() {
         initSubscriptions()
     }, [addPanelNotif])
 
+    const ctx: NotifCtx = {
+        panelNotifs, toasts, panelOpen, unreadCount,
+        setPanelOpen, markAllRead, markRead,
+        addPanelNotif, addToast, removeToast,
+    }
+
     return (
-        <>
-            {/* Bell trigger button — rendered in layout */}
-            <div ref={panelRef} className="fixed top-4 right-4 z-50">
-                {/* Bell icon button */}
-                <button
-                    onClick={() => setPanelOpen(prev => !prev)}
-                    className={cn(
-                        "relative flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200",
-                        panelOpen
-                            ? "bg-blue-600/20 text-blue-400 ring-1 ring-blue-500/30"
-                            : "bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 hover:text-slate-100 backdrop-blur-sm border border-slate-700/50"
-                    )}
-                    aria-label="Notifications"
-                >
-                    <Bell className="h-5 w-5" />
-                    {unreadCount > 0 && (
-                        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none shadow-lg">
-                            {unreadCount > 99 ? '99+' : unreadCount}
-                        </span>
-                    )}
-                </button>
+        <NotifContext.Provider value={ctx}>
+            {children}
 
-                {/* Slide-in panel */}
-                <div className={cn(
-                    "absolute right-0 top-12 w-[360px] max-h-[520px] flex flex-col",
-                    "bg-slate-900/95 backdrop-blur-xl border border-slate-700/60 rounded-2xl shadow-2xl",
-                    "transition-all duration-200 origin-top-right",
-                    panelOpen
-                        ? "opacity-100 scale-100 pointer-events-auto"
-                        : "opacity-0 scale-95 pointer-events-none"
-                )}>
-                    <NotificationCentre
-                        notifications={panelNotifs}
-                        onMarkAllRead={markAllRead}
-                        onMarkRead={markRead}
-                        onClose={() => setPanelOpen(false)}
-                    />
-                </div>
-            </div>
-
-            {/* Toast stack */}
-            <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
+            {/* Toast stack — bottom of screen, raised above mobile bottom-nav */}
+            <div className="fixed bottom-20 right-4 z-50 flex flex-col gap-2 md:bottom-4">
                 {toasts.map(notif => (
                     <NotificationToast
                         key={notif.id}
@@ -504,6 +496,6 @@ export function NotificationManager() {
                     />
                 ))}
             </div>
-        </>
+        </NotifContext.Provider>
     )
 }
