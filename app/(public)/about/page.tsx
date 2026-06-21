@@ -1,7 +1,7 @@
 "use client";
 
 import { PublicPageShell } from "@/components/public-page-shell";
-import { motion } from "motion/react";
+import { motion, type Variants } from "motion/react";
 import { ShieldCheck, Home, Users, Target, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
@@ -77,12 +77,12 @@ const team = [
   },
 ];
 
-const fadeUp = {
+const fadeUp: Variants = {
   hidden: { opacity: 0, y: 32 },
   visible: (i: number = 0) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.55, ease: "easeOut", delay: i * 0.1 },
+    transition: { duration: 0.55, ease: "easeOut" as const, delay: i * 0.1 },
   }),
 };
 
