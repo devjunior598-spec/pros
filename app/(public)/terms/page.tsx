@@ -1,4 +1,4 @@
-import PublicPageShell from "@/components/public-page-shell";
+import { PublicPageShell } from "@/components/public-page-shell";
 
 export default function TermsPage() {
   return (

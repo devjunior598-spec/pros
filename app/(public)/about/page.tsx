@@ -1,6 +1,6 @@
 "use client";
 
-import PublicPageShell from "@/components/public-page-shell";
+import { PublicPageShell } from "@/components/public-page-shell";
 import { motion } from "motion/react";
 import { ShieldCheck, Home, Users, Target, ArrowRight } from "lucide-react";
 import Link from "next/link";

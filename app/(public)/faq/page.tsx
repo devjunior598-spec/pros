@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ChevronDown, HelpCircle, Mail, ArrowRight } from "lucide-react";
 import Link from "next/link";
-import PublicPageShell from "@/components/public-page-shell";
+import { PublicPageShell } from "@/components/public-page-shell";
 
 const faqs = [
   {
