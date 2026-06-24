@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+
 import { 
     Loader2, 
     ArrowLeft, 
@@ -52,6 +54,7 @@ interface PropertyDetails {
     landlord_id: string
     created_at: string
     virtual_tour_url?: string
+    verification_status?: string
 }
 
 interface LandlordProfile {
@@ -84,14 +87,74 @@ export default function PublicPropertyDetailsPage() {
     const [bookingDate, setBookingDate] = useState("")
     const [bookingTime, setBookingTime] = useState("")
     const [bookingLoading, setBookingLoading] = useState(false)
+    const [bookingName, setBookingName] = useState("")
+    const [bookingEmail, setBookingEmail] = useState("")
+    const [bookingPhone, setBookingPhone] = useState("")
+    const [bookingType, setBookingType] = useState<"Physical Visit" | "Virtual Tour">("Physical Visit")
+    const [bookingNotes, setBookingNotes] = useState("")
+    const [availableSlots, setAvailableSlots] = useState<string[]>([])
+    const [fetchingSlots, setFetchingSlots] = useState(false)
+    const [userProfile, setUserProfile] = useState<any>(null)
 
     useEffect(() => {
         const fetchUser = async () => {
             const { data: { user } } = await supabase.auth.getUser()
             setUser(user)
+            if (user) {
+                const { data: prof } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .maybeSingle()
+                if (prof) {
+                    setUserProfile(prof)
+                }
+            }
         }
         fetchUser()
     }, [])
+
+    useEffect(() => {
+        if (isBookingOpen) {
+            if (userProfile) {
+                setBookingName(userProfile.name || "")
+                setBookingPhone(userProfile.phone || "")
+                setBookingEmail(userProfile.email || "")
+            } else if (user) {
+                setBookingName(user.user_metadata?.full_name || "")
+                setBookingEmail(user.email || "")
+            }
+        }
+    }, [isBookingOpen, userProfile, user])
+
+    const fetchSlots = async (date: string) => {
+        if (!property || !date) return
+        setFetchingSlots(true)
+        try {
+            const res = await fetch(`/api/inspections/availability?propertyId=${property.id}&date=${date}`)
+            const data = await res.json()
+            if (data.slots) {
+                setAvailableSlots(data.slots)
+            } else {
+                setAvailableSlots([])
+            }
+        } catch (error) {
+            console.error("Error fetching slots:", error)
+            setAvailableSlots([])
+        } finally {
+            setFetchingSlots(false)
+        }
+    }
+
+    useEffect(() => {
+        if (bookingDate && property?.id) {
+            fetchSlots(bookingDate)
+            setBookingTime("")
+        } else {
+            setAvailableSlots([])
+        }
+    }, [bookingDate, property?.id])
+
 
     useEffect(() => {
         const fetchPropertyAndLandlord = async () => {
@@ -227,35 +290,44 @@ export default function PublicPropertyDetailsPage() {
             return
         }
 
-        if (!property || !bookingDate || !bookingTime) return
+        if (!property || !bookingDate || !bookingTime || !bookingName || !bookingEmail || !bookingPhone || !bookingType) {
+            alert("Please fill in all required fields.")
+            return
+        }
 
         setBookingLoading(true)
         try {
-            const convId = await getOrCreateConversation(user.id, property.landlord_id)
-            
-            // Format message
-            const inspectionMessage = `📅 **Inspection Booking Request**\nProperty: *${property.title}*\nDate: *${bookingDate}*\nTime: *${bookingTime}*\n\n*(Sent via Book Inspection request)*`
-
-            const { error: msgError } = await supabase
-                .from('messages')
-                .insert({
-                    conversation_id: convId,
-                    sender_id: user.id,
-                    message: inspectionMessage
+            const res = await fetch("/api/inspections/book", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    propertyId: property.id,
+                    tenantId: user.id,
+                    landlordId: property.landlord_id,
+                    name: bookingName,
+                    email: bookingEmail,
+                    phone: bookingPhone,
+                    date: bookingDate,
+                    time: bookingTime,
+                    type: bookingType,
+                    notes: bookingNotes
                 })
+            })
 
-            if (msgError) throw msgError
+            const result = await res.json()
+            if (!res.ok) throw new Error(result.error || "Failed to book inspection")
 
-            alert("Inspection request sent! Check your Messages for the landlord's response.")
+            alert("Inspection request submitted successfully! You will be notified when the landlord reviews it.")
             setIsBookingOpen(false)
-            router.push(`/messages?convId=${convId}`)
+            router.push("/dashboard/inspections")
         } catch (error: any) {
             console.error("Error booking inspection:", error)
-            alert(`Failed to send inspection request: ${error.message}`)
+            alert(`Failed to book inspection: ${error.message}`)
         } finally {
             setBookingLoading(false)
         }
     }
+
 
     if (loading) {
         return (
@@ -401,10 +473,12 @@ export default function PublicPropertyDetailsPage() {
                         </div>
 
                         {/* Title and location */}
-                        <div className="space-y-4 border-b border-slate-200 dark:border-slate-850 pb-6">
-                            <div className="flex items-center text-blue-600 dark:text-blue-400 text-[10px] uppercase font-bold tracking-widest gap-1">
-                                <ShieldCheck className="h-4 w-4" /> PRMS verified property
-                            </div>
+                        <div className="space-y-4 border-b border-slate-200 dark:border-slate-855 pb-6">
+                            {property.verification_status === 'approved' && (
+                                <div className="flex items-center text-emerald-600 dark:text-emerald-400 text-[10px] uppercase font-bold tracking-widest gap-1">
+                                    <ShieldCheck className="h-4 w-4" /> Verified Property
+                                </div>
+                            )}
                             <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-slate-900 dark:text-white leading-tight">
                                 {property.title}
                             </h1>
@@ -562,7 +636,7 @@ export default function PublicPropertyDetailsPage() {
                                             {landlord?.name || 'Vetted Landlord'}
                                             {landlord?.is_verified && (
                                                 <span title="Identity Verified">
-                                                    <ShieldCheck className="h-4 w-4 text-blue-500" />
+                                                    <ShieldCheck className="h-4 w-4 text-emerald-500" />
                                                 </span>
                                             )}
                                         </p>
@@ -579,7 +653,9 @@ export default function PublicPropertyDetailsPage() {
                                 <div className="text-[10px] font-bold text-slate-400 space-y-1.5 border-t border-slate-100 dark:border-slate-800 pt-3">
                                     <div className="flex justify-between">
                                         <span>Identity Checked:</span>
-                                        <span className="text-blue-500 uppercase">{landlord?.is_verified ? "Yes" : "Pending Approval"}</span>
+                                        <span className={cn(landlord?.is_verified ? "text-emerald-500" : "text-slate-450", "uppercase")}>
+                                            {landlord?.is_verified ? "Verified" : "Unverified"}
+                                        </span>
                                     </div>
                                 </div>
                             </CardContent>
@@ -606,20 +682,73 @@ export default function PublicPropertyDetailsPage() {
             {/* Book Inspection Expanded Modal (Dialog-like popup) */}
             {isBookingOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl overflow-hidden font-sans p-6 space-y-5 animate-in zoom-in-95 duration-200 text-slate-900 dark:text-slate-100">
+                    <div className="w-full max-w-md max-h-[90vh] overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl p-6 space-y-5 animate-in zoom-in-95 duration-200 text-slate-900 dark:text-slate-100 scrollbar-thin">
                         <div className="flex justify-between items-start">
                             <div>
                                 <h3 className="text-lg font-black leading-none">Schedule Inspection</h3>
                                 <p className="text-xs text-slate-400 mt-1.5">Select a convenient date and time to visit.</p>
                             </div>
-                            <button onClick={() => setIsBookingOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                            <button onClick={() => setIsBookingOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 min-h-[44px] min-w-[44px] flex items-center justify-center">
                                 <X className="h-5 w-5" />
                             </button>
                         </div>
 
                         <form onSubmit={handleBookInspection} className="space-y-4">
                             <div className="space-y-1.5">
-                                <Label htmlFor="date" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Date of Inspection</Label>
+                                <Label htmlFor="name" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Full Name</Label>
+                                <Input 
+                                    id="name" 
+                                    type="text" 
+                                    required 
+                                    placeholder="Enter your full name"
+                                    value={bookingName} 
+                                    onChange={(e) => setBookingName(e.target.value)}
+                                    className="h-11 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-xl"
+                                />
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <Label htmlFor="email" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Email Address</Label>
+                                <Input 
+                                    id="email" 
+                                    type="email" 
+                                    required 
+                                    placeholder="Enter your email address"
+                                    value={bookingEmail} 
+                                    onChange={(e) => setBookingEmail(e.target.value)}
+                                    className="h-11 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-xl"
+                                />
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <Label htmlFor="phone" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Phone Number</Label>
+                                <Input 
+                                    id="phone" 
+                                    type="tel" 
+                                    required 
+                                    placeholder="e.g. +234 80 1234 5678"
+                                    value={bookingPhone} 
+                                    onChange={(e) => setBookingPhone(e.target.value)}
+                                    className="h-11 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-xl"
+                                />
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <Label htmlFor="type" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Inspection Type</Label>
+                                <select 
+                                    id="type" 
+                                    required 
+                                    value={bookingType}
+                                    onChange={(e) => setBookingType(e.target.value as any)}
+                                    className="h-11 w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                                >
+                                    <option value="Physical Visit">Physical Visit</option>
+                                    <option value="Virtual Tour">Virtual Tour</option>
+                                </select>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <Label htmlFor="date" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Preferred Date</Label>
                                 <Input 
                                     id="date" 
                                     type="date" 
@@ -632,35 +761,74 @@ export default function PublicPropertyDetailsPage() {
                             </div>
 
                             <div className="space-y-1.5">
-                                <Label htmlFor="time" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Convenient Time</Label>
-                                <Input 
-                                    id="time" 
-                                    type="time" 
-                                    required 
-                                    value={bookingTime} 
-                                    onChange={(e) => setBookingTime(e.target.value)}
-                                    className="h-11 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-xl"
+                                <Label htmlFor="time" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Available Slots</Label>
+                                {fetchingSlots ? (
+                                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 py-2">
+                                        <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                                        Checking available times...
+                                    </div>
+                                ) : !bookingDate ? (
+                                    <div className="text-xs font-semibold text-slate-450 dark:text-slate-500 py-1.5">
+                                        Please select a date first to load slots.
+                                    </div>
+                                ) : availableSlots.length === 0 ? (
+                                    <div className="text-xs font-semibold text-red-500 dark:text-red-400 py-1.5">
+                                        No available time slots on this day.
+                                    </div>
+                                ) : (
+                                    <select 
+                                        id="time" 
+                                        required 
+                                        value={bookingTime}
+                                        onChange={(e) => setBookingTime(e.target.value)}
+                                        className="h-11 w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                                    >
+                                        <option value="" disabled>Select a time slot</option>
+                                        {availableSlots.map((slot) => (
+                                            <option key={slot} value={slot}>{slot}</option>
+                                        ))}
+                                    </select>
+                                )}
+                            </div>
+
+                            {bookingType === "Virtual Tour" && property.virtual_tour_url && (
+                                <div className="p-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/50 rounded-xl">
+                                    <p className="text-[11px] text-blue-700 dark:text-blue-300 font-semibold leading-relaxed">
+                                        💡 A self-paced virtual tour is also available for this property. You can inspect it immediately using the <a href={property.virtual_tour_url} target="_blank" rel="noopener noreferrer" className="underline font-bold text-blue-600 dark:text-blue-400">Virtual Tour Link</a>.
+                                    </p>
+                                </div>
+                            )}
+
+                            <div className="space-y-1.5">
+                                <Label htmlFor="notes" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Notes (Optional)</Label>
+                                <Textarea 
+                                    id="notes" 
+                                    placeholder="Add any extra requests, considerations, or questions..."
+                                    value={bookingNotes} 
+                                    onChange={(e) => setBookingNotes(e.target.value)}
+                                    className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-xl min-h-[80px]"
                                 />
                             </div>
 
                             <Button 
                                 type="submit" 
-                                disabled={bookingLoading} 
-                                className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm tracking-wide mt-2"
+                                disabled={bookingLoading || fetchingSlots || (!!bookingDate && availableSlots.length === 0)} 
+                                className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm tracking-wide mt-2 shadow-lg shadow-blue-600/10"
                             >
                                 {bookingLoading ? (
                                     <>
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Sending request...
+                                        Scheduling Viewing...
                                     </>
                                 ) : (
-                                    "Request Inspection"
+                                    "Confirm Viewing Schedule"
                                 )}
                             </Button>
                         </form>
                     </div>
                 </div>
             )}
+
 
         </div>
     )

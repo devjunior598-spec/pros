@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useChat } from "./chat-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Phone, Video, Paperclip, Check, CheckCheck, ArrowLeft } from "lucide-react";
+import { Send, Phone, Video, Paperclip, Check, CheckCheck, ArrowLeft, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 
@@ -34,6 +34,24 @@ export function MessageWindow({ conversationId, currentUserId, otherUserId, othe
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const [otherUserVerified, setOtherUserVerified] = useState(false);
+
+    useEffect(() => {
+        if (!otherUserId) return;
+        const fetchOtherUserVerification = async () => {
+            const { data } = await supabase
+                .from('profiles')
+                .select('is_verified')
+                .eq('id', otherUserId)
+                .maybeSingle();
+            if (data?.is_verified) {
+                setOtherUserVerified(true);
+            } else {
+                setOtherUserVerified(false);
+            }
+        };
+        fetchOtherUserVerification();
+    }, [otherUserId]);
 
     // Load Messages and setup Supabase Realtime Subscription
     useEffect(() => {
@@ -215,7 +233,12 @@ export function MessageWindow({ conversationId, currentUserId, otherUserId, othe
                             <ArrowLeft className="h-5 w-5" />
                         </button>
                     )}
-                    <h3 className="font-semibold">{otherUserName || `Conversation`}</h3>
+                    <h3 className="font-semibold flex items-center gap-1">
+                        {otherUserName || `Conversation`}
+                        {otherUserVerified && (
+                            <ShieldCheck className="h-4.5 w-4.5 text-emerald-500 inline-block shrink-0" />
+                        )}
+                    </h3>
                 </div>
                 <div className="flex gap-2">
                     <Button onClick={() => otherUserId && callUser(otherUserId)} variant="ghost" size="icon" disabled={!otherUserId}>

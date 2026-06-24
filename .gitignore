@@ -52,3 +52,8 @@ node_modules
 .env.local
 .env
 .env.local
+
+# macOS metadata
+.DS_Store
+._*
+**/._*

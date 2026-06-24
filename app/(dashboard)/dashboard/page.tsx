@@ -14,8 +14,9 @@ import { ServiceDirectory } from "@/components/landlord/service-directory"
 import { ProfileSettings } from "@/components/profile-settings"
 import { NewsFeed } from "@/components/news-feed/news-feed"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { DollarSign, Users, Activity, CreditCard, Plus, Building2, Wrench, TrendingUp } from "lucide-react"
+import { ShieldCheck, DollarSign, Users, Activity, CreditCard, Plus, Building2, Wrench, TrendingUp, CalendarCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { TenantDashboard } from "@/components/tenant/tenant-dashboard"
 import { SummaryCard } from "@/components/dashboard/summary-cards"
 import ProviderDashboardPage from "@/app/(dashboard)/provider-dashboard/page"
@@ -190,46 +191,69 @@ function DashboardContent() {
             <div className="space-y-6 sm:space-y-8 pb-20 md:pb-10">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex flex-col gap-1">
-                        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Landlord Overview</h1>
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Landlord Overview</h1>
+                            {ctxProfile?.is_verified ? (
+                                <Badge className="bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 gap-1 rounded-lg">
+                                    <ShieldCheck className="h-3 w-3" /> Verified
+                                </Badge>
+                            ) : (
+                                <Link href="/dashboard/verification">
+                                    <Badge className="bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400 gap-1 rounded-lg hover:bg-amber-500/20 cursor-pointer">
+                                        Get Verified
+                                    </Badge>
+                                </Link>
+                            )}
+                        </div>
                         <p className="text-muted-foreground">Manage your properties and stay on top of tenant requests.</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
                         <Link href="/properties" className="w-full sm:w-auto">
                             <Button variant="outline" className="w-full sm:w-auto min-h-[44px]">View Properties</Button>
                         </Link>
-                        <Link href="/properties/new" className="w-full sm:w-auto">
+                        <Link href="/dashboard/inspections" className="w-full sm:w-auto">
+                            <Button variant="outline" className="w-full sm:w-auto min-h-[44px]">View Inspections</Button>
+                        </Link>
+                        <Link href="/dashboard/landlord/properties/new" className="w-full sm:w-auto">
                             <Button className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto min-h-[44px]">Post New Property</Button>
                         </Link>
                     </div>
                 </div>
-
+ 
                 {/* Mobile Quick Actions */}
-                <div className="grid grid-cols-4 gap-2 md:hidden">
-                    <Link href="/properties/new" className="flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 active:scale-95 transition-transform">
-                        <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
-                            <Plus className="h-5 w-5 text-white" />
+                <div className="grid grid-cols-5 gap-1.5 md:hidden">
+                    <Link href="/dashboard/landlord/properties/new" className="flex flex-col items-center gap-1.5 p-2 rounded-2xl bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 active:scale-95 transition-transform">
+                        <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center">
+                            <Plus className="h-4.5 w-4.5 text-white" />
                         </div>
-                        <span className="text-[10px] font-semibold text-blue-700 dark:text-blue-300 text-center leading-tight">Add Property</span>
+                        <span className="text-[9px] font-semibold text-blue-700 dark:text-blue-300 text-center leading-tight">Add Property</span>
                     </Link>
-                    <Link href="/tenants" className="flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-purple-50 dark:bg-purple-950/30 border border-purple-100 dark:border-purple-900/40 active:scale-95 transition-transform">
-                        <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center">
-                            <Users className="h-5 w-5 text-white" />
+                    <Link href="/tenants" className="flex flex-col items-center gap-1.5 p-2 rounded-2xl bg-purple-50 dark:bg-purple-950/30 border border-purple-100 dark:border-purple-900/40 active:scale-95 transition-transform">
+                        <div className="w-9 h-9 rounded-full bg-purple-600 flex items-center justify-center">
+                            <Users className="h-4.5 w-4.5 text-white" />
                         </div>
-                        <span className="text-[10px] font-semibold text-purple-700 dark:text-purple-300 text-center leading-tight">Tenants</span>
+                        <span className="text-[9px] font-semibold text-purple-700 dark:text-purple-300 text-center leading-tight">Tenants</span>
                     </Link>
-                    <Link href="/requests" className="flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-orange-50 dark:bg-orange-950/30 border border-orange-100 dark:border-orange-900/40 active:scale-95 transition-transform">
-                        <div className="w-10 h-10 rounded-full bg-orange-600 flex items-center justify-center">
-                            <Wrench className="h-5 w-5 text-white" />
+                    <Link href="/dashboard/inspections" className="flex flex-col items-center gap-1.5 p-2 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 active:scale-95 transition-transform">
+                        <div className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center">
+                            <CalendarCheck className="h-4.5 w-4.5 text-white" />
                         </div>
-                        <span className="text-[10px] font-semibold text-orange-700 dark:text-orange-300 text-center leading-tight">Maintenance</span>
+                        <span className="text-[9px] font-semibold text-indigo-700 dark:text-indigo-300 text-center leading-tight">Inspections</span>
                     </Link>
-                    <Link href="/earnings" className="flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 active:scale-95 transition-transform">
-                        <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center">
-                            <TrendingUp className="h-5 w-5 text-white" />
+                    <Link href="/requests" className="flex flex-col items-center gap-1.5 p-2 rounded-2xl bg-orange-50 dark:bg-orange-950/30 border border-orange-100 dark:border-orange-900/40 active:scale-95 transition-transform">
+                        <div className="w-9 h-9 rounded-full bg-orange-600 flex items-center justify-center">
+                            <Wrench className="h-4.5 w-4.5 text-white" />
                         </div>
-                        <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 text-center leading-tight">Earnings</span>
+                        <span className="text-[9px] font-semibold text-orange-700 dark:text-orange-300 text-center leading-tight">Maintenance</span>
+                    </Link>
+                    <Link href="/earnings" className="flex flex-col items-center gap-1.5 p-2 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 active:scale-95 transition-transform">
+                        <div className="w-9 h-9 rounded-full bg-emerald-600 flex items-center justify-center">
+                            <TrendingUp className="h-4.5 w-4.5 text-white" />
+                        </div>
+                        <span className="text-[9px] font-semibold text-emerald-700 dark:text-emerald-300 text-center leading-tight">Earnings</span>
                     </Link>
                 </div>
+
 
                 <div className="grid gap-4 sm:gap-6 grid-cols-2 lg:grid-cols-4">
                     <SummaryCard

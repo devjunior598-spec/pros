@@ -106,6 +106,7 @@ function ListingsContent() {
           .from("properties")
           .select("*")
           .eq("status", "available")
+          .eq("verification_status", "approved")
 
         if (searchQuery.trim()) {
           const q = searchQuery.trim()

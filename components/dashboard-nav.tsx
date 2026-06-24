@@ -24,7 +24,9 @@ import {
     ClipboardList,
     Image,
     Star,
-    Search
+    Search,
+    Calendar,
+    FileText
 } from "lucide-react"
 
 interface DashboardNavProps extends React.HTMLAttributes<HTMLElement> {
@@ -132,6 +134,30 @@ export function DashboardNav({ className, userRole, isVerified, ...props }: Dash
             href: "/dashboard",
             icon: LayoutDashboard,
             roles: ["landlord", "tenant", "service_provider"],
+        },
+        {
+            title: "Inspections",
+            href: "/dashboard/inspections",
+            icon: Calendar,
+            roles: ["landlord", "tenant"],
+        },
+        {
+            title: "Payments",
+            href: "/dashboard/payments",
+            icon: CreditCard,
+            roles: ["landlord"],
+        },
+        {
+            title: "Rent Payments",
+            href: "/dashboard/rent-payments",
+            icon: CreditCard,
+            roles: ["tenant"],
+        },
+        {
+            title: "Lease Agreements",
+            href: "/dashboard/leases",
+            icon: FileText,
+            roles: ["landlord", "tenant"],
         },
         // Provider Specific
         {

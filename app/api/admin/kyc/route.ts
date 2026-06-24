@@ -13,18 +13,35 @@ export async function GET(req: Request) {
             .from('tenant_kyc')
             .select(`*, tenant:profiles (name, email)`)
             .order('created_at', { ascending: false })
-
         if (tenantError) throw tenantError
 
-        // 2. Fetch Provider Approvals
+        // 2. Fetch Landlord KYCs
+        const { data: landlordData, error: landlordError } = await supabaseAdmin
+            .from('landlord_kyc')
+            .select(`*, landlord:profiles (name, email)`)
+            .order('created_at', { ascending: false })
+        if (landlordError) throw landlordError
+
+        // 3. Fetch Property Verifications
+        const { data: propertyData, error: propertyError } = await supabaseAdmin
+            .from('property_verifications')
+            .select(`*, property:properties (title, city, state, area), landlord:profiles (name, email)`)
+            .order('created_at', { ascending: false })
+        if (propertyError) throw propertyError
+
+        // 4. Fetch Provider Approvals
         const { data: providerData, error: providerError } = await supabaseAdmin
             .from('service_providers')
             .select(`*, user:profiles (name, email)`)
             .order('created_at', { ascending: false })
-
         if (providerError) throw providerError
 
-        return NextResponse.json({ tenants: tenantData || [], providers: providerData || [] })
+        return NextResponse.json({ 
+            tenants: tenantData || [], 
+            landlords: landlordData || [],
+            properties: propertyData || [],
+            providers: providerData || [] 
+        })
     } catch (error: any) {
         console.error("Error fetching KYC data:", error)
         return NextResponse.json({ error: error.message }, { status: 500 })

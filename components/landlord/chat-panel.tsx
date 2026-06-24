@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { MessageWindow } from "@/components/chat/message-window"
+import { ShieldCheck } from "lucide-react"
 
 interface ChatPanelProps {
     landlordId: string
@@ -28,6 +29,7 @@ interface Conversation {
     tenant_id: string
     tenant: {
         name: string
+        is_verified?: boolean
     }
 }
 
@@ -47,7 +49,7 @@ export function ChatPanel({ landlordId }: ChatPanelProps) {
         id,
         rental_id,
         tenant_id, 
-        tenant:profiles!tenant_id (name)
+        tenant:profiles!tenant_id (name, is_verified)
       `)
             .eq('landlord_id', landlordId)
 
@@ -101,7 +103,12 @@ export function ChatPanel({ landlordId }: ChatPanelProps) {
                                         className={`p-4 text-left hover:bg-muted transition-colors border-b ${selectedConv?.id === c.id ? 'bg-muted border-l-4 border-l-blue-600' : 'border-l-4 border-l-transparent'
                                             }`}
                                     >
-                                        <div className="font-semibold text-sm">{c.tenant?.name || 'Unknown Tenant'}</div>
+                                        <div className="font-semibold text-sm flex items-center gap-1">
+                                            {c.tenant?.name || 'Unknown Tenant'}
+                                            {c.tenant?.is_verified && (
+                                                <ShieldCheck className="h-4 w-4 text-emerald-500 inline-block shrink-0" />
+                                            )}
+                                        </div>
                                         <div className="text-xs text-muted-foreground truncate mt-1">
                                             {c.rental_id ? `Rental ID: ${c.rental_id}` : 'General Inquiry'}
                                         </div>

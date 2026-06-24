@@ -19,7 +19,8 @@ import {
     ShieldAlert,
     Bell,
     LogOut,
-    Activity
+    Activity,
+    CreditCard
 } from "lucide-react"
 
 export function AdminSidebar() {
@@ -32,6 +33,7 @@ export function AdminSidebar() {
         { title: "KYC & Verification", href: "/admin/kyc", icon: ShieldCheck },
         { title: "Properties", href: "/admin/properties", icon: Building },
         { title: "Wallet & Transactions", href: "/admin/finances", icon: Wallet },
+        { title: "Rent Payments", href: "/admin/payments", icon: CreditCard },
         { title: "Withdrawals", href: "/admin/withdrawals", icon: ArrowUpRight },
         { title: "Maintenance", href: "/admin/maintenance", icon: Wrench },
         { title: "Service Providers", href: "/admin/providers", icon: Briefcase },

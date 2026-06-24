@@ -308,7 +308,10 @@ export function PropertyTable({ landlordId }: PropertyTableProps) {
                                     {/* Price pill */}
                                     <div className="absolute top-3 right-3">
                                         <span className="inline-flex items-center rounded-full bg-slate-900/80 backdrop-blur-md px-2.5 py-1 text-[11px] font-bold text-slate-100 border border-slate-700/60">
-                                            ₦{Number(prop.price).toLocaleString()}<span className="font-normal text-slate-400">/mo</span>
+                                            ₦{Number(prop.price).toLocaleString()}
+                                            <span className="font-normal text-slate-400">
+                                                /{prop.frequency ? (prop.frequency.toLowerCase() === 'monthly' ? 'mo' : 'yr') : 'yr'}
+                                            </span>
                                         </span>
                                     </div>
                                 </div>
@@ -327,7 +330,7 @@ export function PropertyTable({ landlordId }: PropertyTableProps) {
                                     </div>
 
                                     {/* Quick stats */}
-                                    <div className="flex items-center gap-3 text-xs text-slate-400 border-t border-slate-700/40 pt-3">
+                                    <div className="flex items-center gap-3 text-xs text-slate-400 border-t border-slate-700/40 pt-3 flex-wrap">
                                         {prop.bedrooms != null && (
                                             <span className="flex items-center gap-1">
                                                 <BedDouble className="h-3.5 w-3.5 text-slate-500" />
@@ -340,13 +343,19 @@ export function PropertyTable({ landlordId }: PropertyTableProps) {
                                                 {prop.bathrooms} bath{prop.bathrooms !== 1 ? "s" : ""}
                                             </span>
                                         )}
-                                        {prop.square_footage != null && (
+                                        {prop.toilets != null && (
                                             <span className="flex items-center gap-1">
-                                                <Ruler className="h-3.5 w-3.5 text-slate-500" />
-                                                {Number(prop.square_footage).toLocaleString()} sqft
+                                                <span className="text-slate-500 font-bold">T</span>
+                                                {prop.toilets} toilet{prop.toilets !== 1 ? "s" : ""}
                                             </span>
                                         )}
-                                        {!prop.bedrooms && !prop.bathrooms && !prop.square_footage && (
+                                        {(prop.size != null || prop.square_footage != null) && (
+                                            <span className="flex items-center gap-1">
+                                                <Ruler className="h-3.5 w-3.5 text-slate-500" />
+                                                {Number(prop.size || prop.square_footage).toLocaleString()} sqft
+                                            </span>
+                                        )}
+                                        {!prop.bedrooms && !prop.bathrooms && !prop.square_footage && !prop.size && (
                                             <span className="capitalize text-slate-500">{prop.type}</span>
                                         )}
                                     </div>
@@ -373,25 +382,34 @@ export function PropertyTable({ landlordId }: PropertyTableProps) {
                                     </div>
 
                                     {/* ── Actions ── */}
-                                    <div className="flex items-center gap-2 pt-1 border-t border-slate-700/40">
+                                    <div className="flex items-center gap-2 pt-1 border-t border-slate-700/40 flex-wrap">
                                         <a
                                             href={`/properties/${prop.id}`}
-                                            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-300 bg-slate-700/50 hover:bg-slate-700 hover:text-white border border-slate-600/40 transition-all duration-150"
+                                            className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-slate-350 bg-slate-700/50 hover:bg-slate-700 hover:text-white border border-slate-650 transition-all duration-150"
                                         >
-                                            <Eye className="h-3.5 w-3.5" />
+                                            <Eye className="h-3 w-3" />
                                             View
+                                        </a>
+                                        <a
+                                            href={`/listings/${prop.id}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-emerald-350 bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/20 hover:border-emerald-500/40 transition-all duration-150"
+                                        >
+                                            <Building2 className="h-3 w-3" />
+                                            Public
                                         </a>
                                         <button
                                             onClick={() => { setEditingProperty(prop); setIsDialogOpen(true) }}
-                                            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-blue-300 bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/20 hover:border-blue-500/40 transition-all duration-150"
+                                            className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-blue-300 bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/20 hover:border-blue-500/40 transition-all duration-150"
                                         >
-                                            <Pencil className="h-3.5 w-3.5" />
+                                            <Pencil className="h-3 w-3" />
                                             Edit
                                         </button>
                                         <button
                                             onClick={() => handleDeleteProperty(prop.id)}
                                             disabled={isDeleting}
-                                            className="ml-auto flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/40 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="ml-auto flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/40 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             {isDeleting
                                                 ? <Loader2 className="h-3.5 w-3.5 animate-spin" />

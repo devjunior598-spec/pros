@@ -26,7 +26,12 @@ export interface Property {
     description?: string;
     bedrooms?: number;
     bathrooms?: number;
+    toilets?: number;
+    size?: number;
     square_footage?: number;
+    frequency?: string;
+    verification_status?: 'pending' | 'approved' | 'rejected';
+    updated_at?: string;
     amenities?: string[]; // Array of strings for amenities
     images: string[];
     status: PropertyStatus;

@@ -20,6 +20,7 @@ export function PropertyEditForm({ property, onSuccess }: PropertyEditFormProps)
     const [formData, setFormData] = useState<Partial<Property>>({
         title: property.title,
         price: property.price,
+        frequency: property.frequency || 'Monthly',
         address: property.address,
         city: property.city,
         state: property.state,
@@ -28,6 +29,8 @@ export function PropertyEditForm({ property, onSuccess }: PropertyEditFormProps)
         type: property.type,
         bedrooms: property.bedrooms,
         bathrooms: property.bathrooms,
+        toilets: property.toilets,
+        size: property.size || property.square_footage,
         square_footage: property.square_footage,
         status: property.status,
         description: property.description,
@@ -79,12 +82,12 @@ export function PropertyEditForm({ property, onSuccess }: PropertyEditFormProps)
                 const filePath = `${fileName}`
 
                 const { error: uploadError } = await supabase.storage
-                    .from('properties')
+                    .from('property-images')
                     .upload(filePath, file)
 
                 if (uploadError) throw uploadError
 
-                const { data: { publicUrl } } = supabase.storage.from('properties').getPublicUrl(filePath)
+                const { data: { publicUrl } } = supabase.storage.from('property-images').getPublicUrl(filePath)
                 uploadedUrls.push(publicUrl)
             }
 
@@ -97,6 +100,7 @@ export function PropertyEditForm({ property, onSuccess }: PropertyEditFormProps)
             // 4. Update database
             const processedData = {
                 ...formData,
+                square_footage: formData.size, // Sync square_footage
                 amenities: processedAmenities,
                 images: finalImageUrls
             }
@@ -147,16 +151,18 @@ export function PropertyEditForm({ property, onSuccess }: PropertyEditFormProps)
                                 <SelectItem value="House">House</SelectItem>
                                 <SelectItem value="Duplex">Duplex</SelectItem>
                                 <SelectItem value="Studio">Studio</SelectItem>
+                                <SelectItem value="Shop">Shop</SelectItem>
                                 <SelectItem value="Office">Office</SelectItem>
+                                <SelectItem value="Land">Land</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
                 </div>
 
-                {/* Price and Status Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Price, Frequency, and Status */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="space-y-1.5">
-                        <Label htmlFor="price" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Price (₦/year)</Label>
+                        <Label htmlFor="price" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Price (₦)</Label>
                         <Input
                             id="price"
                             type="number"
@@ -165,6 +171,21 @@ export function PropertyEditForm({ property, onSuccess }: PropertyEditFormProps)
                             required
                             className="h-11 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl"
                         />
+                    </div>
+                    <div className="space-y-1.5">
+                        <Label htmlFor="frequency" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Frequency</Label>
+                        <Select
+                            value={formData.frequency}
+                            onValueChange={(value) => setFormData({ ...formData, frequency: value })}
+                        >
+                            <SelectTrigger className="h-11 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl">
+                                <SelectValue placeholder="Select frequency" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="Monthly">Monthly</SelectItem>
+                                <SelectItem value="Yearly">Yearly</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
                     <div className="space-y-1.5">
                         <Label htmlFor="status" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Occupancy Status</Label>
@@ -240,7 +261,7 @@ export function PropertyEditForm({ property, onSuccess }: PropertyEditFormProps)
                 </div>
 
                 {/* Specs Section */}
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div className="space-y-1.5">
                         <Label htmlFor="bedrooms" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Bedrooms</Label>
                         <Input
@@ -262,12 +283,22 @@ export function PropertyEditForm({ property, onSuccess }: PropertyEditFormProps)
                         />
                     </div>
                     <div className="space-y-1.5">
-                        <Label htmlFor="sqft" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Sqft Size</Label>
+                        <Label htmlFor="toilets" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Toilets</Label>
                         <Input
-                            id="sqft"
+                            id="toilets"
                             type="number"
-                            value={formData.square_footage || ''}
-                            onChange={(e) => setFormData({ ...formData, square_footage: Number(e.target.value) })}
+                            value={formData.toilets || ''}
+                            onChange={(e) => setFormData({ ...formData, toilets: Number(e.target.value) })}
+                            className="h-11 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl"
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <Label htmlFor="size" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Size (Sqft)</Label>
+                        <Input
+                            id="size"
+                            type="number"
+                            value={formData.size || ''}
+                            onChange={(e) => setFormData({ ...formData, size: Number(e.target.value) })}
                             className="h-11 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl"
                         />
                     </div>

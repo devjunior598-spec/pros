@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { MessageWindow } from "@/components/chat/message-window"
+import { ShieldCheck } from "lucide-react"
 
 interface TenantChatPanelProps {
     tenantId: string
@@ -27,6 +28,7 @@ interface Conversation {
     landlord_id: string
     landlord: {
         name: string
+        is_verified?: boolean
     } | null
     rental: {
         property: {
@@ -57,7 +59,7 @@ export function TenantChatPanel({ tenantId }: TenantChatPanelProps) {
                 id,
                 rental_id,
                 landlord_id,
-                landlord:profiles!landlord_id(name),
+                landlord:profiles!landlord_id(name, is_verified),
                 rental:rentals!rental_id(
                     property:properties(title)
                 )
@@ -115,7 +117,12 @@ export function TenantChatPanel({ tenantId }: TenantChatPanelProps) {
                                         className={`p-4 text-left hover:bg-muted transition-colors border-b ${selectedConv?.id === c.id ? 'bg-muted border-l-4 border-l-blue-600' : 'border-l-4 border-l-transparent'
                                             }`}
                                     >
-                                        <div className="font-semibold text-sm">{c.rental?.property?.title || `Chat with ${c.landlord?.name || 'Landlord'}`}</div>
+                                        <div className="font-semibold text-sm flex items-center gap-1">
+                                            {c.rental?.property?.title || `Chat with ${c.landlord?.name || 'Landlord'}`}
+                                            {c.landlord?.is_verified && (
+                                                <ShieldCheck className="h-4 w-4 text-emerald-500 inline-block shrink-0" />
+                                            )}
+                                        </div>
                                         <div className="text-xs text-muted-foreground truncate mt-1">
                                             {c.rental?.property?.title ? `Owner: ${c.landlord?.name || 'Unknown'}` : 'General Inquiry'}
                                         </div>

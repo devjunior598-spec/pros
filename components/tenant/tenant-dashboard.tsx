@@ -309,7 +309,7 @@ function TenantDashboardContent({ userId }: TenantDashboardProps) {
                                 <CardTitle>Quick Actions</CardTitle>
                                 <CardDescription>Commonly used actions for your convenience.</CardDescription>
                             </CardHeader>
-                            <CardContent className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                            <CardContent className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                                 <Link href="/wallet">
                                     <Button className="w-full h-20 flex-col gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border-none dark:bg-blue-900/20 dark:text-blue-300">
                                         <PlusCircle className="h-6 w-6" />
@@ -328,6 +328,12 @@ function TenantDashboardContent({ userId }: TenantDashboardProps) {
                                         <span>New Request</span>
                                     </Button>
                                 </Link>
+                                <Link href="/dashboard/inspections">
+                                    <Button className="w-full h-20 flex-col gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-none dark:bg-indigo-900/20 dark:text-indigo-300">
+                                        <Calendar className="h-6 w-6" />
+                                        <span>Inspections</span>
+                                    </Button>
+                                </Link>
                                 <Link href="/messages">
                                     <Button className="w-full h-20 flex-col gap-2 bg-orange-50 hover:bg-orange-100 text-orange-700 border-none dark:bg-orange-900/20 dark:text-orange-300">
                                         <MessageSquare className="h-6 w-6" />
@@ -335,6 +341,7 @@ function TenantDashboardContent({ userId }: TenantDashboardProps) {
                                     </Button>
                                 </Link>
                             </CardContent>
+
                         </Card>
                     )}
 

@@ -109,10 +109,12 @@ export function PropertyCard({ property }: PropertyCardProps) {
 
             <CardHeader className="p-4 pb-2 space-y-1.5 flex-1">
                 {/* Verified Header */}
-                <div className="flex items-center text-blue-600 dark:text-blue-400 text-[10px] uppercase font-extrabold tracking-widest">
-                    <ShieldCheck className="mr-1 h-3.5 w-3.5" />
-                    PRMS Verified
-                </div>
+                {property.verification_status === 'approved' && (
+                    <div className="flex items-center text-emerald-600 dark:text-emerald-400 text-[10px] uppercase font-extrabold tracking-widest">
+                        <ShieldCheck className="mr-1 h-3.5 w-3.5" />
+                        Verified Property
+                    </div>
+                )}
                 
                 {/* Title */}
                 <h3 className="font-extrabold text-base text-slate-900 dark:text-slate-100 leading-snug line-clamp-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
@@ -130,7 +132,9 @@ export function PropertyCard({ property }: PropertyCardProps) {
                 {/* Pricing row */}
                 <div className="flex items-baseline gap-1 mt-1 border-b border-slate-100 dark:border-slate-800/80 pb-3">
                     <span className="text-xl font-black text-slate-900 dark:text-slate-50">₦{property.price.toLocaleString()}</span>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">/ year</span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">
+                        / {property.frequency ? (property.frequency.toLowerCase() === 'monthly' ? 'month' : 'year') : 'year'}
+                    </span>
                 </div>
 
                 {/* Specs row */}

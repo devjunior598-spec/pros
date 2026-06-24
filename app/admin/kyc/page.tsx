@@ -17,7 +17,8 @@ import {
     Clock,
     User,
     ExternalLink,
-    AlertTriangle
+    AlertTriangle,
+    FileText
 } from "lucide-react"
 import {
     Dialog,
@@ -33,6 +34,8 @@ import { Label } from "@/components/ui/label"
 
 export default function AdminKYCPage() {
     const [tenants, setTenants] = useState<any[]>([])
+    const [landlords, setLandlords] = useState<any[]>([])
+    const [properties, setProperties] = useState<any[]>([])
     const [providers, setProviders] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState("tenants")
@@ -47,6 +50,8 @@ export default function AdminKYCPage() {
 
             const data = await res.json()
             setTenants(data.tenants || [])
+            setLandlords(data.landlords || [])
+            setProperties(data.properties || [])
             setProviders(data.providers || [])
         } catch (error) {
             console.error("Error fetching verifications:", error)
@@ -70,6 +75,62 @@ export default function AdminKYCPage() {
                     type: 'tenant',
                     status,
                     userId: kyc.tenant_id,
+                    rejectionReason: status === 'rejected' ? rejectionReason : undefined
+                })
+            })
+
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || "Failed to update status")
+
+            alert(data.message)
+            fetchVerifications()
+            setRejectionReason("")
+        } catch (error: any) {
+            alert(error.message || "Failed to update status")
+        } finally {
+            setProcessingId(null)
+        }
+    }
+
+    const handleLandlordReview = async (kyc: any, status: 'approved' | 'rejected') => {
+        setProcessingId(kyc.id)
+        try {
+            const res = await fetch('/api/admin/kyc/process', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: kyc.id,
+                    type: 'landlord',
+                    status,
+                    userId: kyc.landlord_id,
+                    rejectionReason: status === 'rejected' ? rejectionReason : undefined
+                })
+            })
+
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || "Failed to update status")
+
+            alert(data.message)
+            fetchVerifications()
+            setRejectionReason("")
+        } catch (error: any) {
+            alert(error.message || "Failed to update status")
+        } finally {
+            setProcessingId(null)
+        }
+    }
+
+    const handlePropertyReview = async (verif: any, status: 'approved' | 'rejected') => {
+        setProcessingId(verif.id)
+        try {
+            const res = await fetch('/api/admin/kyc/process', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: verif.id,
+                    type: 'property',
+                    status,
+                    propertyId: verif.property_id,
                     rejectionReason: status === 'rejected' ? rejectionReason : undefined
                 })
             })
@@ -128,6 +189,20 @@ export default function AdminKYCPage() {
                         Tenant KYC {tenants.filter(k => k.status === 'pending').length > 0 &&
                             <Badge variant="destructive" className="h-4 w-4 p-0 flex items-center justify-center text-[10px]">
                                 {tenants.filter(k => k.status === 'pending').length}
+                            </Badge>
+                        }
+                    </TabsTrigger>
+                    <TabsTrigger value="landlords" className="rounded-lg gap-2">
+                        Landlord KYC {landlords.filter(k => k.status === 'pending').length > 0 &&
+                            <Badge variant="destructive" className="h-4 w-4 p-0 flex items-center justify-center text-[10px]">
+                                {landlords.filter(k => k.status === 'pending').length}
+                            </Badge>
+                        }
+                    </TabsTrigger>
+                    <TabsTrigger value="properties" className="rounded-lg gap-2">
+                        Property Verifications {properties.filter(p => p.status === 'pending').length > 0 &&
+                            <Badge variant="destructive" className="h-4 w-4 p-0 flex items-center justify-center text-[10px]">
+                                {properties.filter(p => p.status === 'pending').length}
                             </Badge>
                         }
                     </TabsTrigger>
@@ -250,6 +325,327 @@ export default function AdminKYCPage() {
                                                                                 className="bg-green-600 hover:bg-green-700"
                                                                                 onClick={() => handleTenantReview(kyc, 'approved')}
                                                                                 disabled={processingId === kyc.id}
+                                                                            >
+                                                                                Approve
+                                                                            </Button>
+                                                                        </div>
+                                                                    )}
+                                                                </DialogFooter>
+                                                            </DialogContent>
+                                                        </Dialog>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="landlords">
+                    <Card className="border-none shadow-sm bg-white dark:bg-gray-950">
+                        <CardHeader>
+                            <CardTitle>Landlord Identity Queue</CardTitle>
+                            <CardDescription>Review Government ID, Selfie, CAC certificates, and Utility bills.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="relative overflow-x-auto">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-gray-400 uppercase text-[10px]">
+                                        <tr>
+                                            <th className="px-6 py-4">Landlord</th>
+                                            <th className="px-6 py-4">ID Type</th>
+                                            <th className="px-6 py-4">Status</th>
+                                            <th className="px-6 py-4">Submitted</th>
+                                            <th className="px-6 py-4 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y dark:divide-gray-800">
+                                        {loading ? (
+                                            <tr><td colSpan={5} className="py-10 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-600" /></td></tr>
+                                        ) : landlords.length === 0 ? (
+                                            <tr><td colSpan={5} className="py-10 text-center text-muted-foreground italic">No landlord submissions yet.</td></tr>
+                                        ) : (
+                                            landlords.map((kyc) => (
+                                                <tr key={kyc.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors">
+                                                    <td className="px-6 py-4 font-medium">
+                                                        <div>{kyc.landlord?.name}</div>
+                                                        <div className="text-[10px] text-muted-foreground">{kyc.landlord?.email}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4">{kyc.id_type}</td>
+                                                    <td className="px-6 py-4">
+                                                        <Badge variant={kyc.status === 'approved' ? 'default' : kyc.status === 'rejected' ? 'destructive' : 'outline'}>
+                                                            {kyc.status}
+                                                        </Badge>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-xs text-muted-foreground">
+                                                        {new Date(kyc.created_at).toLocaleDateString()}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        <Dialog>
+                                                            <DialogTrigger asChild>
+                                                                <Button variant="outline" size="sm" className="gap-2">
+                                                                    <Eye className="h-3 w-3" /> Review
+                                                                </Button>
+                                                            </DialogTrigger>
+                                                            <DialogContent className="max-w-4xl overflow-y-auto max-h-[90vh]">
+                                                                <DialogHeader>
+                                                                    <DialogTitle>Landlord KYC Review: {kyc.landlord?.name}</DialogTitle>
+                                                                    <DialogDescription>Verify the submitted documents match the landlord profile.</DialogDescription>
+                                                                </DialogHeader>
+
+                                                                <div className="grid md:grid-cols-2 gap-6 py-4">
+                                                                    <div className="space-y-4">
+                                                                        <div className="space-y-1">
+                                                                            <Label className="text-xs text-muted-foreground">Government ID ({kyc.id_type})</Label>
+                                                                            <div className="aspect-video bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden border">
+                                                                                <img src={kyc.id_url} alt="ID" className="w-full h-full object-contain" />
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="space-y-1">
+                                                                            <Label className="text-xs text-muted-foreground">Selfie Photo</Label>
+                                                                            <div className="aspect-square bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden border max-h-60">
+                                                                                <img src={kyc.selfie_url} alt="Selfie" className="w-full h-full object-contain" />
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="space-y-4">
+                                                                        <div className="space-y-1">
+                                                                            <Label className="text-xs text-muted-foreground">Proof of Address (Utility Bill)</Label>
+                                                                            <div className="aspect-video bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden border">
+                                                                                {kyc.address_proof_url.endsWith('.pdf') ? (
+                                                                                    <div className="flex flex-col items-center justify-center h-full p-4">
+                                                                                        <FileText className="h-10 w-10 text-slate-400 mb-2" />
+                                                                                        <a href={kyc.address_proof_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 underline flex items-center gap-1">
+                                                                                            Open PDF Address Proof <ExternalLink className="h-3 w-3" />
+                                                                                        </a>
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <img src={kyc.address_proof_url} alt="Utility Bill" className="w-full h-full object-contain" />
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                        {kyc.cac_url && (
+                                                                            <div className="space-y-1">
+                                                                                <Label className="text-xs text-muted-foreground">CAC Certificate (Optional)</Label>
+                                                                                <div className="aspect-video bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden border">
+                                                                                    {kyc.cac_url.endsWith('.pdf') ? (
+                                                                                        <div className="flex flex-col items-center justify-center h-full p-4">
+                                                                                            <FileText className="h-10 w-10 text-slate-400 mb-2" />
+                                                                                            <a href={kyc.cac_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 underline flex items-center gap-1">
+                                                                                                Open PDF CAC Doc <ExternalLink className="h-3 w-3" />
+                                                                                            </a>
+                                                                                        </div>
+                                                                                    ) : (
+                                                                                        <img src={kyc.cac_url} alt="CAC Document" className="w-full h-full object-contain" />
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+
+                                                                        <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-xl space-y-3">
+                                                                            <h4 className="font-bold text-sm border-b pb-2">Identity Details</h4>
+                                                                            <div className="grid grid-cols-2 gap-y-3 text-xs">
+                                                                                <span className="text-muted-foreground">ID Number:</span>
+                                                                                <span className="font-medium">{kyc.id_number}</span>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        {kyc.status === 'pending' && (
+                                                                            <div className="space-y-3 pt-4 border-t">
+                                                                                <Label htmlFor="reason">Rejection Reason</Label>
+                                                                                <Textarea
+                                                                                    id="reason"
+                                                                                    placeholder="Required only for rejection..."
+                                                                                    className="text-xs"
+                                                                                    value={rejectionReason}
+                                                                                    onChange={(e) => setRejectionReason(e.target.value)}
+                                                                                />
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+
+                                                                <DialogFooter>
+                                                                    <Button variant="ghost" onClick={() => { }}>Close</Button>
+                                                                    {kyc.status === 'pending' && (
+                                                                        <div className="flex gap-2">
+                                                                            <Button
+                                                                                variant="destructive"
+                                                                                onClick={() => handleLandlordReview(kyc, 'rejected')}
+                                                                                disabled={processingId === kyc.id}
+                                                                            >
+                                                                                Reject
+                                                                            </Button>
+                                                                            <Button
+                                                                                className="bg-green-600 hover:bg-green-700"
+                                                                                onClick={() => handleLandlordReview(kyc, 'approved')}
+                                                                                disabled={processingId === kyc.id}
+                                                                            >
+                                                                                Approve
+                                                                            </Button>
+                                                                        </div>
+                                                                    )}
+                                                                </DialogFooter>
+                                                            </DialogContent>
+                                                        </Dialog>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="properties">
+                    <Card className="border-none shadow-sm bg-white dark:bg-gray-950">
+                        <CardHeader>
+                            <CardTitle>Property Verification Queue</CardTitle>
+                            <CardDescription>Review ownership documents, agency agreements, and verification photos.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="relative overflow-x-auto">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-gray-400 uppercase text-[10px]">
+                                        <tr>
+                                            <th className="px-6 py-4">Property</th>
+                                            <th className="px-6 py-4">Landlord</th>
+                                            <th className="px-6 py-4">Status</th>
+                                            <th className="px-6 py-4">Submitted</th>
+                                            <th className="px-6 py-4 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y dark:divide-gray-800">
+                                        {loading ? (
+                                            <tr><td colSpan={5} className="py-10 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-600" /></td></tr>
+                                        ) : properties.length === 0 ? (
+                                            <tr><td colSpan={5} className="py-10 text-center text-muted-foreground italic">No property verification requests yet.</td></tr>
+                                        ) : (
+                                            properties.map((verif) => (
+                                                <tr key={verif.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors">
+                                                    <td className="px-6 py-4 font-medium">
+                                                        <div>{verif.property?.title}</div>
+                                                        <div className="text-[10px] text-muted-foreground">{verif.property?.city}, {verif.property?.state}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4 font-medium">
+                                                        <div>{verif.landlord?.name}</div>
+                                                        <div className="text-[10px] text-muted-foreground">{verif.landlord?.email}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <Badge variant={verif.status === 'approved' ? 'default' : verif.status === 'rejected' ? 'destructive' : 'outline'}>
+                                                            {verif.status}
+                                                        </Badge>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-xs text-muted-foreground">
+                                                        {new Date(verif.created_at).toLocaleDateString()}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        <Dialog>
+                                                            <DialogTrigger asChild>
+                                                                <Button variant="outline" size="sm" className="gap-2">
+                                                                    <Eye className="h-3 w-3" /> Review
+                                                                </Button>
+                                                            </DialogTrigger>
+                                                            <DialogContent className="max-w-4xl overflow-y-auto max-h-[90vh]">
+                                                                <DialogHeader>
+                                                                    <DialogTitle>Property Verification: {verif.property?.title}</DialogTitle>
+                                                                    <DialogDescription>Verify ownership deed and representation agreements.</DialogDescription>
+                                                                </DialogHeader>
+
+                                                                <div className="grid md:grid-cols-2 gap-6 py-4">
+                                                                    <div className="space-y-4">
+                                                                        <div className="space-y-1">
+                                                                            <Label className="text-xs text-muted-foreground">Ownership Deed / Documents</Label>
+                                                                            <div className="aspect-video bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden border flex items-center justify-center">
+                                                                                {verif.ownership_doc_url.endsWith('.pdf') ? (
+                                                                                    <div className="flex flex-col items-center justify-center p-4">
+                                                                                        <FileText className="h-10 w-10 text-slate-400 mb-2" />
+                                                                                        <a href={verif.ownership_doc_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 underline flex items-center gap-1">
+                                                                                            Open PDF Ownership Deed <ExternalLink className="h-3 w-3" />
+                                                                                        </a>
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <img src={verif.ownership_doc_url} alt="Ownership Deed" className="w-full h-full object-contain" />
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="space-y-1">
+                                                                            <Label className="text-xs text-muted-foreground">Agency Agreement</Label>
+                                                                            <div className="aspect-video bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden border flex items-center justify-center">
+                                                                                {verif.agency_agreement_url.endsWith('.pdf') ? (
+                                                                                    <div className="flex flex-col items-center justify-center p-4">
+                                                                                        <FileText className="h-10 w-10 text-slate-400 mb-2" />
+                                                                                        <a href={verif.agency_agreement_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 underline flex items-center gap-1">
+                                                                                            Open PDF Agency Agreement <ExternalLink className="h-3 w-3" />
+                                                                                        </a>
+                                                                                    </div>
+                                                                                ) : (
+                                                                                    <img src={verif.agency_agreement_url} alt="Agency Agreement" className="w-full h-full object-contain" />
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="space-y-4">
+                                                                        {verif.property_photos && verif.property_photos.length > 0 && (
+                                                                            <div className="space-y-1">
+                                                                                <Label className="text-xs text-muted-foreground">Verification Photos</Label>
+                                                                                <div className="grid grid-cols-2 gap-2">
+                                                                                    {verif.property_photos.map((photo: string, index: number) => (
+                                                                                        <div key={index} className="aspect-square bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden border">
+                                                                                            <img src={photo} alt={`Property Photo ${index + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer" onClick={() => window.open(photo, '_blank')} />
+                                                                                        </div>
+                                                                                    ))}
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+
+                                                                        <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-xl space-y-3">
+                                                                            <h4 className="font-bold text-sm border-b pb-2">Property Information</h4>
+                                                                            <div className="grid grid-cols-2 gap-y-3 text-xs">
+                                                                                <span className="text-muted-foreground">Title:</span>
+                                                                                <span className="font-medium">{verif.property?.title}</span>
+                                                                                <span className="text-muted-foreground">Location:</span>
+                                                                                <span className="font-medium">{verif.property?.city}, {verif.property?.state}</span>
+                                                                                <span className="text-muted-foreground">Area/Neighborhood:</span>
+                                                                                <span className="font-medium">{verif.property?.area || 'N/A'}</span>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        {verif.status === 'pending' && (
+                                                                            <div className="space-y-3 pt-4 border-t">
+                                                                                <Label htmlFor="reason">Rejection Reason</Label>
+                                                                                <Textarea
+                                                                                    id="reason"
+                                                                                    placeholder="Required only for rejection..."
+                                                                                    className="text-xs"
+                                                                                    value={rejectionReason}
+                                                                                    onChange={(e) => setRejectionReason(e.target.value)}
+                                                                                />
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+
+                                                                <DialogFooter>
+                                                                    <Button variant="ghost" onClick={() => { }}>Close</Button>
+                                                                    {verif.status === 'pending' && (
+                                                                        <div className="flex gap-2">
+                                                                            <Button
+                                                                                variant="destructive"
+                                                                                onClick={() => handlePropertyReview(verif, 'rejected')}
+                                                                                disabled={processingId === verif.id}
+                                                                            >
+                                                                                Reject
+                                                                            </Button>
+                                                                            <Button
+                                                                                className="bg-green-600 hover:bg-green-700"
+                                                                                onClick={() => handlePropertyReview(verif, 'approved')}
+                                                                                disabled={processingId === verif.id}
                                                                             >
                                                                                 Approve
                                                                             </Button>

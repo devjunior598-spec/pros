@@ -32,7 +32,7 @@ export function BottomNav({ userRole }: BottomNavProps) {
     const landlordItems = [
         { title: "Home", href: "/dashboard", icon: LayoutDashboard },
         { title: "Properties", href: "/properties", icon: Building },
-        { title: "Add", href: "/properties/new", icon: PlusCircle },
+        { title: "Add", href: "/dashboard/landlord/properties/new", icon: PlusCircle },
         { title: "Messages", href: "/messages", icon: MessageSquare },
         { title: "Settings", href: "/settings", icon: Settings },
     ]
