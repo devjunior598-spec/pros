@@ -45,10 +45,10 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className="flex-1 space-y-4 p-8 pt-6 max-w-5xl mx-auto">
+        <div className="flex-1 space-y-4 px-3 py-4 md:p-8 md:pt-6 max-w-5xl mx-auto">
             <div className="flex items-center justify-between space-y-2 mb-6">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Settings</h2>
+                    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Settings</h2>
                     <p className="text-muted-foreground mt-1">Manage your account settings and preferences.</p>
                 </div>
             </div>

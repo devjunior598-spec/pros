@@ -155,7 +155,7 @@ export default function WalletPage() {
     return (
         <div className="space-y-8">
             <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-bold tracking-tight">My Wallet</h1>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">My Wallet</h1>
                 <p className="text-muted-foreground">Manage your funds, fund your account, and view payment history.</p>
             </div>
 

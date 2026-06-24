@@ -93,11 +93,7 @@ export function SiteHeader({ hideNav = false }: SiteHeaderProps) {
                     <MobileNav userRole={profile?.role} isVerified={profile?.is_verified} profile={profile} />
 
                     {!isDashboard && (
-                        <Logo
-                            height={32}
-                            invert
-                            className="shrink-0"
-                        />
+                        <Logo dark className="shrink-0" />
                     )}
 
                     {isDashboard && (

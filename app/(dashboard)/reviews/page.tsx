@@ -71,7 +71,7 @@ export default function ProviderReviewsPage() {
     return (
         <div className="space-y-6 pb-20">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">Client Reviews</h1>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Client Reviews</h1>
                 <p className="text-muted-foreground">Hear what landlords have to say about your work.</p>
             </div>
 

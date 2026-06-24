@@ -14,7 +14,7 @@ import { ServiceDirectory } from "@/components/landlord/service-directory"
 import { ProfileSettings } from "@/components/profile-settings"
 import { NewsFeed } from "@/components/news-feed/news-feed"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { DollarSign, Users, Activity, CreditCard } from "lucide-react"
+import { DollarSign, Users, Activity, CreditCard, Plus, Building2, Wrench, TrendingUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { TenantDashboard } from "@/components/tenant/tenant-dashboard"
 import { SummaryCard } from "@/components/dashboard/summary-cards"
@@ -187,23 +187,51 @@ function DashboardContent() {
     // Default to Landlord View
     const renderLandlordContent = () => {
         return (
-            <div className="space-y-8 pb-10">
+            <div className="space-y-6 sm:space-y-8 pb-20 md:pb-10">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex flex-col gap-1">
-                        <h1 className="text-3xl font-bold tracking-tight">Landlord Overview</h1>
+                        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Landlord Overview</h1>
                         <p className="text-muted-foreground">Manage your properties and stay on top of tenant requests.</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
-                        <Link href="/properties">
-                            <Button variant="outline">View Properties</Button>
+                        <Link href="/properties" className="w-full sm:w-auto">
+                            <Button variant="outline" className="w-full sm:w-auto min-h-[44px]">View Properties</Button>
                         </Link>
-                        <Link href="/properties/new">
-                            <Button className="bg-blue-600 hover:bg-blue-700">Post New Property</Button>
+                        <Link href="/properties/new" className="w-full sm:w-auto">
+                            <Button className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto min-h-[44px]">Post New Property</Button>
                         </Link>
                     </div>
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                {/* Mobile Quick Actions */}
+                <div className="grid grid-cols-4 gap-2 md:hidden">
+                    <Link href="/properties/new" className="flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 active:scale-95 transition-transform">
+                        <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
+                            <Plus className="h-5 w-5 text-white" />
+                        </div>
+                        <span className="text-[10px] font-semibold text-blue-700 dark:text-blue-300 text-center leading-tight">Add Property</span>
+                    </Link>
+                    <Link href="/tenants" className="flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-purple-50 dark:bg-purple-950/30 border border-purple-100 dark:border-purple-900/40 active:scale-95 transition-transform">
+                        <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center">
+                            <Users className="h-5 w-5 text-white" />
+                        </div>
+                        <span className="text-[10px] font-semibold text-purple-700 dark:text-purple-300 text-center leading-tight">Tenants</span>
+                    </Link>
+                    <Link href="/requests" className="flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-orange-50 dark:bg-orange-950/30 border border-orange-100 dark:border-orange-900/40 active:scale-95 transition-transform">
+                        <div className="w-10 h-10 rounded-full bg-orange-600 flex items-center justify-center">
+                            <Wrench className="h-5 w-5 text-white" />
+                        </div>
+                        <span className="text-[10px] font-semibold text-orange-700 dark:text-orange-300 text-center leading-tight">Maintenance</span>
+                    </Link>
+                    <Link href="/earnings" className="flex flex-col items-center gap-1.5 p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 active:scale-95 transition-transform">
+                        <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center">
+                            <TrendingUp className="h-5 w-5 text-white" />
+                        </div>
+                        <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 text-center leading-tight">Earnings</span>
+                    </Link>
+                </div>
+
+                <div className="grid gap-4 sm:gap-6 grid-cols-2 lg:grid-cols-4">
                     <SummaryCard
                         title="Total Revenue"
                         value={`₦${metrics.totalRevenue.toLocaleString()}`}
@@ -234,8 +262,8 @@ function DashboardContent() {
                     />
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
-                    <Card className="lg:col-span-4 border-none shadow-sm bg-white dark:bg-gray-950">
+                <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-7">
+                    <Card className="lg:col-span-4 border shadow-sm bg-card">
                         <CardHeader>
                             <CardTitle>Recent Maintenance</CardTitle>
                             <CardDescription>Latest repair requests from your properties.</CardDescription>
@@ -251,7 +279,7 @@ function DashboardContent() {
                             </div>
                         </CardContent>
                     </Card>
-                    <Card className="lg:col-span-3 border-none shadow-sm bg-white dark:bg-gray-950">
+                    <Card className="lg:col-span-3 border shadow-sm bg-card">
                         <CardHeader>
                             <CardTitle>Portfolio Overview</CardTitle>
                             <CardDescription>Performance of your properties.</CardDescription>
@@ -263,7 +291,7 @@ function DashboardContent() {
                 </div>
 
                 <div className="grid gap-6 md:grid-cols-1">
-                    <Card className="border-none shadow-sm bg-white dark:bg-gray-950 overflow-hidden">
+                    <Card className="border shadow-sm bg-card overflow-hidden">
                         <CardHeader className="flex flex-row items-center justify-between">
                             <div className="space-y-1">
                                 <CardTitle>Latest News</CardTitle>
@@ -284,7 +312,7 @@ function DashboardContent() {
 
     return (
         <div className="flex-1">
-            <div className="p-8 pt-6">
+            <div className="p-2 sm:p-4 md:p-8 pt-4 md:pt-6">
                 {renderLandlordContent()}
             </div>
         </div>

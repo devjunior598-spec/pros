@@ -24,6 +24,8 @@ export function GlobalErrorSuppressor() {
                 /was released because another request stole it/i,
                 /isacquiretimeout/i,
                 /lock broken/i,
+                /browsing context is going away/i,
+                /promise was rejected because/i,
                 // Token-refresh network errors
                 // Supabase throws a plain TypeError("Failed to fetch") when
                 // _refreshAccessToken can't reach the auth endpoint. We match

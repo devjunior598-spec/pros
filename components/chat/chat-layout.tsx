@@ -10,6 +10,7 @@ import { CallModal } from "./call-modal";
 export default function ChatPageLayout() {
     const { isConnected } = useChat();
     const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
+    const [showChat, setShowChat] = useState(false);
 
     // Dummy data for now, replace with Supabase fetch
     const [conversations, setConversations] = useState([
@@ -32,7 +33,7 @@ export default function ChatPageLayout() {
     return (
         <div className="flex h-[calc(100vh-4rem)] w-full overflow-hidden bg-background border rounded-xl shadow-sm">
             {/* Sidebar - Conversation List */}
-            <div className="w-80 border-r flex flex-col hidden md:flex">
+            <div className={`${showChat ? 'hidden md:flex' : 'flex'} w-full md:w-80 border-r flex-col`}>
                 <div className="p-4 border-b">
                     <h2 className="font-semibold text-lg">Messages</h2>
                     <div className="text-xs text-muted-foreground mt-1">
@@ -42,14 +43,14 @@ export default function ChatPageLayout() {
                 <ConversationList
                     conversations={conversations}
                     selectedId={selectedConversation}
-                    onSelect={setSelectedConversation}
+                    onSelect={(id) => { setSelectedConversation(id); setShowChat(true); }}
                 />
             </div>
 
             {/* Main Chat Area */}
-            <div className="flex-1 flex flex-col">
+            <div className={`${!showChat ? 'hidden md:flex' : 'flex'} flex-1 flex-col`}>
                 {selectedConversation && currentUserId ? (
-                    <MessageWindow conversationId={selectedConversation} currentUserId={currentUserId} />
+                    <MessageWindow conversationId={selectedConversation} currentUserId={currentUserId} onBack={() => setShowChat(false)} />
                 ) : (
                     <div className="flex-1 flex items-center justify-center text-muted-foreground">
                         Select a conversation to start chatting

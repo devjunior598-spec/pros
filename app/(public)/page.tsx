@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { motion, useScroll, useTransform, AnimatePresence, useInView } from "motion/react"
+import { Logo } from "@/components/logo"
 import {
   ShieldCheck, Home, Wrench, BarChart3, BrainCircuit, CreditCard,
   ArrowRight, Star, Users, Building2, CheckCircle2, Zap, Globe,
@@ -107,12 +108,7 @@ function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-4 md:px-8 flex items-center justify-between h-16 md:h-20">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 shrink-0">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg shadow-blue-500/30">
-            <Building2 className="h-5 w-5 text-white" />
-          </div>
-          <span className="font-black text-white text-xl tracking-tight">PRMS</span>
-        </Link>
+        <Logo href="/" dark />
 
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-8">
@@ -147,36 +143,67 @@ function Navbar() {
           onClick={() => setMobileOpen(!mobileOpen)}
           aria-label="Toggle menu"
         >
-          {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          <Menu className="h-6 w-6" />
         </button>
       </div>
 
-      {/* Mobile menu */}
+      {/* Mobile menu - full-screen slide-in drawer */}
       <AnimatePresence>
         {mobileOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="md:hidden bg-[#081A3A]/95 backdrop-blur-xl border-b border-white/10 overflow-hidden"
-          >
-            <div className="px-4 py-4 flex flex-col gap-3">
-              {links.map(l => (
-                <Link key={l.label} href={l.href} onClick={() => setMobileOpen(false)}
-                  className="text-blue-100/80 hover:text-white font-medium py-2 border-b border-white/5">
-                  {l.label}
+          <>
+            {/* Backdrop overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 md:hidden"
+            />
+            {/* Slide-in panel */}
+            <motion.div
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="fixed inset-y-0 left-0 w-[85%] max-w-[320px] bg-[#081A3A] border-r border-white/10 z-50 md:hidden flex flex-col"
+            >
+              {/* Drawer header */}
+              <div className="flex items-center justify-between px-4 h-16 border-b border-white/10">
+                <Logo href="/" dark />
+                <button
+                  onClick={() => setMobileOpen(false)}
+                  className="text-white p-2 hover:bg-white/10 rounded-lg transition-colors"
+                  aria-label="Close menu"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+
+              {/* Nav links */}
+              <nav className="flex-1 overflow-y-auto px-4 py-4">
+                {links.map(l => (
+                  <Link
+                    key={l.label}
+                    href={l.href}
+                    onClick={() => setMobileOpen(false)}
+                    className="block py-3 text-base text-blue-100/80 hover:text-white font-medium border-b border-white/5 transition-colors"
+                  >
+                    {l.label}
+                  </Link>
+                ))}
+              </nav>
+
+              {/* Bottom CTA buttons */}
+              <div className="px-4 py-4 border-t border-white/10 flex flex-col gap-3">
+                <Link href="/login">
+                  <button className="w-full min-h-[48px] py-2.5 text-sm font-semibold text-white border border-white/20 rounded-xl hover:border-white/40 transition-colors">Login</button>
                 </Link>
-              ))}
-              <div className="flex gap-3 pt-2">
-                <Link href="/login" className="flex-1">
-                  <button className="w-full py-2.5 text-sm font-semibold text-white border border-white/20 rounded-xl">Login</button>
-                </Link>
-                <Link href="/signup" className="flex-1">
-                  <button className="w-full py-2.5 text-sm font-bold text-white bg-blue-600 rounded-xl">Get Started</button>
+                <Link href="/signup">
+                  <button className="w-full min-h-[48px] py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-500 rounded-xl transition-colors">Get Started</button>
                 </Link>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </motion.header>
@@ -189,6 +216,7 @@ export default function HomePage() {
   const heroY = useTransform(scrollYProgress, [0, 0.3], [0, -80])
 
   const [stats, setStats] = useState({ properties: 0, tenants: 0, landlords: 0, txns: 0 })
+  const [particles, setParticles] = useState<{ x: number; y: number; size: number; delay: number }[]>([])
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -208,12 +236,17 @@ export default function HomePage() {
     fetchStats()
   }, [])
 
-  const particles = Array.from({ length: 18 }, (_, i) => ({
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-    size: 4 + Math.random() * 12,
-    delay: i * 0.3,
-  }))
+  // Generate particles client-side only to avoid SSR/hydration mismatch
+  useEffect(() => {
+    setParticles(
+      Array.from({ length: 18 }, (_, i) => ({
+        x: Math.random() * 100,
+        y: Math.random() * 100,
+        size: 4 + Math.random() * 12,
+        delay: i * 0.3,
+      }))
+    )
+  }, [])
 
   const features: Feature[] = [
     { icon: <ShieldCheck className="h-6 w-6" />, title: "Verified Landlords",        desc: "Every landlord undergoes KYC verification. Trust starts here.",              color: "from-blue-500 to-blue-700" },
@@ -272,7 +305,7 @@ export default function HomePage() {
         {/* Hero content */}
         <motion.div
           style={{ y: heroY }}
-          className="relative z-10 max-w-5xl mx-auto px-4 md:px-8 text-center pt-24 pb-16"
+          className="relative z-10 max-w-5xl mx-auto px-4 md:px-8 text-center pt-20 pb-12 sm:pt-24 sm:pb-16"
         >
           {/* Badge */}
           <motion.div
@@ -290,7 +323,7 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.8 }}
-            className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tight leading-[1.05] mb-6"
+            className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-black tracking-tight leading-[1.05] mb-6"
           >
             Ready to Experience the{" "}
             <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-violet-400 bg-clip-text text-transparent">
@@ -303,7 +336,7 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.7 }}
-            className="text-lg md:text-xl text-blue-100/70 max-w-2xl mx-auto mb-10 leading-relaxed"
+            className="text-base sm:text-lg md:text-xl text-blue-100/70 max-w-2xl mx-auto mb-10 leading-relaxed"
           >
             Join the property network that values verification, speed, and safety.
             Create an account in under 3 minutes.
@@ -320,7 +353,7 @@ export default function HomePage() {
               <motion.button
                 whileHover={{ scale: 1.04, boxShadow: "0 0 40px rgba(59,130,246,0.5)" }}
                 whileTap={{ scale: 0.97 }}
-                className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 rounded-2xl text-white font-bold text-base shadow-xl shadow-blue-600/30 transition-all"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 rounded-2xl text-white font-bold text-base shadow-xl shadow-blue-600/30 transition-all"
               >
                 Register as User <ArrowRight className="h-4 w-4" />
               </motion.button>
@@ -329,7 +362,7 @@ export default function HomePage() {
               <motion.button
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.97 }}
-                className="flex items-center gap-2 px-8 py-4 bg-white/10 hover:bg-white/15 border border-white/20 rounded-2xl text-white font-bold text-base backdrop-blur-sm transition-all"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-4 bg-white/10 hover:bg-white/15 border border-white/20 rounded-2xl text-white font-bold text-base backdrop-blur-sm transition-all"
               >
                 <Building2 className="h-4 w-4" /> Join as Landlord
               </motion.button>
@@ -341,7 +374,7 @@ export default function HomePage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1 }}
-            className="flex items-center justify-center gap-6 mt-12 text-sm text-blue-200/60"
+            className="flex items-center justify-center gap-3 sm:gap-6 mt-12 text-xs sm:text-sm text-blue-200/60"
           >
             <div className="flex -space-x-2">
               {[...Array(5)].map((_, i) => (
@@ -378,7 +411,7 @@ export default function HomePage() {
               transition={{ delay: i * 0.1 }}
               className="text-center"
             >
-              <div className="text-3xl md:text-4xl font-black text-white mb-1">
+              <div className="text-2xl sm:text-3xl md:text-4xl font-black text-white mb-1">
                 <Counter target={Number(s.value)} suffix={s.suffix} />
               </div>
               <div className="text-sm text-blue-200/60 font-medium">{s.label}</div>
@@ -394,7 +427,7 @@ export default function HomePage() {
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-300 text-xs font-semibold mb-4">
               <Zap className="h-3 w-3" /> Platform Features
             </div>
-            <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4">
+            <h2 className="text-2xl sm:text-3xl md:text-5xl font-black tracking-tight mb-4">
               Everything you need to manage{" "}
               <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
                 property at scale
@@ -434,7 +467,7 @@ export default function HomePage() {
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-violet-500/30 bg-violet-500/10 text-violet-300 text-xs font-semibold mb-4">
               <Play className="h-3 w-3 fill-current" /> How It Works
             </div>
-            <h2 className="text-3xl md:text-5xl font-black tracking-tight">
+            <h2 className="text-2xl sm:text-3xl md:text-5xl font-black tracking-tight">
               Up and running in{" "}
               <span className="bg-gradient-to-r from-violet-400 to-pink-400 bg-clip-text text-transparent">3 minutes</span>
             </h2>
@@ -477,7 +510,7 @@ export default function HomePage() {
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-xs font-semibold mb-4">
               <Globe className="h-3 w-3" /> Service Marketplace
             </div>
-            <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4">
+            <h2 className="text-2xl sm:text-3xl md:text-5xl font-black tracking-tight mb-4">
               Trusted service providers,{" "}
               <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">on demand</span>
             </h2>
@@ -525,7 +558,7 @@ export default function HomePage() {
       <Section className="py-24 bg-white/[0.02] border-y border-white/10">
         <div className="max-w-6xl mx-auto px-4 md:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4">
+            <h2 className="text-2xl sm:text-3xl md:text-5xl font-black tracking-tight mb-4">
               Loved by{" "}
               <span className="bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">
                 thousands
@@ -574,7 +607,7 @@ export default function HomePage() {
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-300 text-xs font-semibold mb-6">
                 <Lock className="h-3 w-3" /> Built for Trust
               </div>
-              <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-6">
+              <h2 className="text-2xl sm:text-3xl md:text-5xl font-black tracking-tight mb-6">
                 Why PRMS beats every
                 <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent"> alternative</span>
               </h2>
@@ -647,7 +680,7 @@ export default function HomePage() {
             whileInView={{ scale: 1 }}
             initial={{ scale: 0.97 }}
             viewport={{ once: true }}
-            className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-blue-600 to-blue-800 p-10 md:p-16 text-center shadow-2xl shadow-blue-600/20"
+            className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-blue-600 to-blue-800 p-6 sm:p-10 md:p-16 text-center shadow-2xl shadow-blue-600/20"
           >
             {/* Inner glow */}
             <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-transparent pointer-events-none" />
@@ -657,7 +690,7 @@ export default function HomePage() {
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 text-white text-xs font-semibold mb-6">
                 <Sparkles className="h-3 w-3" /> Limited Early Access
               </div>
-              <h2 className="text-3xl md:text-5xl font-black tracking-tight text-white mb-4">
+              <h2 className="text-2xl sm:text-3xl md:text-5xl font-black tracking-tight text-white mb-4">
                 Start managing smarter today
               </h2>
               <p className="text-blue-100/80 text-lg max-w-xl mx-auto mb-8">
@@ -667,7 +700,7 @@ export default function HomePage() {
                 <Link href="/signup">
                   <motion.button
                     whileHover={{ scale: 1.05, boxShadow: "0 0 40px rgba(255,255,255,0.3)" }}
-                    className="px-8 py-4 bg-white text-blue-700 font-black rounded-2xl text-base shadow-xl hover:bg-blue-50 transition-all"
+                    className="w-full sm:w-auto px-8 py-4 bg-white text-blue-700 font-black rounded-2xl text-base shadow-xl hover:bg-blue-50 transition-all"
                   >
                     Create Free Account
                   </motion.button>
@@ -675,7 +708,7 @@ export default function HomePage() {
                 <Link href="/listings">
                   <motion.button
                     whileHover={{ scale: 1.05 }}
-                    className="px-8 py-4 border border-white/30 text-white font-bold rounded-2xl text-base hover:bg-white/10 transition-all"
+                    className="w-full sm:w-auto px-8 py-4 border border-white/30 text-white font-bold rounded-2xl text-base hover:bg-white/10 transition-all"
                   >
                     Browse Properties
                   </motion.button>

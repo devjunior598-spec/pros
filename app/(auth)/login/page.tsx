@@ -4,13 +4,16 @@ import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
-import { Mail, Lock, Eye, EyeOff, Loader2, Sparkles, ArrowRight } from "lucide-react"
+import { Mail, Lock, Eye, EyeOff, Loader2, Sparkles, ArrowRight, CheckCircle2 } from "lucide-react"
 
 export default function LoginPage() {
     const router = useRouter()
     const [isLoading, setIsLoading] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [needsConfirm, setNeedsConfirm] = useState(false)
+    const [resendLoading, setResendLoading] = useState(false)
+    const [resendSent, setResendSent] = useState(false)
     const [formData, setFormData] = useState({ email: "", password: "" })
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -21,12 +24,23 @@ export default function LoginPage() {
         e.preventDefault()
         setIsLoading(true)
         setError(null)
+        setNeedsConfirm(false)
         try {
-            const { data, error } = await supabase.auth.signInWithPassword({
+            const { error } = await supabase.auth.signInWithPassword({
                 email: formData.email,
                 password: formData.password,
             })
-            if (error) throw error
+            if (error) {
+                // Detect unconfirmed email specifically
+                if (
+                    error.message?.toLowerCase().includes("email not confirmed") ||
+                    error.message?.toLowerCase().includes("not confirmed")
+                ) {
+                    setNeedsConfirm(true)
+                    return
+                }
+                throw error
+            }
             const pendingPropId = localStorage.getItem("pending_application_id")
             if (pendingPropId) {
                 localStorage.removeItem("pending_application_id")
@@ -35,9 +49,25 @@ export default function LoginPage() {
                 router.push("/dashboard")
             }
         } catch (err: any) {
-            setError(err.message || "Failed to sign in")
+            setError(err.message || "Failed to sign in. Check your email and password.")
         } finally {
             setIsLoading(false)
+        }
+    }
+
+    const handleResendConfirmation = async () => {
+        setResendLoading(true)
+        try {
+            const { error } = await supabase.auth.resend({
+                type: "signup",
+                email: formData.email,
+            })
+            if (error) throw error
+            setResendSent(true)
+        } catch (err: any) {
+            setError(err.message || "Could not resend confirmation email.")
+        } finally {
+            setResendLoading(false)
         }
     }
 
@@ -56,7 +86,39 @@ export default function LoginPage() {
             </div>
 
             <form onSubmit={handleLogin} className="px-6 pb-6 space-y-4">
-                {/* Error */}
+
+                {/* Email not confirmed banner */}
+                {needsConfirm && (
+                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-4 space-y-3">
+                        <div className="flex items-start gap-3">
+                            <Mail className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
+                            <div>
+                                <p className="text-amber-300 text-xs font-bold">Email not confirmed</p>
+                                <p className="text-amber-200/70 text-xs mt-0.5 leading-relaxed">
+                                    Please check your inbox for a confirmation email and click the link before signing in.
+                                </p>
+                            </div>
+                        </div>
+                        {resendSent ? (
+                            <div className="flex items-center gap-2 text-xs text-emerald-400 font-semibold">
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                Confirmation email resent — check your inbox.
+                            </div>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={handleResendConfirmation}
+                                disabled={resendLoading}
+                                className="text-xs font-bold text-amber-400 hover:text-amber-300 underline underline-offset-2 transition-colors disabled:opacity-50 flex items-center gap-1"
+                            >
+                                {resendLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+                                Resend confirmation email
+                            </button>
+                        )}
+                    </div>
+                )}
+
+                {/* Generic error */}
                 {error && (
                     <div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl px-4 py-3 text-xs font-semibold">
                         {error}
@@ -78,7 +140,7 @@ export default function LoginPage() {
                             value={formData.email}
                             onChange={handleChange}
                             disabled={isLoading}
-                            className="w-full pl-10 pr-4 h-11 bg-white/5 border border-white/10 focus:border-blue-500 focus:outline-none rounded-xl text-sm text-white placeholder-blue-200/30 transition-colors"
+                            className="w-full pl-10 pr-4 h-12 bg-white/5 border border-white/10 focus:border-blue-500 focus:outline-none rounded-xl text-base md:text-sm text-white placeholder-blue-200/30 transition-colors"
                         />
                     </div>
                 </div>
@@ -102,7 +164,7 @@ export default function LoginPage() {
                             value={formData.password}
                             onChange={handleChange}
                             disabled={isLoading}
-                            className="w-full pl-10 pr-10 h-11 bg-white/5 border border-white/10 focus:border-blue-500 focus:outline-none rounded-xl text-sm text-white placeholder-blue-200/30 transition-colors"
+                            className="w-full pl-10 pr-10 h-12 bg-white/5 border border-white/10 focus:border-blue-500 focus:outline-none rounded-xl text-base md:text-sm text-white placeholder-blue-200/30 transition-colors"
                         />
                         <button
                             type="button"
@@ -118,7 +180,7 @@ export default function LoginPage() {
                 <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold tracking-wide transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 mt-2"
+                    className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold tracking-wide transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 mt-2"
                 >
                     {isLoading ? (
                         <><Loader2 className="h-4 w-4 animate-spin" /> Authenticating…</>

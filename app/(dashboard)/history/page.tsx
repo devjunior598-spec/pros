@@ -71,7 +71,7 @@ export default function PaymentHistoryPage() {
                         Back to Dashboard
                     </Link>
                 </div>
-                <h1 className="text-3xl font-bold tracking-tight">Payment History</h1>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Payment History</h1>
                 <p className="text-muted-foreground">Keep track of all your past rent and utility payments.</p>
             </div>
 
@@ -97,7 +97,45 @@ export default function PaymentHistoryPage() {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <div className="rounded-md border overflow-hidden">
+                    {/* Mobile card view */}
+                    <div className="md:hidden space-y-3">
+                        {payments.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground flex flex-col items-center gap-2 opacity-50">
+                                <HistoryIcon className="h-10 w-10" />
+                                <p>No payment history found.</p>
+                            </div>
+                        ) : (
+                            payments.map((payment) => (
+                                <div key={payment.id} className="p-4 rounded-xl border bg-card space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <span className="font-medium text-sm truncate max-w-[200px]">{payment.rental?.property?.title || 'Unknown Property'}</span>
+                                        <Badge variant="secondary" className="capitalize text-[10px] h-5">
+                                            {payment.type}
+                                        </Badge>
+                                    </div>
+                                    <div className="font-bold text-sm">
+                                        ₦{payment.amount?.toLocaleString()}
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="font-mono text-xs text-muted-foreground">
+                                            {payment.id.split('-')[0].toUpperCase()}...
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">
+                                            {new Date(payment.updated_at).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                    <div className="pt-1">
+                                        <Button variant="ghost" size="sm" className="h-7 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-xs">
+                                            <Download className="h-3 w-3 mr-1" />
+                                            Download PDF
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                    {/* Desktop table */}
+                    <div className="hidden md:block rounded-md border overflow-hidden">
                         <Table>
                             <TableHeader className="bg-gray-50 dark:bg-gray-900/50">
                                 <TableRow>

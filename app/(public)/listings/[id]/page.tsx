@@ -284,13 +284,14 @@ export default function PublicPropertyDetailsPage() {
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300 font-sans">
-            <div className="container py-8 md:py-12 text-slate-900 dark:text-slate-100">
+            <div className="container py-6 sm:py-8 md:py-12 text-slate-900 dark:text-slate-100">
                 
                 {/* Back and Action Buttons */}
-                <div className="flex items-center justify-between mb-8">
-                    <Button variant="ghost" size="sm" onClick={() => router.back()} className="rounded-xl font-bold dark:hover:bg-slate-900">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Listings
+                <div className="flex items-center justify-between mb-6 sm:mb-8">
+                    <Button variant="ghost" size="sm" onClick={() => router.back()} className="rounded-xl font-bold dark:hover:bg-slate-900 min-h-[44px]">
+                        <ArrowLeft className="mr-1.5 h-4 w-4" />
+                        <span className="hidden sm:inline">Back to Listings</span>
+                        <span className="sm:hidden">Back</span>
                     </Button>
                     <div className="flex items-center gap-2">
                         {/* Bookmark Button */}
@@ -324,7 +325,7 @@ export default function PublicPropertyDetailsPage() {
                     </div>
                 </div>
 
-                <div className="grid gap-8 lg:grid-cols-12">
+                <div className="grid gap-6 sm:gap-8 lg:grid-cols-12">
                     
                     {/* Left Column: Image Gallery and Info */}
                     <div className="lg:col-span-8 space-y-8">
@@ -346,7 +347,7 @@ export default function PublicPropertyDetailsPage() {
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/40 text-white hover:bg-black/60 rounded-full h-9 w-9 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/40 text-white hover:bg-black/60 rounded-full h-9 w-9 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity min-h-[44px] min-w-[44px]"
                                                     onClick={prevImage}
                                                 >
                                                     <ChevronLeft className="h-5 w-5" />
@@ -354,7 +355,7 @@ export default function PublicPropertyDetailsPage() {
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/40 text-white hover:bg-black/60 rounded-full h-9 w-9 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/40 text-white hover:bg-black/60 rounded-full h-9 w-9 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity min-h-[44px] min-w-[44px]"
                                                     onClick={nextImage}
                                                 >
                                                     <ChevronRight className="h-5 w-5" />
@@ -381,7 +382,7 @@ export default function PublicPropertyDetailsPage() {
                                             key={i}
                                             onClick={() => setCurrentImageIndex(i)}
                                             className={cn(
-                                                "relative flex-shrink-0 w-24 aspect-[4/3] rounded-xl overflow-hidden border-2 transition-all",
+                                                "relative flex-shrink-0 w-16 sm:w-24 aspect-[4/3] rounded-xl overflow-hidden border-2 transition-all",
                                                 i === currentImageIndex 
                                                     ? "border-blue-600 shadow-md scale-95" 
                                                     : "border-transparent opacity-60 hover:opacity-100"
@@ -404,7 +405,7 @@ export default function PublicPropertyDetailsPage() {
                             <div className="flex items-center text-blue-600 dark:text-blue-400 text-[10px] uppercase font-bold tracking-widest gap-1">
                                 <ShieldCheck className="h-4 w-4" /> PRMS verified property
                             </div>
-                            <h1 className="text-3xl font-black tracking-tight sm:text-4xl text-slate-900 dark:text-white leading-tight">
+                            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-slate-900 dark:text-white leading-tight">
                                 {property.title}
                             </h1>
                             <div className="flex items-center text-sm font-semibold text-slate-500 dark:text-slate-400 gap-1.5">

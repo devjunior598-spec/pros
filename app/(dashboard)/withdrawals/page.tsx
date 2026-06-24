@@ -150,11 +150,11 @@ export default function WithdrawalsPage() {
     return (
         <div className="space-y-8">
             <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-bold tracking-tight">Withdraw Funds</h1>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Withdraw Funds</h1>
                 <p className="text-muted-foreground">Transfer your earnings to your registered bank account.</p>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-3">
+            <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-3">
                 <Card className="md:col-span-2 bg-white dark:bg-gray-950 border-none shadow-sm">
                     <CardHeader>
                         <div className="flex items-center gap-2">
@@ -166,7 +166,7 @@ export default function WithdrawalsPage() {
                     <CardContent className="space-y-6">
                         <div className="p-6 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
                             <p className="text-sm text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Available for Withdrawal</p>
-                            <h3 className="text-4xl font-bold text-gray-900 dark:text-white">₦{balance.toLocaleString()}</h3>
+                            <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">₦{balance.toLocaleString()}</h3>
                         </div>
 
                         <div className="space-y-4">
@@ -179,7 +179,7 @@ export default function WithdrawalsPage() {
                                         placeholder="0.00"
                                         value={amount}
                                         onChange={(e) => setAmount(e.target.value)}
-                                        className="w-full pl-8 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-lg focus:ring-2 ring-blue-500 outline-none transition-all"
+                                        className="w-full pl-8 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-lg focus:ring-2 ring-blue-500 outline-none transition-all min-h-[44px] text-base md:text-sm"
                                     />
                                 </div>
                             </div>
@@ -188,7 +188,7 @@ export default function WithdrawalsPage() {
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Select Bank Account</label>
                                     <select
-                                        className="w-full p-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-lg focus:ring-2 ring-blue-500 outline-none transition-all"
+                                        className="w-full p-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-lg focus:ring-2 ring-blue-500 outline-none transition-all min-h-[44px] text-base md:text-sm"
                                         value={selectedAccount}
                                         onChange={(e) => setSelectedAccount(e.target.value)}
                                     >
@@ -290,7 +290,36 @@ export default function WithdrawalsPage() {
                     <CardDescription>View your past withdrawal requests and their statuses.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="rounded-md border overflow-hidden">
+                    {/* Mobile card view */}
+                    <div className="md:hidden space-y-3">
+                        {withdrawals.length === 0 ? (
+                            <p className="text-center py-8 text-muted-foreground">No withdrawal history found.</p>
+                        ) : (
+                            withdrawals.map((wd: any) => (
+                                <div key={wd.id} className="p-4 rounded-xl border bg-card space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <span className="font-bold text-sm">₦{Number(wd.amount).toLocaleString()}</span>
+                                        <Badge className={
+                                            wd.status === 'completed' ? "bg-green-100 text-green-700 hover:bg-green-200 border-none text-[10px]" :
+                                                wd.status === 'failed' ? "bg-red-100 text-red-700 hover:bg-red-200 border-none text-[10px]" :
+                                                    "bg-orange-100 text-orange-700 hover:bg-orange-200 border-none text-[10px]"
+                                        }>
+                                            {wd.status.charAt(0).toUpperCase() + wd.status.slice(1)}
+                                        </Badge>
+                                    </div>
+                                    <div className="text-sm text-muted-foreground">
+                                        {wd.bank_account?.bank_name || 'Removed Bank'}
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="font-mono text-xs text-muted-foreground">{wd.reference}</span>
+                                        <span className="text-xs text-muted-foreground">{new Date(wd.created_at).toLocaleDateString()}</span>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                    {/* Desktop table */}
+                    <div className="hidden md:block rounded-md border overflow-hidden">
                         <Table>
                             <TableHeader className="bg-gray-50 dark:bg-gray-900/50">
                                 <TableRow>

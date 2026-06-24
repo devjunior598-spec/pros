@@ -126,15 +126,26 @@
 
 @utility container {
   margin-inline: auto;
-  padding-inline: 2rem;
+  padding-inline: 1rem;
 
   @media (width >=--theme(--breakpoint-sm)) {
+    padding-inline: 2rem;
     max-width: none;
   }
 
   @media (width >=1400px) {
     max-width: 1400px;
   }
+}
+
+/* Prevent horizontal overflow on all pages */
+html {
+  overflow-x: hidden;
+}
+
+/* Safe area padding for notched phones (iPhone X+) */
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /*

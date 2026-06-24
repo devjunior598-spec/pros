@@ -37,6 +37,7 @@ export default function RootLayout({
                 if (!v) return false;
                 var s = typeof v === 'string' ? v : (v.message || String(v) || '');
                 return /abort|signal is aborted|lock broken|steal|isacquiretimeout|was released because another request/i.test(s) ||
+                       /browsing context is going away|promise was rejected because/i.test(s) ||
                        /^failed to fetch$/i.test(s.trim());
               }
               var orig = console.error.bind(console);

@@ -120,7 +120,7 @@ export default function DashboardLayout({
                     {/* Desktop Sidebar */}
                     <aside className="fixed inset-y-0 left-0 z-50 hidden w-64 border-r border-gray-200/60 dark:border-gray-800/60 bg-white dark:bg-gray-950 md:block shadow-[1px_0_10px_rgba(0,0,0,0.02)]">
                         <div className="flex h-16 items-center border-b px-5">
-                            <Logo height={32} />
+                            <Logo />
                         </div>
                         <ScrollArea className="h-[calc(100vh-64px)] px-3 py-4">
                             <div className="mb-6 px-3">
@@ -135,14 +135,14 @@ export default function DashboardLayout({
                     {/* Main Content Area */}
                     <div className="flex flex-1 flex-col md:pl-64">
                         <SiteHeader />
-                        <main className="flex-1 p-4 md:p-8 pb-24 md:pb-12 max-w-7xl mx-auto w-full">
+                        <main className="flex-1 px-3 py-4 md:p-8 pb-24 md:pb-12 max-w-7xl mx-auto w-full">
                             {userRole === 'service_provider' && providerStatus === 'pending' ? (
                                 <div className="flex flex-col items-center justify-center min-h-[60vh] text-center max-w-2xl mx-auto space-y-6">
                                     <div className="h-24 w-24 rounded-full bg-blue-50 flex items-center justify-center animate-pulse">
                                         <ShieldCheck className="h-12 w-12 text-blue-600" />
                                     </div>
                                     <div className="space-y-2">
-                                        <h1 className="text-3xl font-bold tracking-tight">Account Awaiting Approval</h1>
+                                        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Account Awaiting Approval</h1>
                                         <p className="text-muted-foreground text-lg">
                                             Thanks for joining PRMS! Your service provider account is currently being reviewed by our team.
                                         </p>

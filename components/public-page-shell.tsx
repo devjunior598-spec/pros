@@ -5,6 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { AnimatePresence, motion } from "motion/react"
 import { Building2, Menu, X, ChevronRight } from "lucide-react"
+import { Logo } from "@/components/logo"
 
 const NAV_LINKS = [
     { label: "Home",        href: "/" },
@@ -57,12 +58,7 @@ export function PublicPageShell({
             >
                 <div className="max-w-7xl mx-auto px-4 md:px-8 flex items-center justify-between h-16 md:h-20">
                     {/* Logo */}
-                    <Link href="/" className="flex items-center gap-2 shrink-0">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg shadow-blue-500/30">
-                            <Building2 className="h-5 w-5 text-white" />
-                        </div>
-                        <span className="font-black text-white text-xl tracking-tight">PRMS</span>
-                    </Link>
+                    <Logo href="/" dark />
 
                     {/* Desktop links */}
                     <nav className="hidden md:flex items-center gap-8">
@@ -117,16 +113,16 @@ export function PublicPageShell({
                             <div className="px-4 py-4 flex flex-col gap-3">
                                 {NAV_LINKS.map(l => (
                                     <Link key={l.label} href={l.href} onClick={() => setMobileOpen(false)}
-                                        className="text-blue-100/80 hover:text-white font-medium py-2 border-b border-white/5 flex items-center justify-between">
+                                        className="text-blue-100/80 hover:text-white font-medium py-3 min-h-[44px] border-b border-white/5 flex items-center justify-between">
                                         {l.label} <ChevronRight className="h-4 w-4 opacity-40" />
                                     </Link>
                                 ))}
                                 <div className="flex gap-3 pt-2">
                                     <Link href="/login" className="flex-1">
-                                        <button className="w-full py-2.5 text-sm font-semibold text-white border border-white/20 rounded-xl">Login</button>
+                                        <button className="w-full py-2.5 min-h-[44px] text-sm font-semibold text-white border border-white/20 rounded-xl">Login</button>
                                     </Link>
                                     <Link href="/signup" className="flex-1">
-                                        <button className="w-full py-2.5 text-sm font-bold text-white bg-blue-600 rounded-xl">Get Started</button>
+                                        <button className="w-full py-2.5 min-h-[44px] text-sm font-bold text-white bg-blue-600 rounded-xl">Get Started</button>
                                     </Link>
                                 </div>
                             </div>
@@ -158,7 +154,7 @@ export function PublicPageShell({
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.1 }}
-                            className="text-4xl md:text-6xl font-black tracking-tight leading-tight mb-4"
+                            className="text-3xl sm:text-4xl md:text-6xl font-black tracking-tight leading-tight mb-4"
                         >
                             {pageTitle}
                         </motion.h1>
@@ -167,7 +163,7 @@ export function PublicPageShell({
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.2 }}
-                                className="text-lg md:text-xl text-blue-100/60 max-w-2xl mx-auto leading-relaxed"
+                                className="text-base sm:text-lg md:text-xl text-blue-100/60 max-w-2xl mx-auto leading-relaxed"
                             >
                                 {pageSubtitle}
                             </motion.p>

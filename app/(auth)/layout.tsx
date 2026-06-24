@@ -1,5 +1,6 @@
 import Link from "next/link"
-import { ArrowLeft, Building2 } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
+import { Logo } from "@/components/logo"
 
 export default function AuthLayout({
     children,
@@ -30,10 +31,7 @@ export default function AuthLayout({
 
                 {/* Logo */}
                 <div className="flex flex-col items-center text-center gap-2">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-xl shadow-blue-600/30 mb-1">
-                        <Building2 className="h-7 w-7 text-white" />
-                    </div>
-                    <span className="font-black text-2xl tracking-tight text-white">PRMS</span>
+                    <Logo size="lg" dark href="/" />
                     <span className="text-[11px] text-blue-300/60 font-semibold uppercase tracking-widest">
                         Property Rental Management
                     </span>

@@ -46,7 +46,7 @@ function DarkSelect({
   label: string
 }) {
   return (
-    <div className="flex flex-col gap-1 min-w-[130px]">
+    <div className="flex flex-col gap-1 w-full sm:w-auto sm:min-w-[130px]">
       <label className="text-[10px] font-bold uppercase tracking-widest text-blue-200/40 px-1">
         {label}
       </label>
@@ -215,10 +215,10 @@ function ListingsContent() {
           transition={{ duration: 0.4, delay: 0.1 }}
           className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-8 backdrop-blur-sm"
         >
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
+          <div className="flex flex-col gap-4">
 
             {/* Search input */}
-            <div className="flex-1 relative">
+            <div className="w-full">
               <label className="text-[10px] font-bold uppercase tracking-widest text-blue-200/40 px-1 block mb-1">
                 Search
               </label>
@@ -243,7 +243,7 @@ function ListingsContent() {
             </div>
 
             {/* Filter selects row */}
-            <div className="flex flex-wrap items-end gap-3">
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-end gap-3">
               <DarkSelect
                 label="Property Type"
                 value={propertyType}

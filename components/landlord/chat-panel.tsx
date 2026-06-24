@@ -34,6 +34,7 @@ interface Conversation {
 export function ChatPanel({ landlordId }: ChatPanelProps) {
     const [conversations, setConversations] = useState<Conversation[]>([])
     const [selectedConv, setSelectedConv] = useState<Conversation | null>(null)
+    const [showChat, setShowChat] = useState(false)
 
     const searchParams = useSearchParams()
     const targetRentalId = searchParams.get('rentalId')
@@ -81,9 +82,9 @@ export function ChatPanel({ landlordId }: ChatPanelProps) {
     }, [conversations, selectedConv, targetRentalId, targetConvId])
 
     return (
-        <div className="flex h-[calc(100vh-12rem)] min-h-[500px] gap-4">
-            {/* Sidebar for Conversations */}
-            <Card className="w-1/3 flex flex-col h-full">
+        <div className="flex h-[calc(100vh-12rem)] min-h-[500px] gap-0 md:gap-4">
+            {/* Sidebar for Conversations - full width on mobile, 1/3 on desktop */}
+            <Card className={`${showChat ? 'hidden md:flex' : 'flex'} w-full md:w-1/3 flex-col h-full`}>
                 <CardHeader className="py-4">
                     <CardTitle>Conversations</CardTitle>
                 </CardHeader>
@@ -96,7 +97,7 @@ export function ChatPanel({ landlordId }: ChatPanelProps) {
                                 conversations.map((c) => (
                                     <button
                                         key={c.id}
-                                        onClick={() => setSelectedConv(c)}
+                                        onClick={() => { setSelectedConv(c); setShowChat(true); }}
                                         className={`p-4 text-left hover:bg-muted transition-colors border-b ${selectedConv?.id === c.id ? 'bg-muted border-l-4 border-l-blue-600' : 'border-l-4 border-l-transparent'
                                             }`}
                                     >
@@ -112,14 +113,15 @@ export function ChatPanel({ landlordId }: ChatPanelProps) {
                 </CardContent>
             </Card>
 
-            {/* Chat Area */}
-            <Card className="flex-1 flex flex-col h-full overflow-hidden border">
+            {/* Chat Area - full width on mobile, flex-1 on desktop */}
+            <Card className={`${!showChat ? 'hidden md:flex' : 'flex'} flex-1 flex-col h-full overflow-hidden border`}>
                 {selectedConv ? (
                     <MessageWindow
                         conversationId={selectedConv.id}
                         currentUserId={landlordId}
                         otherUserId={selectedConv.tenant_id}
                         otherUserName={selectedConv.tenant?.name}
+                        onBack={() => setShowChat(false)}
                     />
                 ) : (
                     <div className="flex flex-col h-full items-center justify-center text-muted-foreground">

@@ -69,7 +69,7 @@ export default function MaintenancePage() {
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Maintenance</h1>
+                    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Maintenance</h1>
                     <p className="text-muted-foreground">
                         {userRole === 'landlord'
                             ? "Manage repair requests across your properties."
@@ -80,7 +80,7 @@ export default function MaintenancePage() {
                 {userRole === 'tenant' && (
                     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                         <DialogTrigger asChild>
-                            <Button className="bg-blue-600 hover:bg-blue-700">
+                            <Button className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto min-h-[44px]">
                                 <PlusCircle className="mr-2 h-4 w-4" />
                                 New Request
                             </Button>

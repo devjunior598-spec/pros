@@ -58,7 +58,7 @@ const BILL_TYPE_COLORS: Record<string, string> = {
     water: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
     gas: "bg-orange-500/10 text-orange-400 border-orange-500/20",
     service: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-    custom: "bg-slate-500/10 text-slate-400 border-slate-500/20",
+    custom: "bg-muted text-muted-foreground border-border",
 }
 
 // ─── Summary Card ──────────────────────────────────────────────────────────────
@@ -82,14 +82,14 @@ function SummaryCard({
     return (
         <div className={cn(
             "relative overflow-hidden rounded-2xl border p-5",
-            "bg-white/5 dark:bg-slate-900/80 backdrop-blur",
+            "bg-card/80 dark:bg-slate-900/80 backdrop-blur",
             a.border
         )}>
             <div className="flex items-start justify-between">
                 <div className="flex-1">
-                    <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">{label}</p>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
                     <p className={cn("text-2xl font-bold mt-1.5", a.text)}>{value}</p>
-                    {subtext && <p className="text-xs text-slate-500 mt-1">{subtext}</p>}
+                    {subtext && <p className="text-xs text-muted-foreground mt-1">{subtext}</p>}
                 </div>
                 <div className={cn("p-2.5 rounded-xl", a.icon)}>
                     {icon}
@@ -124,7 +124,7 @@ function BillCard({ bill, walletBalance, onPayClick }: {
         paid: "bg-green-500/10 text-green-400 border-green-500/20",
         overdue: "bg-red-500/10 text-red-400 border-red-500/20",
         partially_paid: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-        pending: "bg-slate-500/10 text-slate-400 border-slate-500/20",
+        pending: "bg-muted text-muted-foreground border-border",
         processing: "bg-blue-500/10 text-blue-400 border-blue-500/20",
         unpaid: "bg-red-500/10 text-red-400 border-red-500/20",
     }
@@ -135,8 +135,8 @@ function BillCard({ bill, walletBalance, onPayClick }: {
     return (
         <div className={cn(
             "group rounded-2xl border transition-all duration-200",
-            "bg-white/5 dark:bg-slate-900/80 backdrop-blur",
-            "border-slate-800/60 hover:border-slate-700/60",
+            "bg-card/80 dark:bg-slate-900/80 backdrop-blur",
+            "border-border hover:border-blue-500/40",
             bill.status === 'overdue' && "border-red-500/20 hover:border-red-500/30"
         )}>
             <div className="p-5">
@@ -171,7 +171,7 @@ function BillCard({ bill, walletBalance, onPayClick }: {
 
                     {/* Amount */}
                     <div className="text-right flex-shrink-0">
-                        <p className="text-xl font-bold text-slate-100">
+                        <p className="text-xl font-bold text-foreground">
                             ₦{bill.amount.toLocaleString()}
                         </p>
                         {(bill.amount_paid || 0) > 0 && (
@@ -245,7 +245,7 @@ function HistoryRow({ tx, onDownload }: {
     }
 
     return (
-        <div className="flex items-center gap-4 px-4 py-3 border-b border-slate-800/40 last:border-0 hover:bg-slate-800/20 transition-colors">
+        <div className="flex items-center gap-4 px-4 py-3 border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
             <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-green-500/10 flex items-center justify-center">
                 <Receipt className="h-4 w-4 text-green-400" />
             </div>
@@ -256,7 +256,7 @@ function HistoryRow({ tx, onDownload }: {
                 <p className="text-xs text-slate-500 font-mono">{tx.reference.substring(0, 12)}...</p>
             </div>
             <div className="text-right flex-shrink-0">
-                <p className="text-sm font-bold text-slate-100">₦{tx.amount.toLocaleString()}</p>
+                <p className="text-sm font-bold text-foreground">₦{tx.amount.toLocaleString()}</p>
                 <p className="text-[10px] text-slate-500">{formatDate(tx.created_at)}</p>
             </div>
             <span className={cn(
@@ -268,7 +268,7 @@ function HistoryRow({ tx, onDownload }: {
             {tx.status === 'success' && (
                 <button
                     onClick={() => onDownload(tx)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-700/50 transition-colors"
+                    className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                     title="Download Receipt"
                 >
                     <Download className="h-4 w-4" />
@@ -445,24 +445,24 @@ export default function PayBillsPage() {
 
                 {/* Header */}
                 <div className="flex flex-col gap-3">
-                    <div className="flex items-center gap-2 text-sm text-slate-400">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Link href="/dashboard" className="flex items-center gap-1 hover:text-blue-400 transition-colors">
                             <ArrowLeft className="h-4 w-4" />
                             Dashboard
                         </Link>
                         <span className="text-slate-600">/</span>
-                        <span className="text-slate-100 font-medium">Pay Bills</span>
+                        <span className="text-foreground font-medium">Pay Bills</span>
                     </div>
 
                     <div className="flex items-end justify-between">
                         <div>
-                            <h1 className="text-3xl font-bold text-slate-100 tracking-tight">Pay Bills</h1>
-                            <p className="text-slate-400 mt-1">View and settle your rent, utilities, and property charges.</p>
+                            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground tracking-tight">Pay Bills</h1>
+                            <p className="text-muted-foreground mt-1">View and settle your rent, utilities, and property charges.</p>
                         </div>
                         <button
                             onClick={handleRefresh}
                             disabled={refreshing}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm text-slate-400 hover:text-slate-100 border border-slate-700/60 hover:bg-slate-800/60 transition-colors"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm text-muted-foreground hover:text-foreground border border-border hover:bg-muted transition-colors"
                         >
                             <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
                             Refresh
@@ -511,10 +511,10 @@ export default function PayBillsPage() {
                         {/* Outstanding Bills */}
                         <section>
                             <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-lg font-bold text-slate-100">
+                                <h2 className="text-lg font-bold text-foreground">
                                     Outstanding Bills
                                     {unpaidBills.length > 0 && (
-                                        <span className="ml-2 text-sm font-normal text-slate-400">({unpaidBills.length})</span>
+                                        <span className="ml-2 text-sm font-normal text-muted-foreground">({unpaidBills.length})</span>
                                     )}
                                 </h2>
                                 {paidBills.length > 0 && (
@@ -526,7 +526,7 @@ export default function PayBillsPage() {
                             </div>
 
                             {unpaidBills.length === 0 ? (
-                                <div className="rounded-2xl border border-slate-800/60 bg-white/5 dark:bg-slate-900/80 backdrop-blur p-12 flex flex-col items-center gap-3 text-center">
+                                <div className="rounded-2xl border border-border bg-card/80 dark:bg-slate-900/80 backdrop-blur p-12 flex flex-col items-center gap-3 text-center">
                                     <CheckCircle2 className="h-10 w-10 text-green-500 opacity-60" />
                                     <p className="text-slate-300 font-medium">All bills are paid!</p>
                                     <p className="text-sm text-slate-500">You have no outstanding bills at the moment.</p>
@@ -551,7 +551,7 @@ export default function PayBillsPage() {
                                 onClick={() => setHistoryOpen(prev => !prev)}
                                 className={cn(
                                     "w-full flex items-center justify-between px-5 py-4 rounded-2xl border transition-all",
-                                    "bg-white/5 dark:bg-slate-900/80 backdrop-blur border-slate-800/60",
+                                    "bg-card/80 dark:bg-slate-900/80 backdrop-blur border-border",
                                     "hover:border-slate-700/60 text-left"
                                 )}
                             >
@@ -571,7 +571,7 @@ export default function PayBillsPage() {
                             </button>
 
                             {historyOpen && (
-                                <div className="mt-2 rounded-2xl border border-slate-800/60 bg-white/5 dark:bg-slate-900/80 backdrop-blur overflow-hidden">
+                                <div className="mt-2 rounded-2xl border border-border bg-card/80 dark:bg-slate-900/80 backdrop-blur overflow-hidden">
                                     {transactions.length === 0 ? (
                                         <div className="py-10 flex flex-col items-center gap-2 text-slate-500">
                                             <Receipt className="h-8 w-8 opacity-30" />

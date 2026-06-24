@@ -122,6 +122,8 @@ export default function ProviderSignupPage() {
                     },
                 },
             })
+            console.log("Provider signup authData:", authData)
+            console.log("Provider signup authError:", authError)
 
             if (authError) throw authError
             if (!authData.user) throw new Error("Signup failed")
@@ -426,7 +428,7 @@ export default function ProviderSignupPage() {
                                 <ChevronLeft className="h-4 w-4 mr-2" /> Back
                             </Button>
                         )}
-                        <Button className="flex-1 bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
+                        <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
                             {isLoading ? (
                                 <>
                                     <Loader2 className="h-4 w-4 animate-spin mr-2" /> Registering...

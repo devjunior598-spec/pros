@@ -44,6 +44,8 @@ export default function SignupPage() {
                     },
                 },
             })
+            console.log("Signup authData:", authData)
+            console.log("Signup authError:", authError)
             if (authError) throw authError
             if (!authData.user) throw new Error("User was not created. Please try again.")
 
@@ -56,13 +58,15 @@ export default function SignupPage() {
                 )
             if (profileError) console.warn("Profile upsert warning:", profileError.message)
 
-            if (!authData.session) {
-                setRequiresEmailConfirm(true)
-                setIsSuccess(true)
+            if (authData.session) {
+                router.push("/dashboard")
                 return
             }
+
+            // Email confirmation required — tell user to check inbox
+            setRequiresEmailConfirm(true)
             setIsSuccess(true)
-            setTimeout(() => router.push("/dashboard"), 1500)
+            return
         } catch (err: any) {
             setError(err.message || "Something went wrong. Please try again.")
         } finally {
@@ -89,7 +93,7 @@ export default function SignupPage() {
                     <p className="text-sm text-blue-200/60 leading-relaxed max-w-xs mx-auto">
                         {requiresEmailConfirm
                             ? <>We sent a confirmation link to <strong className="text-white">{formData.email}</strong>. Click it, then return to sign in.</>
-                            : "Your account is ready. Taking you to the dashboard…"
+                            : "Account created! Taking you to login…"
                         }
                     </p>
                     {requiresEmailConfirm && (
@@ -140,7 +144,7 @@ export default function SignupPage() {
                                 value={(formData as any)[f.id]}
                                 onChange={handleChange}
                                 disabled={isLoading}
-                                className="w-full px-3 h-11 bg-white/5 border border-white/10 focus:border-blue-500 focus:outline-none rounded-xl text-sm text-white placeholder-blue-200/30 transition-colors"
+                                className="w-full px-3 h-12 bg-white/5 border border-white/10 focus:border-blue-500 focus:outline-none rounded-xl text-base md:text-sm text-white placeholder-blue-200/30 transition-colors"
                             />
                         </div>
                     ))}
@@ -157,7 +161,7 @@ export default function SignupPage() {
                         value={formData.email}
                         onChange={handleChange}
                         disabled={isLoading}
-                        className="w-full px-4 h-11 bg-white/5 border border-white/10 focus:border-blue-500 focus:outline-none rounded-xl text-sm text-white placeholder-blue-200/30 transition-colors"
+                        className="w-full px-4 h-12 bg-white/5 border border-white/10 focus:border-blue-500 focus:outline-none rounded-xl text-base md:text-sm text-white placeholder-blue-200/30 transition-colors"
                     />
                 </div>
 
@@ -173,7 +177,7 @@ export default function SignupPage() {
                         value={formData.password}
                         onChange={handleChange}
                         disabled={isLoading}
-                        className="w-full px-4 h-11 bg-white/5 border border-white/10 focus:border-blue-500 focus:outline-none rounded-xl text-sm text-white placeholder-blue-200/30 transition-colors"
+                        className="w-full px-4 h-12 bg-white/5 border border-white/10 focus:border-blue-500 focus:outline-none rounded-xl text-base md:text-sm text-white placeholder-blue-200/30 transition-colors"
                     />
                 </div>
 
@@ -188,7 +192,7 @@ export default function SignupPage() {
                                 onClick={() => handleRoleChange(r)}
                                 disabled={isLoading}
                                 className={[
-                                    "flex items-center gap-2 border rounded-xl p-3 text-sm font-medium transition-all duration-150",
+                                    "flex items-center gap-2 border rounded-xl p-3.5 min-h-[48px] text-sm font-medium transition-all duration-150",
                                     formData.role === r
                                         ? "border-blue-500 bg-blue-500/15 text-blue-300"
                                         : "border-white/10 bg-white/5 text-blue-200/60 hover:border-white/20 hover:text-white",
@@ -210,7 +214,7 @@ export default function SignupPage() {
                 <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold tracking-wide transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 mt-2"
+                    className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold tracking-wide transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 mt-2"
                 >
                     {isLoading ? (
                         <><Loader2 className="h-4 w-4 animate-spin" /> Creating account…</>

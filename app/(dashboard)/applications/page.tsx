@@ -53,13 +53,13 @@ function getStepIndex(status: ApplicationStatus) {
 
 function StatusBadge({ status }: { status: ApplicationStatus }) {
     const map: Record<ApplicationStatus, { label: string; className: string }> = {
-        pending: { label: "Pending", className: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
-        approved: { label: "Approved", className: "bg-green-500/20 text-green-400 border-green-500/30" },
-        active: { label: "Active", className: "bg-green-500/20 text-green-400 border-green-500/30" },
-        rejected: { label: "Rejected", className: "bg-red-500/20 text-red-400 border-red-500/30" },
-        withdrawn: { label: "Withdrawn", className: "bg-slate-500/20 text-slate-400 border-slate-500/30" },
+        pending:   { label: "Pending",   className: "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border-yellow-500/30" },
+        approved:  { label: "Approved",  className: "bg-green-500/20 text-green-700 dark:text-green-400 border-green-500/30" },
+        active:    { label: "Active",    className: "bg-green-500/20 text-green-700 dark:text-green-400 border-green-500/30" },
+        rejected:  { label: "Rejected",  className: "bg-red-500/20 text-red-700 dark:text-red-400 border-red-500/30" },
+        withdrawn: { label: "Withdrawn", className: "bg-muted text-muted-foreground border-border" },
     }
-    const cfg = map[status] ?? { label: status, className: "bg-slate-500/20 text-slate-400 border-slate-500/30" }
+    const cfg = map[status] ?? { label: status, className: "bg-muted text-muted-foreground border-border" }
     return (
         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${cfg.className}`}>
             {cfg.label}
@@ -82,22 +82,22 @@ function StatusStepper({ status }: { status: ApplicationStatus }) {
                 let stepIcon: React.ReactNode = <span className="text-xs font-bold">{i + 1}</span>
                 if (done) stepIcon = <CheckCircle2 className="w-4 h-4" />
                 if (current && isRejected && isLast) stepIcon = <XCircle className="w-4 h-4 text-red-400" />
-                if (current && isWithdrawn && isLast) stepIcon = <AlertCircle className="w-4 h-4 text-slate-400" />
+                if (current && isWithdrawn && isLast) stepIcon = <AlertCircle className="w-4 h-4 text-muted-foreground" />
                 if (current && (status === "approved" || status === "active") && isLast)
-                    stepIcon = <CheckCircle2 className="w-4 h-4 text-green-400" />
-                if (current && status === "pending") stepIcon = <Clock className="w-4 h-4 text-yellow-400 animate-pulse" />
+                    stepIcon = <CheckCircle2 className="w-4 h-4 text-green-500" />
+                if (current && status === "pending") stepIcon = <Clock className="w-4 h-4 text-yellow-500 animate-pulse" />
 
                 const circleClass = done
                     ? "bg-blue-600 text-white border-blue-600"
                     : current
                       ? isRejected
-                          ? "bg-red-500/20 text-red-400 border-red-500"
+                          ? "bg-red-500/20 text-red-600 dark:text-red-400 border-red-500"
                           : status === "approved" || status === "active"
-                            ? "bg-green-500/20 text-green-400 border-green-500"
+                            ? "bg-green-500/20 text-green-700 dark:text-green-400 border-green-500"
                             : status === "withdrawn"
-                              ? "bg-slate-700 text-slate-400 border-slate-600"
-                              : "bg-yellow-500/20 text-yellow-400 border-yellow-500"
-                      : "bg-slate-800 text-slate-500 border-slate-700"
+                              ? "bg-muted text-muted-foreground border-border"
+                              : "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border-yellow-500"
+                      : "bg-muted text-muted-foreground border-border"
 
                 const labelText =
                     isLast && (status === "approved" || status === "active")
@@ -118,14 +118,14 @@ function StatusStepper({ status }: { status: ApplicationStatus }) {
                             </div>
                             <span
                                 className={`text-[10px] font-semibold text-center leading-tight ${
-                                    done ? "text-blue-400" : current ? "text-slate-200" : "text-slate-600"
+                                    done ? "text-blue-500" : current ? "text-foreground" : "text-muted-foreground"
                                 }`}
                             >
                                 {labelText}
                             </span>
                         </div>
                         {!isLast && (
-                            <div className={`flex-1 h-px mx-1 ${done ? "bg-blue-600" : "bg-slate-700"}`} />
+                            <div className={`flex-1 h-px mx-1 ${done ? "bg-blue-600" : "bg-border"}`} />
                         )}
                     </div>
                 )
@@ -146,9 +146,9 @@ function TenantApplicationCard({
     const imageUrl = app.property?.images?.[0] ?? null
 
     return (
-        <div className="bg-slate-900/80 backdrop-blur border border-slate-800/60 rounded-2xl overflow-hidden hover:border-slate-700/70 transition-all duration-200 group">
+        <div className="bg-card border border-border rounded-2xl overflow-hidden hover:border-blue-500/40 transition-all duration-200 group shadow-sm">
             <div className="flex flex-col md:flex-row">
-                <div className="md:w-56 h-40 md:h-auto flex-shrink-0 bg-slate-800 relative overflow-hidden">
+                <div className="md:w-56 h-40 md:h-auto flex-shrink-0 bg-muted relative overflow-hidden">
                     {imageUrl ? (
                         <img
                             src={imageUrl}
@@ -157,20 +157,20 @@ function TenantApplicationCard({
                         />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                            <Home className="w-12 h-12 text-slate-600" />
+                            <Home className="w-12 h-12 text-muted-foreground/40" />
                         </div>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent to-slate-900/40" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent to-background/20 dark:to-slate-900/40" />
                 </div>
 
                 <div className="flex-1 p-6 flex flex-col justify-between">
                     <div>
                         <div className="flex items-start justify-between gap-4 flex-wrap mb-2">
                             <div>
-                                <h3 className="text-lg font-bold text-slate-100 leading-tight">
+                                <h3 className="text-lg font-bold text-foreground leading-tight">
                                     {app.property?.title ?? "Unknown Property"}
                                 </h3>
-                                <div className="flex items-center gap-1 text-slate-400 text-sm mt-0.5">
+                                <div className="flex items-center gap-1 text-muted-foreground text-sm mt-0.5">
                                     <MapPin className="w-3.5 h-3.5" />
                                     {app.property?.city ?? "N/A"}
                                 </div>
@@ -178,16 +178,16 @@ function TenantApplicationCard({
                             <StatusBadge status={app.status} />
                         </div>
 
-                        <div className="flex flex-wrap gap-4 mt-3 text-sm text-slate-400">
+                        <div className="flex flex-wrap gap-4 mt-3 text-sm text-muted-foreground">
                             <div className="flex items-center gap-1.5">
-                                <DollarSign className="w-3.5 h-3.5 text-blue-400" />
-                                <span className="text-slate-200 font-semibold">
+                                <DollarSign className="w-3.5 h-3.5 text-blue-500" />
+                                <span className="text-foreground font-semibold">
                                     &#8358;{(app.rent_amount ?? app.property?.price ?? 0).toLocaleString()}
                                 </span>
                                 <span>/mo</span>
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                                <Calendar className="w-3.5 h-3.5" />
                                 <span>
                                     Submitted{" "}
                                     {new Date(app.created_at).toLocaleDateString("en-US", {
@@ -199,8 +199,8 @@ function TenantApplicationCard({
                             </div>
                             {app.landlord && (
                                 <div className="flex items-center gap-1.5">
-                                    <span className="text-slate-500">Landlord:</span>
-                                    <span className="text-slate-300">
+                                    <span className="text-muted-foreground/60">Landlord:</span>
+                                    <span className="text-foreground">
                                         {app.landlord.full_name || app.landlord.name || "N/A"}
                                     </span>
                                 </div>
@@ -211,11 +211,11 @@ function TenantApplicationCard({
                     </div>
 
                     {app.status === "pending" && (
-                        <div className="flex items-center gap-3 mt-4 pt-4 border-t border-slate-800">
+                        <div className="flex items-center gap-3 mt-4 pt-4 border-t border-border">
                             <Button
                                 variant="outline"
                                 size="sm"
-                                className="border-red-500/40 text-red-400 hover:bg-red-500/10 hover:border-red-500/60 rounded-xl"
+                                className="border-red-500/40 text-red-600 dark:text-red-400 hover:bg-red-500/10 hover:border-red-500/60 rounded-xl"
                                 disabled={withdrawing}
                                 onClick={() => onWithdraw(app.id)}
                             >
@@ -230,7 +230,7 @@ function TenantApplicationCard({
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="text-slate-400 hover:text-slate-200 rounded-xl"
+                                    className="text-muted-foreground hover:text-foreground rounded-xl"
                                 >
                                     View Property
                                     <ChevronRight className="w-3.5 h-3.5 ml-1" />
@@ -239,7 +239,7 @@ function TenantApplicationCard({
                         </div>
                     )}
                     {(app.status === "approved" || app.status === "active") && (
-                        <div className="flex items-center gap-3 mt-4 pt-4 border-t border-slate-800">
+                        <div className="flex items-center gap-3 mt-4 pt-4 border-t border-border">
                             <Link href="/my-property">
                                 <Button size="sm" className="bg-blue-600 hover:bg-blue-700 rounded-xl font-bold">
                                     View My Rental
@@ -360,16 +360,16 @@ export default function ApplicationsPage() {
                     <div>
                         <div className="flex items-center gap-2 mb-1">
                             <div className="w-8 h-8 bg-blue-600/20 rounded-lg flex items-center justify-center">
-                                <ClipboardList className="w-4 h-4 text-blue-400" />
+                                <ClipboardList className="w-4 h-4 text-blue-500" />
                             </div>
-                            <h1 className="text-2xl font-bold text-slate-100">Rental Applications</h1>
+                            <h1 className="text-2xl font-bold text-foreground">Rental Applications</h1>
                         </div>
-                        <p className="text-slate-400 text-sm ml-10">
+                        <p className="text-muted-foreground text-sm ml-10">
                             Review and manage incoming applications from potential tenants.
                         </p>
                     </div>
                 </div>
-                <div className="bg-slate-900/80 backdrop-blur border border-slate-800/60 rounded-2xl p-6">
+                <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
                     <LandlordApplicationsList landlordId={userId} />
                 </div>
             </div>
@@ -382,11 +382,11 @@ export default function ApplicationsPage() {
                 <div>
                     <div className="flex items-center gap-2 mb-1">
                         <div className="w-8 h-8 bg-blue-600/20 rounded-lg flex items-center justify-center">
-                            <FileText className="w-4 h-4 text-blue-400" />
+                            <FileText className="w-4 h-4 text-blue-500" />
                         </div>
-                        <h1 className="text-2xl font-bold text-slate-100">My Applications</h1>
+                        <h1 className="text-2xl font-bold text-foreground">My Applications</h1>
                     </div>
-                    <p className="text-slate-400 text-sm ml-10">Track the status of your rental applications.</p>
+                    <p className="text-muted-foreground text-sm ml-10">Track the status of your rental applications.</p>
                 </div>
                 <Link href="/listings">
                     <Button className="bg-blue-600 hover:bg-blue-700 rounded-xl font-bold">Browse Listings</Button>
@@ -401,7 +401,7 @@ export default function ApplicationsPage() {
                         return (
                             <span
                                 key={s}
-                                className="px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700 capitalize"
+                                className="px-3 py-1 rounded-full text-xs font-semibold bg-muted text-muted-foreground border border-border capitalize"
                             >
                                 {count} {s}
                             </span>
@@ -415,12 +415,12 @@ export default function ApplicationsPage() {
                     <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
                 </div>
             ) : applications.length === 0 ? (
-                <div className="bg-slate-900/80 backdrop-blur border border-slate-800/60 rounded-2xl flex flex-col items-center justify-center py-20 px-6 text-center">
-                    <div className="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center mb-4">
-                        <FileText className="w-8 h-8 text-slate-500" />
+                <div className="bg-card border border-border rounded-2xl flex flex-col items-center justify-center py-20 px-6 text-center shadow-sm">
+                    <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
+                        <FileText className="w-8 h-8 text-muted-foreground/50" />
                     </div>
-                    <h3 className="text-xl font-bold text-slate-200 mb-2">No Applications Yet</h3>
-                    <p className="text-slate-400 max-w-sm mb-6">
+                    <h3 className="text-xl font-bold text-foreground mb-2">No Applications Yet</h3>
+                    <p className="text-muted-foreground max-w-sm mb-6">
                         You haven&apos;t applied for any properties yet. Browse available listings and submit your first
                         application.
                     </p>

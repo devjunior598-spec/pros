@@ -19,28 +19,28 @@ export default function ReportsPage() {
         <div className="space-y-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-3xl font-bold tracking-tight">Analytics & Reports</h1>
+                    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Analytics & Reports</h1>
                     <p className="text-muted-foreground">Comprehensive insights into your property portfolio performance.</p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <Button variant="outline">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    <Button variant="outline" className="w-full sm:w-auto min-h-[44px]">
                         <Filter className="h-4 w-4 mr-2" />
                         Filters
                     </Button>
-                    <Button className="bg-blue-600 hover:bg-blue-700">
+                    <Button className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto min-h-[44px]">
                         <Download className="h-4 w-4 mr-2" />
                         Generate PDF
                     </Button>
                 </div>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-4">
+            <div className="grid gap-4 sm:gap-6 grid-cols-2 md:grid-cols-4">
                 <Card className="border-none shadow-sm dark:bg-gray-950">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-xs uppercase text-muted-foreground font-bold tracking-wider">Occupancy Rate</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold">94.2%</div>
+                        <div className="text-2xl sm:text-3xl font-bold">94.2%</div>
                         <p className="text-green-600 text-xs mt-1 flex items-center">
                             <ArrowUpRight className="h-3 w-3 mr-1" />
                             +2.1% this year
@@ -52,7 +52,7 @@ export default function ReportsPage() {
                         <CardTitle className="text-xs uppercase text-muted-foreground font-bold tracking-wider">Net Yield</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold">8.4%</div>
+                        <div className="text-2xl sm:text-3xl font-bold">8.4%</div>
                         <p className="text-green-600 text-xs mt-1 flex items-center">
                             <ArrowUpRight className="h-3 w-3 mr-1" />
                             Above market avg
@@ -64,7 +64,7 @@ export default function ReportsPage() {
                         <CardTitle className="text-xs uppercase text-muted-foreground font-bold tracking-wider">Maintenance Cost</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold">₦124,000</div>
+                        <div className="text-2xl sm:text-3xl font-bold">₦124,000</div>
                         <p className="text-red-600 text-xs mt-1 flex items-center">
                             <ArrowUpRight className="h-3 w-3 mr-1" />
                             +5% this month
@@ -76,14 +76,14 @@ export default function ReportsPage() {
                         <CardTitle className="text-xs uppercase text-muted-foreground font-bold tracking-wider">Tenant Retention</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold">2.4 Years</div>
+                        <div className="text-2xl sm:text-3xl font-bold">2.4 Years</div>
                         <p className="text-muted-foreground text-xs mt-1">Average lease duration</p>
                     </CardContent>
                 </Card>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2">
-                <Card className="border-none shadow-sm dark:bg-gray-950 min-h-[400px]">
+            <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2">
+                <Card className="border-none shadow-sm dark:bg-gray-950 min-h-[280px] sm:min-h-[400px]">
                     <CardHeader>
                         <CardTitle>Revenue Breakdown</CardTitle>
                         <CardDescription>Monthly income distribution across your portfolio.</CardDescription>
@@ -95,7 +95,7 @@ export default function ReportsPage() {
                         </div>
                     </CardContent>
                 </Card>
-                <Card className="border-none shadow-sm dark:bg-gray-950 min-h-[400px]">
+                <Card className="border-none shadow-sm dark:bg-gray-950 min-h-[280px] sm:min-h-[400px]">
                     <CardHeader>
                         <CardTitle>Portfolio Distribution</CardTitle>
                         <CardDescription>Income share by property type and location.</CardDescription>
@@ -123,11 +123,11 @@ export default function ReportsPage() {
                         <TrendingUp className="h-12 w-12 opacity-20" />
                     </div>
                 </CardHeader>
-                <CardContent className="flex gap-4">
-                    <Button variant="default" className="bg-white text-blue-600 hover:bg-blue-50 font-bold">
+                <CardContent className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                    <Button variant="default" className="bg-white text-blue-600 hover:bg-blue-50 font-bold w-full sm:w-auto min-h-[44px]">
                         Download Now
                     </Button>
-                    <Button variant="outline" className="border-white/20 text-white hover:bg-white/10 font-bold">
+                    <Button variant="outline" className="border-white/20 text-white hover:bg-white/10 font-bold w-full sm:w-auto min-h-[44px]">
                         Preview Summary
                     </Button>
                 </CardContent>

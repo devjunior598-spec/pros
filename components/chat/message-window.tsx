@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useChat } from "./chat-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Phone, Video, Paperclip, Check, CheckCheck } from "lucide-react";
+import { Send, Phone, Video, Paperclip, Check, CheckCheck, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 
@@ -24,9 +24,10 @@ interface MessageWindowProps {
     currentUserId: string;
     otherUserId?: string;
     otherUserName?: string;
+    onBack?: () => void;
 }
 
-export function MessageWindow({ conversationId, currentUserId, otherUserId, otherUserName }: MessageWindowProps) {
+export function MessageWindow({ conversationId, currentUserId, otherUserId, otherUserName, onBack }: MessageWindowProps) {
     const { typingUsers, sendTyping, markMessageAsRead, callUser } = useChat();
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputValue, setInputValue] = useState("");
@@ -209,6 +210,11 @@ export function MessageWindow({ conversationId, currentUserId, otherUserId, othe
             {/* Header */}
             <div className="p-4 border-b flex justify-between items-center bg-white dark:bg-zinc-950 shrink-0">
                 <div className="flex items-center gap-3">
+                    {onBack && (
+                        <button onClick={onBack} className="md:hidden mr-2 p-1.5 -ml-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                            <ArrowLeft className="h-5 w-5" />
+                        </button>
+                    )}
                     <h3 className="font-semibold">{otherUserName || `Conversation`}</h3>
                 </div>
                 <div className="flex gap-2">
@@ -285,7 +291,7 @@ export function MessageWindow({ conversationId, currentUserId, otherUserId, othe
             </div>
 
             {/* Input Area */}
-            <div className="p-3 border-t bg-white dark:bg-zinc-950 flex gap-2 items-end shrink-0">
+            <div className="p-3 pb-safe border-t bg-white dark:bg-zinc-950 flex gap-2 items-end shrink-0">
                 <Button variant="ghost" size="icon" className="shrink-0 h-10 w-10 text-muted-foreground hover:text-foreground" onClick={() => fileInputRef.current?.click()}>
                     <Paperclip className="h-5 w-5" />
                 </Button>

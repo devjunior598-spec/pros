@@ -115,7 +115,7 @@ export default function AssignedJobsPage() {
     return (
         <div className="space-y-6 pb-20">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">My Assigned Jobs</h1>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">My Assigned Jobs</h1>
                 <p className="text-muted-foreground">Manage and track the repairs you are currently working on.</p>
             </div>
 

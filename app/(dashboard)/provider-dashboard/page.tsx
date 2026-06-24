@@ -106,10 +106,10 @@ export default function ProviderDashboardPage() {
     }
 
     return (
-        <div className="flex-1 space-y-8 p-8 max-w-7xl mx-auto">
+        <div className="flex-1 space-y-8 p-2 sm:p-4 md:p-8 max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Provider Dashboard</h2>
+                    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Provider Dashboard</h2>
                     <p className="text-muted-foreground mt-1">
                         Welcome back, {providerProfile.full_name}. Manage your jobs and submit quotes.
                     </p>

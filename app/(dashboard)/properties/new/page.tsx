@@ -120,16 +120,16 @@ export default function PostPropertyPage() {
     }
 
     return (
-        <div className="flex flex-col gap-6 font-sans text-slate-900 dark:text-slate-100 max-w-4xl mx-auto py-4">
+        <div className="flex flex-col gap-4 sm:gap-6 font-sans text-slate-900 dark:text-slate-100 max-w-4xl mx-auto py-4">
             
             {/* Header / Nav row */}
-            <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 gap-3">
                 <div className="flex items-center gap-3">
                     <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <div>
-                        <h1 className="text-2xl font-black tracking-tight flex items-center gap-1.5">
+                        <h1 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-1.5">
                             List a New Property
                         </h1>
                         <p className="text-xs text-slate-400">Deploy verified listing onto the PRMS rental engine</p>
@@ -151,7 +151,7 @@ export default function PostPropertyPage() {
                 </CardHeader>
                 
                 <form onSubmit={handleSubmit}>
-                    <CardContent className="p-6 sm:p-8 space-y-8">
+                    <CardContent className="p-4 sm:p-6 md:p-8 space-y-8">
                         
                         {/* Section 1: Basic Particulars */}
                         <div className="space-y-5">
@@ -168,7 +168,7 @@ export default function PostPropertyPage() {
                                     required 
                                     value={formData.title} 
                                     onChange={handleChange}
-                                    className="h-11 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl"
+                                    className="h-12 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl text-base md:text-sm"
                                 />
                             </div>
 
@@ -192,7 +192,7 @@ export default function PostPropertyPage() {
                                     placeholder="https://matterport.com/..."
                                     value={formData.virtual_tour_url || ''}
                                     onChange={(e) => setFormData(prev => ({ ...prev, virtual_tour_url: e.target.value }))}
-                                    className="h-11 bg-slate-950/50 border-slate-700 rounded-xl"
+                                    className="h-12 bg-slate-950/50 border-slate-700 rounded-xl text-base md:text-sm"
                                 />
                                 <p className="text-[10px] text-slate-500">Paste a Matterport, YouTube, or Google Street View link for a virtual property tour.</p>
                             </div>
@@ -208,7 +208,7 @@ export default function PostPropertyPage() {
                                         required 
                                         value={formData.price} 
                                         onChange={handleChange}
-                                        className="h-11 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl"
+                                        className="h-12 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl text-base md:text-sm"
                                     />
                                 </div>
                                 
@@ -218,7 +218,7 @@ export default function PostPropertyPage() {
                                         name="type"
                                         value={formData.type}
                                         onChange={handleChange}
-                                        className="flex h-11 w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 text-slate-900 dark:text-slate-100 font-sans"
+                                        className="flex h-12 w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 px-3 py-2 text-base md:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 text-slate-900 dark:text-slate-100 font-sans"
                                     >
                                         <option value="Apartment">Apartment</option>
                                         <option value="Studio">Studio</option>
@@ -246,7 +246,7 @@ export default function PostPropertyPage() {
                                         required 
                                         value={formData.city} 
                                         onChange={handleChange}
-                                        className="h-11 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl"
+                                        className="h-12 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl text-base md:text-sm"
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -258,7 +258,7 @@ export default function PostPropertyPage() {
                                         required 
                                         value={formData.area} 
                                         onChange={handleChange}
-                                        className="h-11 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl"
+                                        className="h-12 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl text-base md:text-sm"
                                     />
                                 </div>
                             </div>
@@ -272,7 +272,7 @@ export default function PostPropertyPage() {
                                     required 
                                     value={formData.address} 
                                     onChange={handleChange}
-                                    className="h-11 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl"
+                                    className="h-12 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl text-base md:text-sm"
                                 />
                             </div>
 
@@ -285,7 +285,7 @@ export default function PostPropertyPage() {
                                         placeholder="Lagos State" 
                                         value={formData.state} 
                                         onChange={handleChange}
-                                        className="h-11 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl"
+                                        className="h-12 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl text-base md:text-sm"
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -296,7 +296,7 @@ export default function PostPropertyPage() {
                                         placeholder="101233" 
                                         value={formData.zip_code} 
                                         onChange={handleChange}
-                                        className="h-11 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl"
+                                        className="h-12 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl text-base md:text-sm"
                                     />
                                 </div>
                             </div>
@@ -318,7 +318,7 @@ export default function PostPropertyPage() {
                                         placeholder="2" 
                                         value={formData.bedrooms} 
                                         onChange={handleChange}
-                                        className="h-11 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl"
+                                        className="h-12 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl text-base md:text-sm"
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -330,7 +330,7 @@ export default function PostPropertyPage() {
                                         placeholder="2" 
                                         value={formData.bathrooms} 
                                         onChange={handleChange}
-                                        className="h-11 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl"
+                                        className="h-12 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl text-base md:text-sm"
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -342,7 +342,7 @@ export default function PostPropertyPage() {
                                         placeholder="1200" 
                                         value={formData.square_footage} 
                                         onChange={handleChange}
-                                        className="h-11 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl"
+                                        className="h-12 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl text-base md:text-sm"
                                     />
                                 </div>
                             </div>
@@ -361,7 +361,7 @@ export default function PostPropertyPage() {
                                     placeholder="Pool, Gym, Allocated Parking, 24/7 Power, WiFi, Gated Security"
                                     value={amenitiesString}
                                     onChange={(e) => setAmenitiesString(e.target.value)}
-                                    className="h-11 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl text-sm"
+                                    className="h-12 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl text-base md:text-sm"
                                 />
                                 <p className="text-[10px] text-slate-400 font-semibold tracking-wide">
                                     Enter individual amenities separated by commas.
@@ -394,7 +394,7 @@ export default function PostPropertyPage() {
                                         onChange={handleFileChange}
                                         className="hidden"
                                     />
-                                    <Button type="button" variant="outline" className="h-9 px-4 rounded-xl text-xs font-bold border-slate-200 dark:border-slate-800 dark:bg-slate-900" onClick={() => document.getElementById("image")?.click()}>
+                                    <Button type="button" variant="outline" className="h-11 px-6 rounded-xl text-sm font-bold border-slate-200 dark:border-slate-800 dark:bg-slate-900 min-h-[44px]" onClick={() => document.getElementById("image")?.click()}>
                                         Browse Files
                                     </Button>
                                 </div>
@@ -412,7 +412,7 @@ export default function PostPropertyPage() {
                                                 <button
                                                     type="button"
                                                     onClick={() => removeFile(index)}
-                                                    className="absolute top-1.5 right-1.5 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow"
+                                                    className="absolute top-1.5 right-1.5 bg-red-500 text-white rounded-full p-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shadow min-h-[32px] min-w-[32px] flex items-center justify-center"
                                                 >
                                                     <X className="h-3.5 w-3.5" />
                                                 </button>
@@ -429,12 +429,12 @@ export default function PostPropertyPage() {
                     </CardContent>
                     
                     {/* Form Footer Actions */}
-                    <CardFooter className="flex justify-between border-t border-slate-100 dark:border-slate-800 p-6 bg-slate-50/20 dark:bg-slate-950/20">
-                        <Button variant="ghost" type="button" onClick={() => router.back()} className="rounded-xl font-bold dark:hover:bg-slate-900">
+                    <CardFooter className="flex flex-col-reverse sm:flex-row justify-between gap-3 border-t border-slate-100 dark:border-slate-800 p-4 sm:p-6 bg-slate-50/20 dark:bg-slate-950/20">
+                        <Button variant="ghost" type="button" onClick={() => router.back()} className="rounded-xl font-bold dark:hover:bg-slate-900 w-full sm:w-auto min-h-[44px]">
                             Cancel
                         </Button>
                         
-                        <Button type="submit" disabled={loading} className="px-8 font-extrabold h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/10">
+                        <Button type="submit" disabled={loading} className="px-8 font-extrabold h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/10 w-full sm:w-auto min-h-[48px]">
                             {loading ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
