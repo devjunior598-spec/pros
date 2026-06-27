@@ -15,6 +15,15 @@ const getErrorMessage = (error: unknown): string => {
     return "An unexpected error occurred."
 }
 
+const promiseWithTimeout = <T extends unknown>(promise: Promise<T>, ms: number, timeoutErrorMsg: string): Promise<T> => {
+    return Promise.race([
+        promise,
+        new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error(timeoutErrorMsg)), ms)
+        )
+    ])
+}
+
 export default function SignupPage() {
     const router = useRouter()
     const [isLoading, setIsLoading] = useState(false)
@@ -42,7 +51,8 @@ export default function SignupPage() {
         setIsLoading(true)
         setError(null)
         try {
-            const { data: authData, error: authError } = await supabase.auth.signUp({
+            // 3. Sign up with Supabase Auth correctly
+            const signupPromise = supabase.auth.signUp({
                 email: formData.email,
                 password: formData.password,
                 options: {
@@ -53,26 +63,52 @@ export default function SignupPage() {
                     },
                 },
             })
-            if (authError) throw authError
+
+            // 9. Add timeout protection (15s)
+            const { data: authData, error: authError } = await promiseWithTimeout(
+                signupPromise,
+                15000,
+                "Signup is taking too long. Please check your internet and try again."
+            )
+
+            // 4. Log error to console and throw it
+            if (authError) {
+                console.error("Supabase Auth signUp error:", authError)
+                throw authError
+            }
             if (!authData.user) throw new Error("User was not created. Please try again.")
 
+            // 7. Create/update profile in profiles table
             const fullName = `${formData.firstName} ${formData.lastName}`.trim()
-            const { error: profileError } = await supabase
-                .from("profiles")
-                .upsert(
-                    { id: authData.user.id, name: fullName, email: formData.email, role: formData.role, dashboard_unlocked: false },
-                    { onConflict: "id" }
-                )
-            if (profileError) console.warn("Profile upsert warning:", profileError.message)
+            const { error: profileError } = await promiseWithTimeout(
+                Promise.resolve(
+                    supabase
+                        .from("profiles")
+                        .upsert(
+                            { id: authData.user.id, name: fullName, email: formData.email, role: formData.role, dashboard_unlocked: false },
+                            { onConflict: "id" }
+                        )
+                ),
+                15000,
+                "Profile creation is taking too long. Please check your internet and try again."
+            )
+
+            // 8. If profile creation fails, still stop loading and show the error
+            if (profileError) {
+                console.error("Supabase Database profile upsert error:", profileError)
+                throw profileError
+            }
 
             const resolvedRole = (authData.user.user_metadata?.role as "tenant" | "landlord" | "admin" | undefined) ?? formData.role
+            
+            // 7. Redirect based on role: landlord -> /dashboard/landlord, tenant -> /dashboard/tenant
             const redirectToDashboard = () => {
                 if (resolvedRole === "landlord") {
-                    router.replace("/dashboard")
+                    router.replace("/dashboard/landlord")
                 } else if (resolvedRole === "admin") {
                     router.replace("/admin/dashboard")
                 } else {
-                    router.replace("/dashboard")
+                    router.replace("/dashboard/tenant")
                 }
             }
 
@@ -81,10 +117,17 @@ export default function SignupPage() {
                 return
             }
 
-            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            // Attempt auto sign in to avoid manual step if session is not active
+            const signInPromise = supabase.auth.signInWithPassword({
                 email: formData.email,
                 password: formData.password,
             })
+
+            const { data: signInData, error: signInError } = await promiseWithTimeout(
+                signInPromise,
+                15000,
+                "Auto sign-in is taking too long. Please check your internet and try again."
+            )
 
             if (!signInError && signInData.session) {
                 redirectToDashboard()
@@ -97,13 +140,19 @@ export default function SignupPage() {
                 return
             }
 
-            if (signInError) throw signInError
+            if (signInError) {
+                console.error("Auto sign-in error:", signInError)
+                throw signInError
+            }
 
             setRequiresEmailConfirm(true)
             setIsSuccess(true)
         } catch (err: unknown) {
+            console.error("Signup process exception:", err)
+            // 4. Show the exact error message on screen
             setError(getErrorMessage(err) || "Something went wrong. Please try again.")
         } finally {
+            // 5. Always stop loading using finally
             setIsLoading(false)
         }
     }
