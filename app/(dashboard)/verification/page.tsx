@@ -300,18 +300,17 @@ export default function VerificationCenterPage() {
     const isTenant = profile?.role === "tenant"
 
     return (
-        <div className="max-w-4xl mx-auto space-y-6 py-4 font-sans text-slate-900 dark:text-slate-100">
-            {/* Header section */}
-            <div className="pb-4 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="mx-auto max-w-4xl space-y-6">
+            <div className="flex flex-col gap-4 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-2">
-                        <ShieldCheck className="h-7 w-7 text-blue-600 dark:text-blue-500" />
-                        Trust & Verification Center
+                    <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+                        <ShieldCheck className="h-7 w-7 text-primary" />
+                        Trust & Verification
                     </h1>
-                    <p className="text-xs text-slate-400 mt-1">Unlock escrow privileges and gain verified badges for profiles and listings.</p>
+                    <p className="mt-1 text-sm text-muted-foreground">Unlock escrow privileges and gain verified badges for profiles and listings.</p>
                 </div>
 
-                <div className={`flex items-center gap-2 border px-3 py-1.5 rounded-full text-xs font-bold ${statusColors[kycStatus]}`}>
+                <div className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium ${statusColors[kycStatus]}`}>
                     {kycStatus === "approved" && <CheckCircle className="h-4 w-4" />}
                     {kycStatus === "pending" && <Clock className="h-4 w-4" />}
                     {kycStatus === "rejected" && <XCircle className="h-4 w-4" />}
@@ -321,7 +320,7 @@ export default function VerificationCenterPage() {
             </div>
 
             {/* Stepper Status Tracker */}
-            <div className="bg-white/60 dark:bg-slate-950/40 border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-6">
+            <div className="rounded-xl border border-border bg-white p-6 shadow-sm">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Verification Flow Progress</h3>
                 <div className="grid grid-cols-3 gap-2 relative">
                     <div className="absolute top-4 left-0 right-0 h-1 bg-slate-200 dark:bg-slate-800 -z-10" />

@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { MaintenanceRequest, MaintenanceStatus } from "@/types/maintenance"
-import { Loader2, CheckCircle, Clock, MessageSquare, ImageIcon, X, UserPlus, Star } from "lucide-react"
+import { Loader2, CheckCircle, Clock, MessageSquare, ImageIcon, X, UserPlus, Star, Wrench } from "lucide-react"
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
+import { EmptyState } from "@/components/ui/empty-state"
 
 import { ServiceProviderMarketplace } from "./service-provider-marketplace"
 import { ReviewModal } from "./review-modal"
@@ -125,9 +126,11 @@ export function LandlordMaintenanceList({ landlordId, limit }: LandlordMaintenan
 
     if (requests.length === 0) {
         return (
-            <div className="text-center p-12 border border-dashed rounded-lg text-muted-foreground bg-muted/20">
-                No maintenance requests reported for your properties.
-            </div>
+            <EmptyState
+                icon={Wrench}
+                title="No Maintenance Requests"
+                description="Your properties are in great shape! No maintenance requests have been reported."
+            />
         )
     }
 

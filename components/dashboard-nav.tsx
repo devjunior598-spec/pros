@@ -286,16 +286,15 @@ export function DashboardNav({ className, userRole, isVerified, ...props }: Dash
                 return (
                     <Link key={item.href} href={item.href} onClick={props.onClick}>
                         <span className={cn(
-                            "group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors mb-1",
+                            "group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors mb-0.5",
                             isActive
-                                ? "bg-blue-600/10 text-blue-600 dark:bg-blue-600/20 dark:text-blue-400"
-                                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+                                ? "bg-primary/10 text-primary"
+                                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                         )}>
-                            {/* Icon with optional badge */}
                             <span className="relative mr-3 flex-shrink-0">
                                 <item.icon className={cn(
                                     "h-5 w-5",
-                                    isActive ? "text-blue-600 dark:text-blue-400" : "text-gray-400"
+                                    isActive ? "text-primary" : "text-muted-foreground"
                                 )} />
                                 {showBadge && (
                                     <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-0.5 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none shadow-sm">
@@ -316,7 +315,7 @@ export function DashboardNav({ className, userRole, isVerified, ...props }: Dash
             })}
             <button
                 onClick={handleLogout}
-                className="group flex w-full items-center rounded-md px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-900/20 mt-4 transition-colors"
+                className="group flex w-full items-center rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 mt-4 transition-colors"
             >
                 <LogOut className="mr-3 h-5 w-5" />
                 <span>Logout</span>

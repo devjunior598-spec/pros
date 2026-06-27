@@ -4,7 +4,16 @@ import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
-import { Mail, Lock, Eye, EyeOff, Loader2, Sparkles, ArrowRight, CheckCircle2 } from "lucide-react"
+import { Mail, Lock, Eye, EyeOff, Loader2, ArrowRight, CheckCircle2 } from "lucide-react"
+
+const getErrorMessage = (error: unknown): string => {
+    if (error instanceof Error) return error.message
+    if (typeof error === "object" && error && "message" in error) {
+        const message = (error as { message?: unknown }).message
+        if (typeof message === "string") return message
+    }
+    return "An unexpected error occurred."
+}
 
 export default function LoginPage() {
     const router = useRouter()
@@ -41,15 +50,26 @@ export default function LoginPage() {
                 }
                 throw error
             }
+            const { data: userData } = await supabase.auth.getUser()
+            const { data: profile } = await supabase
+                .from("profiles")
+                .select("role")
+                .eq("id", userData.user?.id)
+                .maybeSingle()
+
             const pendingPropId = localStorage.getItem("pending_application_id")
             if (pendingPropId) {
                 localStorage.removeItem("pending_application_id")
                 router.push(`/dashboard/tenant/apply/${pendingPropId}`)
+            } else if (profile?.role === "landlord") {
+                router.push("/dashboard")
+            } else if (profile?.role === "admin") {
+                router.push("/admin/dashboard")
             } else {
                 router.push("/dashboard")
             }
-        } catch (err: any) {
-            setError(err.message || "Failed to sign in. Check your email and password.")
+        } catch (err: unknown) {
+            setError(getErrorMessage(err) || "Failed to sign in. Check your email and password.")
         } finally {
             setIsLoading(false)
         }
@@ -64,37 +84,32 @@ export default function LoginPage() {
             })
             if (error) throw error
             setResendSent(true)
-        } catch (err: any) {
-            setError(err.message || "Could not resend confirmation email.")
+        } catch (err: unknown) {
+            setError(getErrorMessage(err) || "Could not resend confirmation email.")
         } finally {
             setResendLoading(false)
         }
     }
 
     return (
-        <div className="w-full rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl overflow-hidden">
-            {/* Header */}
-            <div className="px-6 pt-6 pb-4">
-                <div className="flex items-center gap-1.5 text-blue-400 text-[10px] font-bold uppercase tracking-widest mb-3">
-                    <Sparkles className="h-3 w-3 animate-pulse" />
-                    Workspace Login
-                </div>
-                <h1 className="text-2xl font-black tracking-tight text-white">Welcome Back</h1>
-                <p className="text-blue-200/50 text-xs mt-1 leading-relaxed">
-                    Enter your credentials to access your PRMS dashboard.
+        <div className="w-full overflow-hidden rounded-xl border border-border bg-white shadow-lg">
+            <div className="border-b border-border px-6 pb-4 pt-6">
+                <h1 className="text-2xl font-semibold tracking-tight text-prms-navy">Welcome back</h1>
+                <p className="mt-1 text-sm text-prms-slate">
+                    Sign in to access your PRMS dashboard.
                 </p>
             </div>
 
-            <form onSubmit={handleLogin} className="px-6 pb-6 space-y-4">
+            <form onSubmit={handleLogin} className="space-y-4 px-6 pb-6 pt-5">
 
                 {/* Email not confirmed banner */}
                 {needsConfirm && (
-                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-4 space-y-3">
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 space-y-3">
                         <div className="flex items-start gap-3">
-                            <Mail className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
+                            <Mail className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
                             <div>
-                                <p className="text-amber-300 text-xs font-bold">Email not confirmed</p>
-                                <p className="text-amber-200/70 text-xs mt-0.5 leading-relaxed">
+                                <p className="text-xs font-bold text-amber-700">Email not confirmed</p>
+                                <p className="mt-0.5 text-xs leading-relaxed text-amber-700/80">
                                     Please check your inbox for a confirmation email and click the link before signing in.
                                 </p>
                             </div>
@@ -109,7 +124,7 @@ export default function LoginPage() {
                                 type="button"
                                 onClick={handleResendConfirmation}
                                 disabled={resendLoading}
-                                className="text-xs font-bold text-amber-400 hover:text-amber-300 underline underline-offset-2 transition-colors disabled:opacity-50 flex items-center gap-1"
+                                className="flex items-center gap-1 text-xs font-bold text-amber-700 underline underline-offset-2 transition-colors hover:text-amber-800 disabled:opacity-50"
                             >
                                 {resendLoading && <Loader2 className="h-3 w-3 animate-spin" />}
                                 Resend confirmation email
@@ -120,18 +135,18 @@ export default function LoginPage() {
 
                 {/* Generic error */}
                 {error && (
-                    <div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl px-4 py-3 text-xs font-semibold">
+                    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-600">
                         {error}
                     </div>
                 )}
 
                 {/* Email */}
                 <div className="space-y-1.5">
-                    <label htmlFor="email" className="text-[11px] font-bold text-blue-200/60 uppercase tracking-wider">
-                        Email Address
+                    <label htmlFor="email" className="text-sm font-medium text-prms-navy">
+                        Email address
                     </label>
                     <div className="relative">
-                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-300/40" />
+                        <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                         <input
                             id="email"
                             type="email"
@@ -140,7 +155,7 @@ export default function LoginPage() {
                             value={formData.email}
                             onChange={handleChange}
                             disabled={isLoading}
-                            className="w-full pl-10 pr-4 h-12 bg-white/5 border border-white/10 focus:border-blue-500 focus:outline-none rounded-xl text-base md:text-sm text-white placeholder-blue-200/30 transition-colors"
+                            className="h-12 w-full rounded-lg border border-border bg-secondary/30 pl-10 pr-4 text-base text-prms-navy placeholder:text-prms-slate/60 transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 md:text-sm"
                         />
                     </div>
                 </div>
@@ -148,15 +163,15 @@ export default function LoginPage() {
                 {/* Password */}
                 <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                        <label htmlFor="password" className="text-[11px] font-bold text-blue-200/60 uppercase tracking-wider">
+                        <label htmlFor="password" className="text-sm font-medium text-prms-navy">
                             Password
                         </label>
-                        <Link href="/forgot-password" className="text-[11px] text-blue-400 hover:text-blue-300 font-bold transition-colors">
+                        <Link href="/forgot-password" className="text-sm font-medium text-primary transition-colors hover:text-blue-700">
                             Forgot password?
                         </Link>
                     </div>
                     <div className="relative">
-                        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-300/40" />
+                        <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                         <input
                             id="password"
                             type={showPassword ? "text" : "password"}
@@ -164,12 +179,12 @@ export default function LoginPage() {
                             value={formData.password}
                             onChange={handleChange}
                             disabled={isLoading}
-                            className="w-full pl-10 pr-10 h-12 bg-white/5 border border-white/10 focus:border-blue-500 focus:outline-none rounded-xl text-base md:text-sm text-white placeholder-blue-200/30 transition-colors"
+                            className="h-12 w-full rounded-lg border border-border bg-secondary/30 pl-10 pr-10 text-base text-prms-navy placeholder:text-prms-slate/60 transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 md:text-sm"
                         />
                         <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-blue-300/40 hover:text-blue-300 transition-colors"
+                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 transition-colors hover:text-slate-700"
                         >
                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -180,7 +195,7 @@ export default function LoginPage() {
                 <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold tracking-wide transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 mt-2"
+                    className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-prms-blue font-semibold text-white transition-all hover:bg-blue-700 disabled:opacity-60"
                 >
                     {isLoading ? (
                         <><Loader2 className="h-4 w-4 animate-spin" /> Authenticating…</>
@@ -189,9 +204,9 @@ export default function LoginPage() {
                     )}
                 </button>
 
-                <p className="text-center text-xs text-blue-200/50 pt-1">
+                <p className="pt-1 text-center text-sm text-prms-slate">
                     Don&apos;t have an account?{" "}
-                    <Link href="/signup" className="text-blue-400 hover:text-blue-300 font-bold transition-colors">
+                    <Link href="/signup" className="font-semibold text-primary transition-colors hover:text-blue-700">
                         Sign up free
                     </Link>
                 </p>

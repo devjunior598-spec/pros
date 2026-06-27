@@ -5,7 +5,9 @@ import Link from "next/link"
 import { supabase } from "@/lib/supabase"
 import { RoleGuard } from "@/components/role-guard"
 import { PropertyTable } from "@/components/landlord/property-table"
+import { PageHeader } from "@/components/page-header"
 import { Plus, Building2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export default function PropertiesPage() {
     const [landlordId, setLandlordId] = useState<string | null>(null)
@@ -26,8 +28,8 @@ export default function PropertiesPage() {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
                 <div className="flex flex-col items-center gap-3">
-                    <div className="h-8 w-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
-                    <p className="text-sm text-slate-400">Loading your portfolio…</p>
+                    <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                    <p className="text-sm text-muted-foreground">Loading your portfolio…</p>
                 </div>
             </div>
         )
@@ -36,36 +38,27 @@ export default function PropertiesPage() {
     if (!landlordId) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
-                <p className="text-slate-400">Please log in to view your properties.</p>
+                <p className="text-muted-foreground">Please log in to view your properties.</p>
             </div>
         )
     }
 
     return (
         <RoleGuard allowedRoles={["landlord"]}>
-            <div className="flex-1 space-y-6 px-3 py-4 md:p-8 md:pt-6">
-                {/* Page header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600/20 border border-blue-500/20">
-                            <Building2 className="h-5 w-5 text-blue-400" />
-                        </div>
-                        <div>
-                            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-100">Properties</h1>
-                            <p className="text-sm text-slate-400">Manage your rental portfolio</p>
-                        </div>
-                    </div>
-
-                    <Link
-                        href="/dashboard/landlord/properties/new"
-                        className="inline-flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition-all duration-150 hover:shadow-blue-500/30 w-full sm:w-auto justify-center min-h-[44px]"
-                    >
-                        <Plus className="h-4 w-4" />
-                        Add Property
+            <div className="flex-1 space-y-6">
+                <PageHeader
+                    title="Properties"
+                    description="Manage your rental portfolio"
+                    icon={Building2}
+                >
+                    <Link href="/dashboard/landlord/properties/new">
+                        <Button className="w-full sm:w-auto min-h-[44px] rounded-lg">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Property
+                        </Button>
                     </Link>
-                </div>
+                </PageHeader>
 
-                {/* Main table / card grid */}
                 <PropertyTable landlordId={landlordId} />
             </div>
         </RoleGuard>

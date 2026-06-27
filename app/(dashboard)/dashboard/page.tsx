@@ -2,26 +2,25 @@
 
 import { useState, useEffect, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
-import Link from "next/link"
 import { supabase } from "@/lib/supabase"
-import { PropertyTable } from "@/components/landlord/property-table"
-import { TenantMonitoring } from "@/components/landlord/tenant-monitoring"
-import { ChatPanel } from "@/components/landlord/chat-panel"
-import { LandlordMaintenanceList } from "@/components/landlord/landlord-maintenance-list"
-import { LandlordApplicationsList } from "@/components/landlord/landlord-applications-list"
-import { LandlordDocumentsView } from "@/components/landlord/landlord-documents-view"
-import { ServiceDirectory } from "@/components/landlord/service-directory"
-import { ProfileSettings } from "@/components/profile-settings"
-import { NewsFeed } from "@/components/news-feed/news-feed"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { ShieldCheck, DollarSign, Users, Activity, CreditCard, Plus, Building2, Wrench, TrendingUp, CalendarCheck } from "lucide-react"
+import { Activity, DollarSign, Users, Activity as ActivityIcon, CreditCard, Building2, CalendarCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+
 import { TenantDashboard } from "@/components/tenant/tenant-dashboard"
-import { SummaryCard } from "@/components/dashboard/summary-cards"
 import ProviderDashboardPage from "@/app/(dashboard)/provider-dashboard/page"
-import { PortfolioOverview } from "@/components/landlord/portfolio-overview"
 import { useAuth } from "@/contexts/auth-context"
+
+// New Landlord UI Components
+import { DashboardHero } from "@/components/landlord/dashboard-hero"
+import { QuickActions } from "@/components/landlord/quick-actions"
+import { StatCard } from "@/components/landlord/stat-card"
+import { PerformanceCharts } from "@/components/landlord/performance-charts"
+import { ActivityFeed } from "@/components/landlord/activity-feed"
+
+// Old components (still used for some sections if needed, but we'll try to rely on new ones)
+import { LandlordMaintenanceList } from "@/components/landlord/landlord-maintenance-list"
+import { PropertyTable } from "@/components/landlord/property-table"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 
 function DashboardContent() {
     const searchParams = useSearchParams()
@@ -37,6 +36,7 @@ function DashboardContent() {
     const [loading, setLoading] = useState(true)
     const [metrics, setMetrics] = useState({
         totalRevenue: 0,
+        properties: 0,
         activeTenants: 0,
         newApplications: 0,
         occupancyRate: 0,
@@ -49,25 +49,16 @@ function DashboardContent() {
         }
     }, [tabParam])
 
-    const handleTabChange = (tab: string) => {
-        setCurrentTab(tab)
-        // Optionally update URL without full refresh to keep browser history clean
-        const params = new URLSearchParams(searchParams)
-        params.set('tab', tab)
-        router.push(`?${params.toString()}`, { scroll: false })
-    }
-
     useEffect(() => {
         const controller = new AbortController()
 
         const fetchUser = async () => {
             try {
-                // ── Auth from context — no getUser() / no lock contention ────
                 const user  = ctxUser
                 const uid   = ctxUserId
                 const role  = ctxProfile?.role ?? null
 
-                if (ctxLoading) return // Wait for context to finish loading
+                if (ctxLoading) return 
                 
                 if (!user || !uid) { 
                     setLoading(false)
@@ -114,6 +105,7 @@ function DashboardContent() {
 
                         setMetrics({
                             totalRevenue: revenue,
+                            properties: propertyCount || 0,
                             activeTenants: activeT,
                             newApplications: newApp,
                             occupancyRate: occupancy,
@@ -121,8 +113,8 @@ function DashboardContent() {
                     }
                 }
             } catch (error: any) {
-                if (error?.name === 'AbortError' || error?.message?.includes('aborted') || error?.message?.includes('AbortError')) return
-                console.error("Error fetching dashboard profile:", JSON.stringify(error, null, 2))
+                if (error?.name === 'AbortError' || error?.message?.includes('aborted')) return
+                console.error("Error fetching dashboard profile:", error)
             } finally {
                 if (!controller.signal.aborted) {
                     setLoading(false)
@@ -131,12 +123,9 @@ function DashboardContent() {
         }
         fetchUser()
 
-        return () => {
-            controller.abort()
-        }
+        return () => controller.abort()
     }, [ctxLoading, ctxUser, ctxUserId, ctxProfile])
 
-    // Loading State
     if (loading) {
         return (
             <div className="flex justify-center items-center min-h-[50vh]">
@@ -145,28 +134,11 @@ function DashboardContent() {
         )
     }
 
-    // Auth/Profile Error State
     if (!userId || !userRole) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4 p-4 text-center">
                 <h2 className="text-xl font-semibold text-red-600">Unable to load profile</h2>
                 <p className="text-muted-foreground">We couldn't retrieve your user profile.</p>
-
-                <div className="bg-slate-100 dark:bg-slate-900 p-4 rounded-md text-left text-xs font-mono max-w-lg w-full overflow-auto">
-                    <p><strong>Debug Info:</strong></p>
-                    <p>User ID: {userId || 'None (Not Logged In)'}</p>
-                    <p>User Role: {userRole || 'None (Fetch Failed)'}</p>
-                    <p>Loading: {loading.toString()}</p>
-                    <div className="mt-2 text-gray-500">
-                        Top Potential Causes:
-                        <ul className="list-disc ml-4">
-                            <li>Row Level Security (RLS) policies blocking access (Run SQL Fix).</li>
-                            <li>Session expired (Try logging out and in).</li>
-                            <li>Profile record missing in database.</li>
-                        </ul>
-                    </div>
-                </div>
-
                 <div className="flex gap-2">
                     <Button onClick={() => window.location.reload()}>Retry</Button>
                     <Button variant="outline" onClick={() => supabase.auth.signOut().then(() => router.push('/login'))}>
@@ -177,166 +149,97 @@ function DashboardContent() {
         )
     }
 
-    if (userRole === 'service_provider') {
-        return <ProviderDashboardPage />
-    }
+    if (userRole === 'service_provider') return <ProviderDashboardPage />
+    if (userRole === 'tenant') return <TenantDashboard userId={userId} />
 
-    if (userRole === 'tenant') {
-        return <TenantDashboard userId={userId} />
-    }
-
-    // Default to Landlord View
     const renderLandlordContent = () => {
         return (
-            <div className="space-y-6 sm:space-y-8 pb-20 md:pb-10">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2">
-                            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">Landlord Overview</h1>
-                            {ctxProfile?.is_verified ? (
-                                <Badge className="bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 gap-1 rounded-lg">
-                                    <ShieldCheck className="h-3 w-3" /> Verified
-                                </Badge>
-                            ) : (
-                                <Link href="/dashboard/verification">
-                                    <Badge className="bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400 gap-1 rounded-lg hover:bg-amber-500/20 cursor-pointer">
-                                        Get Verified
-                                    </Badge>
-                                </Link>
-                            )}
-                        </div>
-                        <p className="text-muted-foreground">Manage your properties and stay on top of tenant requests.</p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3">
-                        <Link href="/properties" className="w-full sm:w-auto">
-                            <Button variant="outline" className="w-full sm:w-auto min-h-[44px]">View Properties</Button>
-                        </Link>
-                        <Link href="/dashboard/inspections" className="w-full sm:w-auto">
-                            <Button variant="outline" className="w-full sm:w-auto min-h-[44px]">View Inspections</Button>
-                        </Link>
-                        <Link href="/dashboard/landlord/properties/new" className="w-full sm:w-auto">
-                            <Button className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto min-h-[44px]">Post New Property</Button>
-                        </Link>
-                    </div>
-                </div>
- 
-                {/* Mobile Quick Actions */}
-                <div className="grid grid-cols-5 gap-1.5 md:hidden">
-                    <Link href="/dashboard/landlord/properties/new" className="flex flex-col items-center gap-1.5 p-2 rounded-2xl bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 active:scale-95 transition-transform">
-                        <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center">
-                            <Plus className="h-4.5 w-4.5 text-white" />
-                        </div>
-                        <span className="text-[9px] font-semibold text-blue-700 dark:text-blue-300 text-center leading-tight">Add Property</span>
-                    </Link>
-                    <Link href="/tenants" className="flex flex-col items-center gap-1.5 p-2 rounded-2xl bg-purple-50 dark:bg-purple-950/30 border border-purple-100 dark:border-purple-900/40 active:scale-95 transition-transform">
-                        <div className="w-9 h-9 rounded-full bg-purple-600 flex items-center justify-center">
-                            <Users className="h-4.5 w-4.5 text-white" />
-                        </div>
-                        <span className="text-[9px] font-semibold text-purple-700 dark:text-purple-300 text-center leading-tight">Tenants</span>
-                    </Link>
-                    <Link href="/dashboard/inspections" className="flex flex-col items-center gap-1.5 p-2 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 active:scale-95 transition-transform">
-                        <div className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center">
-                            <CalendarCheck className="h-4.5 w-4.5 text-white" />
-                        </div>
-                        <span className="text-[9px] font-semibold text-indigo-700 dark:text-indigo-300 text-center leading-tight">Inspections</span>
-                    </Link>
-                    <Link href="/requests" className="flex flex-col items-center gap-1.5 p-2 rounded-2xl bg-orange-50 dark:bg-orange-950/30 border border-orange-100 dark:border-orange-900/40 active:scale-95 transition-transform">
-                        <div className="w-9 h-9 rounded-full bg-orange-600 flex items-center justify-center">
-                            <Wrench className="h-4.5 w-4.5 text-white" />
-                        </div>
-                        <span className="text-[9px] font-semibold text-orange-700 dark:text-orange-300 text-center leading-tight">Maintenance</span>
-                    </Link>
-                    <Link href="/earnings" className="flex flex-col items-center gap-1.5 p-2 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 active:scale-95 transition-transform">
-                        <div className="w-9 h-9 rounded-full bg-emerald-600 flex items-center justify-center">
-                            <TrendingUp className="h-4.5 w-4.5 text-white" />
-                        </div>
-                        <span className="text-[9px] font-semibold text-emerald-700 dark:text-emerald-300 text-center leading-tight">Earnings</span>
-                    </Link>
+            <div className="space-y-8 pb-20 md:pb-10 max-w-7xl mx-auto">
+                
+                {/* 1. Hero Section */}
+                <DashboardHero 
+                    name={ctxProfile?.full_name || ctxProfile?.first_name || "Landlord"} 
+                    isVerified={ctxProfile?.is_verified}
+                    metrics={metrics}
+                />
+
+                {/* 2. Quick Actions */}
+                <div className="space-y-3">
+                    <h2 className="text-lg font-semibold tracking-tight px-1">Quick Actions</h2>
+                    <QuickActions />
                 </div>
 
-
+                {/* 3. Modern Stats Cards */}
                 <div className="grid gap-4 sm:gap-6 grid-cols-2 lg:grid-cols-4">
-                    <SummaryCard
+                    <StatCard
                         title="Total Revenue"
                         value={`₦${metrics.totalRevenue.toLocaleString()}`}
-                        description="All time"
+                        description="vs last month"
                         icon={DollarSign}
-                        iconClassName="text-blue-600"
+                        iconClassName="text-blue-600 dark:text-blue-400"
+                        trend="up"
+                        trendValue="+12.5%"
+                        delay={0.1}
                     />
-                    <SummaryCard
+                    <StatCard
                         title="Active Tenants"
                         value={metrics.activeTenants.toString()}
-                        description="Currently renting"
+                        description="vs last month"
                         icon={Users}
-                        iconClassName="text-purple-600"
+                        iconClassName="text-purple-600 dark:text-purple-400"
+                        trend="up"
+                        trendValue="+2"
+                        delay={0.2}
                     />
-                    <SummaryCard
-                        title="New Applications"
+                    <StatCard
+                        title="Pending Applications"
                         value={metrics.newApplications.toString()}
-                        description="Pending review"
-                        icon={Activity}
-                        iconClassName="text-orange-600"
+                        description="Requires review"
+                        icon={ActivityIcon}
+                        iconClassName="text-orange-600 dark:text-orange-400"
+                        trend={metrics.newApplications > 0 ? "up" : "neutral"}
+                        trendValue={metrics.newApplications > 0 ? `${metrics.newApplications} new` : ""}
+                        delay={0.3}
                     />
-                    <SummaryCard
+                    <StatCard
                         title="Occupancy Rate"
                         value={`${metrics.occupancyRate}%`}
                         description="Portfolio utilization"
-                        icon={CreditCard}
-                        iconClassName="text-green-600"
+                        icon={Building2}
+                        iconClassName="text-emerald-600 dark:text-emerald-400"
+                        trend="neutral"
+                        delay={0.4}
                     />
                 </div>
 
-                <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-7">
-                    <Card className="lg:col-span-4 border shadow-sm bg-card">
-                        <CardHeader>
-                            <CardTitle>Recent Maintenance</CardTitle>
-                            <CardDescription>Latest repair requests from your properties.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                <LandlordMaintenanceList landlordId={userId} limit={3} />
-                                <div className="pt-2 text-center">
-                                    <Link href="/maintenance">
-                                        <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700">View All Maintenance</Button>
-                                    </Link>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    <Card className="lg:col-span-3 border shadow-sm bg-card">
-                        <CardHeader>
-                            <CardTitle>Portfolio Overview</CardTitle>
-                            <CardDescription>Performance of your properties.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <PortfolioOverview landlordId={userId} />
-                        </CardContent>
-                    </Card>
+                {/* 4. Performance Charts & Activity Feed */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2">
+                        <PerformanceCharts />
+                    </div>
+                    <div className="lg:col-span-1 h-[300px] lg:h-auto">
+                        <ActivityFeed />
+                    </div>
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-1">
-                    <Card className="border shadow-sm bg-card overflow-hidden">
-                        <CardHeader className="flex flex-row items-center justify-between">
-                            <div className="space-y-1">
-                                <CardTitle>Latest News</CardTitle>
-                                <CardDescription>Stay updated with PRMS announcements.</CardDescription>
-                            </div>
-                            <Link href="/news">
-                                <Button variant="ghost" size="sm" className="text-blue-600">Explore Feed</Button>
-                            </Link>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            <NewsFeed userId={userId} limit={2} />
-                        </CardContent>
-                    </Card>
-                </div>
+                {/* 5. Recent Maintenance */}
+                <Card className="border shadow-sm bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl">
+                    <CardHeader>
+                        <CardTitle>Recent Maintenance Requests</CardTitle>
+                        <CardDescription>Latest repair requests from your properties.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <LandlordMaintenanceList landlordId={userId} limit={5} />
+                    </CardContent>
+                </Card>
+
             </div>
         )
     }
 
     return (
         <div className="flex-1">
-            <div className="p-2 sm:p-4 md:p-8 pt-4 md:pt-6">
+            <div className="p-4 md:p-8">
                 {renderLandlordContent()}
             </div>
         </div>

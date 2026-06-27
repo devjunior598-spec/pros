@@ -81,10 +81,8 @@ export function SiteHeader({ hideNav = false }: SiteHeaderProps) {
 
     return (
         <header className={cn(
-            "sticky top-0 z-50 w-full border-b transition-colors",
-            isDashboard
-                ? "bg-white dark:bg-gray-950 border-gray-200 dark:border-gray-800/60"
-                : "bg-gray-900 text-white border-gray-800"
+            "sticky top-0 z-50 w-full border-b border-border bg-white transition-colors",
+            !isDashboard && "bg-prms-navy text-white border-prms-navy"
         )}>
             <div className="flex h-16 items-center justify-between px-4 md:px-6">
 
@@ -97,12 +95,12 @@ export function SiteHeader({ hideNav = false }: SiteHeaderProps) {
                     )}
 
                     {isDashboard && (
-                        <div className="hidden md:flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded-full px-4 py-1.5 focus-within:ring-2 ring-blue-500 transition-all">
-                            <Search className="h-4 w-4 text-gray-400 shrink-0" />
+                        <div className="hidden md:flex items-center gap-2 rounded-lg border border-border bg-secondary/50 px-4 py-2 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                            <Search className="h-4 w-4 text-muted-foreground shrink-0" />
                             <input
                                 type="text"
                                 placeholder="Search..."
-                                className="bg-transparent border-none outline-none text-sm w-48 lg:w-64 text-gray-900 dark:text-gray-100"
+                                className="bg-transparent border-none outline-none text-sm w-48 lg:w-64 text-foreground"
                             />
                         </div>
                     )}
@@ -118,8 +116,8 @@ export function SiteHeader({ hideNav = false }: SiteHeaderProps) {
                                 <button className={cn(
                                     "hidden sm:flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
                                     isDashboard
-                                        ? "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                                        : "text-white hover:bg-gray-800"
+                                        ? "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                                        : "text-white/80 hover:bg-white/10 hover:text-white"
                                 )}>
                                     <ShieldCheck className="h-4 w-4" />
                                     Admin
@@ -130,7 +128,7 @@ export function SiteHeader({ hideNav = false }: SiteHeaderProps) {
                         {/* Dashboard link (public pages only) */}
                         {!isDashboard && profile && (
                             <Link href="/dashboard">
-                                <button className="text-white hover:bg-gray-800 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
+                                <button className="text-white/80 hover:bg-white/10 hover:text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
                                     Dashboard
                                 </button>
                             </Link>
@@ -145,7 +143,7 @@ export function SiteHeader({ hideNav = false }: SiteHeaderProps) {
                                 <div className="hidden sm:flex flex-col items-end">
                                     <span className={cn(
                                         "text-sm font-semibold leading-none",
-                                        isDashboard ? "text-gray-900 dark:text-gray-100" : "text-white"
+                                        isDashboard ? "text-foreground" : "text-white"
                                     )}>
                                         {profile.full_name || profile.name}
                                     </span>
@@ -155,7 +153,7 @@ export function SiteHeader({ hideNav = false }: SiteHeaderProps) {
                                 </div>
 
                                 {/* Avatar circle */}
-                                <div className="h-9 w-9 rounded-full overflow-hidden border-2 border-blue-500/20 group-hover:border-blue-500 group-hover:shadow-[0_0_10px_rgba(59,130,246,0.5)] transition-all duration-300 flex items-center justify-center bg-gray-100 dark:bg-gray-800 shrink-0">
+                                <div className="h-9 w-9 rounded-full overflow-hidden border-2 border-primary/20 group-hover:border-primary transition-all duration-200 flex items-center justify-center bg-secondary shrink-0">
                                     {profile.profile_image_url ? (
                                         <img
                                             src={profile.profile_image_url}
@@ -170,12 +168,12 @@ export function SiteHeader({ hideNav = false }: SiteHeaderProps) {
                         ) : (
                             <div className="flex items-center gap-2">
                                 <Link href="/login">
-                                    <button className="text-white hover:bg-gray-800 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
+                                    <button className="text-white/80 hover:bg-white/10 hover:text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
                                         Log in
                                     </button>
                                 </Link>
                                 <Link href="/signup">
-                                    <button className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
+                                    <button className="bg-primary hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
                                         Sign up
                                     </button>
                                 </Link>

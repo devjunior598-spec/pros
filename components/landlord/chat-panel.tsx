@@ -94,26 +94,38 @@ export function ChatPanel({ landlordId }: ChatPanelProps) {
                     <ScrollArea className="h-full">
                         <div className="flex flex-col">
                             {conversations.length === 0 ? (
-                                <div className="p-4 text-sm text-muted-foreground">No conversations yet.</div>
+                                <div className="p-4 text-sm text-muted-foreground text-center mt-10">No conversations yet.</div>
                             ) : (
-                                conversations.map((c) => (
-                                    <button
-                                        key={c.id}
-                                        onClick={() => { setSelectedConv(c); setShowChat(true); }}
-                                        className={`p-4 text-left hover:bg-muted transition-colors border-b ${selectedConv?.id === c.id ? 'bg-muted border-l-4 border-l-blue-600' : 'border-l-4 border-l-transparent'
-                                            }`}
-                                    >
-                                        <div className="font-semibold text-sm flex items-center gap-1">
-                                            {c.tenant?.name || 'Unknown Tenant'}
-                                            {c.tenant?.is_verified && (
-                                                <ShieldCheck className="h-4 w-4 text-emerald-500 inline-block shrink-0" />
-                                            )}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground truncate mt-1">
-                                            {c.rental_id ? `Rental ID: ${c.rental_id}` : 'General Inquiry'}
-                                        </div>
-                                    </button>
-                                ))
+                                conversations.map((c) => {
+                                    const tenantName = c.tenant?.name || 'Unknown Tenant'
+                                    const initial = tenantName.charAt(0).toUpperCase()
+                                    return (
+                                        <button
+                                            key={c.id}
+                                            onClick={() => { setSelectedConv(c); setShowChat(true); }}
+                                            className={`flex items-center gap-3 p-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors border-b border-slate-100 dark:border-slate-800 w-full ${selectedConv?.id === c.id ? 'bg-slate-50 dark:bg-slate-800/50' : ''
+                                                }`}
+                                        >
+                                            <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/40 flex-shrink-0 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-lg">
+                                                {initial}
+                                            </div>
+                                            <div className="flex-1 overflow-hidden">
+                                                <div className="font-semibold text-[15px] flex items-center justify-between">
+                                                    <span className="truncate pr-2 flex items-center gap-1">
+                                                        {tenantName}
+                                                        {c.tenant?.is_verified && (
+                                                            <ShieldCheck className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                                                        )}
+                                                    </span>
+                                                    <span className="text-[10px] text-slate-400 font-normal shrink-0">Today</span>
+                                                </div>
+                                                <div className="text-[13px] text-slate-500 truncate mt-0.5">
+                                                    {c.rental_id ? `Tap to view conversation` : 'General Inquiry'}
+                                                </div>
+                                            </div>
+                                        </button>
+                                    )
+                                })
                             )}
                         </div>
                     </ScrollArea>

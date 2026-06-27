@@ -19,7 +19,7 @@ export default function AdminLayout({
     return (
         <DashboardGuard>
             <RoleGuard allowedRoles={['admin']}>
-                <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900/50">
+                <div className="flex min-h-screen bg-background">
                     {/* Mobile Sidebar Overlay */}
                     <div
                         className={cn(
@@ -39,7 +39,7 @@ export default function AdminLayout({
 
                     {/* Main Content */}
                     <div className="flex flex-1 flex-col min-w-0 h-screen overflow-hidden">
-                        <header className="h-16 border-b bg-white dark:bg-gray-950 flex items-center justify-between px-4 md:px-8">
+                        <header className="flex h-16 items-center justify-between border-b border-border bg-white px-4 md:px-8">
                             <button
                                 className="p-2 -ml-2 md:hidden"
                                 onClick={() => setIsSidebarOpen(true)}
@@ -56,7 +56,7 @@ export default function AdminLayout({
                                         </svg>
                                     </span>
                                     <input
-                                        className="block w-full rounded-xl border-none bg-gray-100 dark:bg-gray-900 py-2 pl-10 pr-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                        className="block w-full rounded-lg border-none bg-secondary py-2 pl-10 pr-3 text-sm focus:ring-2 focus:ring-primary/20 outline-none"
                                         placeholder="Search everything..."
                                     />
                                 </div>

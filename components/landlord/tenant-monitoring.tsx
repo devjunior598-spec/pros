@@ -3,15 +3,9 @@
 import * as React from "react"
 import { useEffect, useState, useCallback } from "react"
 import { supabase } from "@/lib/supabase"
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { motion } from "motion/react"
+import { Users, Loader2, Building, CreditCard, Clock } from "lucide-react"
+import { EmptyState } from "@/components/ui/empty-state"
 
 interface TenantData {
     tenant_id: string
@@ -75,7 +69,6 @@ export function TenantMonitoring({ landlordId }: TenantMonitoringProps) {
                     console.error('Error fetching tenants:', error)
                 }
             } else if (!signal?.aborted && data) {
-                // Transform data to flatten payments from bills
                 const formattedData = data.map((rental: any) => ({
                     ...rental,
                     payments: rental.bills?.flatMap((bill: any) => bill.payments || []) || []
@@ -102,20 +95,12 @@ export function TenantMonitoring({ landlordId }: TenantMonitoringProps) {
                 .channel('tenant-monitoring-changes')
                 .on(
                     'postgres_changes',
-                    {
-                        event: '*',
-                        schema: 'public',
-                        table: 'rentals',
-                    },
+                    { event: '*', schema: 'public', table: 'rentals' },
                     () => fetchTenants(controller.signal)
                 )
                 .on(
                     'postgres_changes',
-                    {
-                        event: '*',
-                        schema: 'public',
-                        table: 'payments',
-                    },
+                    { event: '*', schema: 'public', table: 'payments' },
                     () => fetchTenants(controller.signal)
                 )
                 .subscribe()
@@ -129,86 +114,84 @@ export function TenantMonitoring({ landlordId }: TenantMonitoringProps) {
 
     if (loading) {
         return (
-            <Card>
-                <CardHeader><CardTitle>Tenant Monitoring</CardTitle></CardHeader>
-                <CardContent>Loading tenants...</CardContent>
-            </Card>
+            <div className="flex flex-col items-center justify-center py-20">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-4" />
+                <p className="text-slate-500">Loading tenants...</p>
+            </div>
+        )
+    }
+
+    if (tenants.length === 0) {
+        return (
+            <EmptyState
+                icon={Users}
+                title="No active tenants"
+                description="You don't have any active tenants right now. Once a tenant's application is approved, they will appear here."
+            />
         )
     }
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Tenant Monitoring</CardTitle>
-            </CardHeader>
-            <CardContent>
-                {/* Mobile card view */}
-                <div className="md:hidden space-y-3">
-                    {tenants.length === 0 ? (
-                        <p className="text-center py-6 text-muted-foreground">No active tenants found.</p>
-                    ) : (
-                        tenants.map((t, idx) => {
-                            const totalPaid = t.payments?.reduce(
-                                (sum, p) => p.status === 'success' ? sum + p.amount : sum,
-                                0
-                            ) || 0;
-                            const lastPayment = t.payments?.length > 0
-                                ? new Date(t.payments[t.payments.length - 1].created_at).toLocaleDateString()
-                                : '-';
-                            return (
-                                <div key={`${t.tenant_id}-${idx}`} className="p-4 rounded-xl border bg-card space-y-2">
-                                    <div className="flex items-center justify-between">
-                                        <span className="font-semibold text-sm">{t.tenant?.fullname || t.tenant?.name || t.tenant_id}</span>
-                                        <span className="text-xs font-bold text-emerald-600">₦{totalPaid.toLocaleString()}</span>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground truncate">{t.property?.title}</p>
-                                    <p className="text-xs text-muted-foreground">Last payment: {lastPayment}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {tenants.map((t, idx) => {
+                const totalPaid = t.payments?.reduce(
+                    (sum, p) => p.status === 'success' ? sum + p.amount : sum,
+                    0
+                ) || 0;
+
+                const lastPayment = t.payments?.length > 0
+                    ? new Date(t.payments[t.payments.length - 1].created_at).toLocaleDateString()
+                    : 'Never';
+
+                const tenantName = t.tenant?.fullname || t.tenant?.name || "Unknown Tenant";
+                
+                return (
+                    <motion.div
+                        key={`${t.tenant_id}-${idx}`}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: idx * 0.05 }}
+                        className="group relative flex flex-col rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl shadow-sm hover:shadow-md transition-all p-5"
+                    >
+                        <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-lg">
+                                    {tenantName.charAt(0).toUpperCase()}
                                 </div>
-                            )
-                        })
-                    )}
-                </div>
-                {/* Desktop table */}
-                <div className="hidden md:block">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Tenant</TableHead>
-                                <TableHead>Property</TableHead>
-                                <TableHead>Rent Paid</TableHead>
-                                <TableHead>Last Payment</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {tenants.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={4} className="text-center">No active tenants found.</TableCell>
-                                </TableRow>
-                            ) : (
-                                tenants.map((t, idx) => {
-                                    const totalPaid = t.payments?.reduce(
-                                        (sum, p) => p.status === 'success' ? sum + p.amount : sum,
-                                        0
-                                    ) || 0;
+                                <div>
+                                    <h3 className="font-semibold text-slate-900 dark:text-slate-100">{tenantName}</h3>
+                                    <div className="flex items-center gap-1 text-xs text-slate-500">
+                                        <Building className="w-3 h-3" />
+                                        <span className="truncate max-w-[150px]">{t.property?.title}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <span className="px-2 py-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-xs font-medium rounded-full">
+                                Active
+                            </span>
+                        </div>
 
-                                    const lastPayment = t.payments?.length > 0
-                                        ? new Date(t.payments[t.payments.length - 1].created_at).toLocaleDateString()
-                                        : '-';
-
-                                    return (
-                                        <TableRow key={`${t.tenant_id}-${idx}`}>
-                                            <TableCell className="font-medium">{t.tenant?.fullname || t.tenant?.name || t.tenant_id}</TableCell>
-                                            <TableCell>{t.property?.title}</TableCell>
-                                            <TableCell>₦{totalPaid.toLocaleString()}</TableCell>
-                                            <TableCell>{lastPayment}</TableCell>
-                                        </TableRow>
-                                    )
-                                })
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
-            </CardContent>
-        </Card>
+                        <div className="grid grid-cols-2 gap-4 mt-auto pt-4 border-t border-slate-100 dark:border-slate-800">
+                            <div className="space-y-1">
+                                <p className="text-xs text-slate-500 flex items-center gap-1">
+                                    <CreditCard className="w-3 h-3" /> Total Paid
+                                </p>
+                                <p className="font-semibold text-slate-900 dark:text-slate-100">
+                                    ₦{totalPaid.toLocaleString()}
+                                </p>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-xs text-slate-500 flex items-center gap-1">
+                                    <Clock className="w-3 h-3" /> Last Payment
+                                </p>
+                                <p className="font-medium text-slate-700 dark:text-slate-300 text-sm">
+                                    {lastPayment}
+                                </p>
+                            </div>
+                        </div>
+                    </motion.div>
+                )
+            })}
+        </div>
     )
 }

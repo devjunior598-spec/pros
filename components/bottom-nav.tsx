@@ -45,34 +45,31 @@ export function BottomNav({ userRole }: BottomNavProps) {
         { title: "Settings", href: "/settings", icon: Settings },
     ]
 
-    let items = landlordItems // default
+    let items = landlordItems
     if (userRole === 'tenant') items = tenantItems
     if (userRole === 'service_provider') items = providerItems
 
     return (
-        <div className="fixed bottom-0 left-0 z-50 w-full bg-white border-t border-gray-200 dark:bg-gray-950 dark:border-gray-800 md:hidden pb-safe">
-            <div className="grid h-16 max-w-lg grid-cols-5 mx-auto font-medium">
+        <div className="fixed bottom-0 left-0 z-50 w-full border-t border-border bg-white md:hidden pb-safe shadow-[0_-2px_12px_rgba(15,23,42,0.06)]">
+            <div className="mx-auto grid h-16 max-w-lg grid-cols-5 font-medium">
                 {items.map((item) => {
                     const isActive = pathname === item.href
                     return (
                         <Link
                             key={item.href}
                             href={item.href}
-                            className="inline-flex flex-col items-center justify-center min-h-[48px] hover:bg-gray-50 dark:hover:bg-gray-800 group active:scale-95 transition-transform"
+                            className="inline-flex min-h-[48px] flex-col items-center justify-center transition-colors active:scale-95"
                         >
                             <item.icon className={cn(
-                                "w-5 h-5 mb-0.5 transition-colors",
-                                isActive ? "text-blue-600 dark:text-blue-400" : "text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400"
+                                "mb-0.5 h-5 w-5 transition-colors",
+                                isActive ? "text-primary" : "text-muted-foreground"
                             )} />
                             <span className={cn(
                                 "text-[10px] transition-colors",
-                                isActive ? "text-blue-600 dark:text-blue-400 font-semibold" : "text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400"
+                                isActive ? "font-semibold text-primary" : "text-muted-foreground"
                             )}>
                                 {item.title}
                             </span>
-                            {isActive && (
-                                <div className="w-1 h-1 rounded-full bg-blue-600 dark:bg-blue-400 mt-0.5" />
-                            )}
                         </Link>
                     )
                 })}

@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { supabase } from "@/lib/supabase"
+import { Logo } from "@/components/logo"
 import {
     LayoutDashboard,
     Users,
@@ -17,9 +18,7 @@ import {
     MessageSquare,
     Settings,
     ShieldAlert,
-    Bell,
     LogOut,
-    Activity,
     CreditCard
 } from "lucide-react"
 
@@ -49,27 +48,24 @@ export function AdminSidebar() {
     }
 
     return (
-        <div className="flex h-full flex-col bg-white dark:bg-gray-950 border-r">
-            <div className="flex h-16 items-center border-b px-6">
-                <Link href="/admin/dashboard" className="flex items-center gap-2">
-                    <Activity className="h-6 w-6 text-blue-600" />
-                    <span className="font-bold text-xl uppercase tracking-tighter">PRMS ADMIN</span>
-                </Link>
+        <div className="flex h-full flex-col border-r border-border bg-white">
+            <div className="flex h-16 items-center border-b border-border px-5">
+                <Logo href="/admin/dashboard" />
             </div>
-            <nav className="flex-1 space-y-1 p-4 overflow-y-auto scrollbar-none">
+            <nav className="flex-1 space-y-0.5 overflow-y-auto p-3 scrollbar-none">
                 {menuItems.map((item) => {
                     const isActive = pathname.startsWith(item.href)
                     return (
                         <Link key={item.href} href={item.href}>
                             <span className={cn(
-                                "group flex items-center rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200 mb-1",
+                                "group mb-0.5 flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                                 isActive
-                                    ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
-                                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-900 dark:hover:text-gray-100"
+                                    ? "bg-primary text-white"
+                                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                             )}>
                                 <item.icon className={cn(
                                     "mr-3 h-5 w-5 transition-colors",
-                                    isActive ? "text-white" : "text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-100"
+                                    isActive ? "text-white" : "text-muted-foreground group-hover:text-foreground"
                                 )} />
                                 <span>{item.title}</span>
                             </span>
@@ -77,13 +73,13 @@ export function AdminSidebar() {
                     )
                 })}
             </nav>
-            <div className="p-4 border-t">
+            <div className="border-t border-border p-3">
                 <button
                     onClick={handleLogout}
-                    className="group flex w-full items-center rounded-xl px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
+                    className="flex w-full items-center rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
                 >
-                    <LogOut className="mr-3 h-5 w-5 text-red-400 group-hover:text-red-600" />
-                    <span>Logout</span>
+                    <LogOut className="mr-3 h-5 w-5" />
+                    Logout
                 </button>
             </div>
         </div>

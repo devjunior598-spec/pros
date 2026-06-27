@@ -4,7 +4,16 @@ import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
-import { CheckCircle2, Mail, Loader2, ArrowRight, Sparkles } from "lucide-react"
+import { CheckCircle2, Mail, Loader2, ArrowRight } from "lucide-react"
+
+const getErrorMessage = (error: unknown): string => {
+    if (error instanceof Error) return error.message
+    if (typeof error === "object" && error && "message" in error) {
+        const message = (error as { message?: unknown }).message
+        if (typeof message === "string") return message
+    }
+    return "An unexpected error occurred."
+}
 
 export default function SignupPage() {
     const router = useRouter()
@@ -44,8 +53,6 @@ export default function SignupPage() {
                     },
                 },
             })
-            console.log("Signup authData:", authData)
-            console.log("Signup authError:", authError)
             if (authError) throw authError
             if (!authData.user) throw new Error("User was not created. Please try again.")
 
@@ -58,17 +65,44 @@ export default function SignupPage() {
                 )
             if (profileError) console.warn("Profile upsert warning:", profileError.message)
 
+            const resolvedRole = (authData.user.user_metadata?.role as "tenant" | "landlord" | "admin" | undefined) ?? formData.role
+            const redirectToDashboard = () => {
+                if (resolvedRole === "landlord") {
+                    router.replace("/dashboard")
+                } else if (resolvedRole === "admin") {
+                    router.replace("/admin/dashboard")
+                } else {
+                    router.replace("/dashboard")
+                }
+            }
+
             if (authData.session) {
-                router.push("/dashboard")
+                redirectToDashboard()
                 return
             }
 
-            // Email confirmation required — tell user to check inbox
+            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+                email: formData.email,
+                password: formData.password,
+            })
+
+            if (!signInError && signInData.session) {
+                redirectToDashboard()
+                return
+            }
+
+            if (signInError?.message?.toLowerCase().includes("email") || signInError?.message?.toLowerCase().includes("confirm")) {
+                setRequiresEmailConfirm(true)
+                setIsSuccess(true)
+                return
+            }
+
+            if (signInError) throw signInError
+
             setRequiresEmailConfirm(true)
             setIsSuccess(true)
-            return
-        } catch (err: any) {
-            setError(err.message || "Something went wrong. Please try again.")
+        } catch (err: unknown) {
+            setError(getErrorMessage(err) || "Something went wrong. Please try again.")
         } finally {
             setIsLoading(false)
         }
@@ -77,28 +111,28 @@ export default function SignupPage() {
     // Success screen
     if (isSuccess) {
         return (
-            <div className="w-full rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl overflow-hidden">
-                <div className="px-6 py-10 text-center space-y-4">
+            <div className="w-full overflow-hidden rounded-xl border border-border bg-white shadow-lg">
+                <div className="space-y-4 px-6 py-10 text-center">
                     <div className="flex justify-center">
-                        <div className={`flex h-16 w-16 items-center justify-center rounded-2xl border ${requiresEmailConfirm ? "bg-blue-500/10 border-blue-500/20" : "bg-emerald-500/10 border-emerald-500/20"}`}>
+                        <div className={`flex h-16 w-16 items-center justify-center rounded-xl border ${requiresEmailConfirm ? "border-primary/20 bg-primary/10" : "border-emerald-200 bg-emerald-50"}`}>
                             {requiresEmailConfirm
-                                ? <Mail className="h-8 w-8 text-blue-400" />
-                                : <CheckCircle2 className="h-8 w-8 text-emerald-400" />
+                                ? <Mail className="h-8 w-8 text-primary" />
+                                : <CheckCircle2 className="h-8 w-8 text-prms-emerald" />
                             }
                         </div>
                     </div>
-                    <h2 className="text-2xl font-black text-white">
+                    <h2 className="text-2xl font-semibold text-prms-navy">
                         {requiresEmailConfirm ? "Check your email" : "Account created!"}
                     </h2>
-                    <p className="text-sm text-blue-200/60 leading-relaxed max-w-xs mx-auto">
+                    <p className="mx-auto max-w-xs text-sm leading-relaxed text-prms-slate">
                         {requiresEmailConfirm
-                            ? <>We sent a confirmation link to <strong className="text-white">{formData.email}</strong>. Click it, then return to sign in.</>
+                            ? <>We sent a confirmation link to <strong className="text-prms-navy">{formData.email}</strong>. Click it, then return to sign in.</>
                             : "Account created! Taking you to login…"
                         }
                     </p>
                     {requiresEmailConfirm && (
                         <Link href="/login">
-                            <button className="mt-2 w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition-all shadow-lg shadow-blue-600/20">
+                            <button className="mt-2 h-11 w-full rounded-lg bg-prms-blue font-semibold text-white transition-all hover:bg-blue-700">
                                 Go to Login
                             </button>
                         </Link>
@@ -109,22 +143,17 @@ export default function SignupPage() {
     }
 
     return (
-        <div className="w-full rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl overflow-hidden">
-            {/* Header */}
-            <div className="px-6 pt-6 pb-4">
-                <div className="flex items-center gap-1.5 text-blue-400 text-[10px] font-bold uppercase tracking-widest mb-3">
-                    <Sparkles className="h-3 w-3 animate-pulse" />
-                    Create Account
-                </div>
-                <h1 className="text-2xl font-black tracking-tight text-white">Join PRMS</h1>
-                <p className="text-blue-200/50 text-xs mt-1 leading-relaxed">
+        <div className="w-full overflow-hidden rounded-xl border border-border bg-white shadow-lg">
+            <div className="border-b border-border px-6 pb-4 pt-6">
+                <h1 className="text-2xl font-semibold tracking-tight text-prms-navy">Create your account</h1>
+                <p className="mt-1 text-sm text-prms-slate">
                     Get started in under 3 minutes. No credit card required.
                 </p>
             </div>
 
-            <form onSubmit={handleSignup} className="px-6 pb-6 space-y-4">
+            <form onSubmit={handleSignup} className="space-y-4 px-6 pb-6 pt-5">
                 {error && (
-                    <div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl px-4 py-3 text-xs font-semibold">
+                    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-600">
                         {error}
                     </div>
                 )}
@@ -136,15 +165,15 @@ export default function SignupPage() {
                         { id: "lastName",  label: "Last Name",  placeholder: "Doe" },
                     ].map(f => (
                         <div key={f.id} className="space-y-1.5">
-                            <label htmlFor={f.id} className="text-[11px] font-bold text-blue-200/60 uppercase tracking-wider">{f.label}</label>
+                            <label htmlFor={f.id} className="text-sm font-medium text-prms-navy">{f.label}</label>
                             <input
                                 id={f.id}
                                 placeholder={f.placeholder}
                                 required
-                                value={(formData as any)[f.id]}
+                                value={formData[f.id as keyof typeof formData] as string}
                                 onChange={handleChange}
                                 disabled={isLoading}
-                                className="w-full px-3 h-12 bg-white/5 border border-white/10 focus:border-blue-500 focus:outline-none rounded-xl text-base md:text-sm text-white placeholder-blue-200/30 transition-colors"
+                                className="h-12 w-full rounded-lg border border-border bg-secondary/30 px-3 text-base text-prms-navy placeholder:text-prms-slate/60 transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 md:text-sm"
                             />
                         </div>
                     ))}
@@ -152,7 +181,7 @@ export default function SignupPage() {
 
                 {/* Email */}
                 <div className="space-y-1.5">
-                    <label htmlFor="email" className="text-[11px] font-bold text-blue-200/60 uppercase tracking-wider">Email Address</label>
+                    <label htmlFor="email" className="text-sm font-medium text-prms-navy">Email address</label>
                     <input
                         id="email"
                         type="email"
@@ -161,13 +190,13 @@ export default function SignupPage() {
                         value={formData.email}
                         onChange={handleChange}
                         disabled={isLoading}
-                        className="w-full px-4 h-12 bg-white/5 border border-white/10 focus:border-blue-500 focus:outline-none rounded-xl text-base md:text-sm text-white placeholder-blue-200/30 transition-colors"
+                        className="h-12 w-full rounded-lg border border-border bg-secondary/30 px-4 text-base text-prms-navy placeholder:text-prms-slate/60 transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 md:text-sm"
                     />
                 </div>
 
                 {/* Password */}
                 <div className="space-y-1.5">
-                    <label htmlFor="password" className="text-[11px] font-bold text-blue-200/60 uppercase tracking-wider">Password</label>
+                    <label htmlFor="password" className="text-sm font-medium text-prms-navy">Password</label>
                     <input
                         id="password"
                         type="password"
@@ -177,13 +206,13 @@ export default function SignupPage() {
                         value={formData.password}
                         onChange={handleChange}
                         disabled={isLoading}
-                        className="w-full px-4 h-12 bg-white/5 border border-white/10 focus:border-blue-500 focus:outline-none rounded-xl text-base md:text-sm text-white placeholder-blue-200/30 transition-colors"
+                        className="h-12 w-full rounded-lg border border-border bg-secondary/30 px-4 text-base text-prms-navy placeholder:text-prms-slate/60 transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 md:text-sm"
                     />
                 </div>
 
                 {/* Role picker */}
                 <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-blue-200/60 uppercase tracking-wider">I am a…</label>
+                    <label className="text-sm font-medium text-prms-navy">I am a…</label>
                     <div className="grid grid-cols-2 gap-3">
                         {(["tenant", "landlord"] as const).map(r => (
                             <button
@@ -192,17 +221,17 @@ export default function SignupPage() {
                                 onClick={() => handleRoleChange(r)}
                                 disabled={isLoading}
                                 className={[
-                                    "flex items-center gap-2 border rounded-xl p-3.5 min-h-[48px] text-sm font-medium transition-all duration-150",
+                                    "flex min-h-[48px] items-center gap-2 rounded-lg border p-3.5 text-sm font-medium transition-all duration-150",
                                     formData.role === r
-                                        ? "border-blue-500 bg-blue-500/15 text-blue-300"
-                                        : "border-white/10 bg-white/5 text-blue-200/60 hover:border-white/20 hover:text-white",
+                                        ? "border-primary bg-primary/10 text-primary"
+                                        : "border-border bg-white text-prms-slate hover:border-primary/30 hover:text-prms-navy",
                                 ].join(" ")}
                             >
                                 <span className={[
-                                    "h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
-                                    formData.role === r ? "border-blue-400" : "border-white/20",
+                                    "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+                                    formData.role === r ? "border-primary" : "border-border",
                                 ].join(" ")}>
-                                    {formData.role === r && <span className="h-2 w-2 rounded-full bg-blue-400" />}
+                                    {formData.role === r && <span className="h-2 w-2 rounded-full bg-primary" />}
                                 </span>
                                 <span className="capitalize">{r}</span>
                             </button>
@@ -214,7 +243,7 @@ export default function SignupPage() {
                 <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-bold tracking-wide transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 mt-2"
+                    className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-prms-blue font-semibold text-white transition-all hover:bg-blue-700 disabled:opacity-60"
                 >
                     {isLoading ? (
                         <><Loader2 className="h-4 w-4 animate-spin" /> Creating account…</>
@@ -223,9 +252,9 @@ export default function SignupPage() {
                     )}
                 </button>
 
-                <p className="text-center text-xs text-blue-200/50 pt-1">
+                <p className="pt-1 text-center text-sm text-prms-slate">
                     Already have an account?{" "}
-                    <Link href="/login" className="text-blue-400 hover:text-blue-300 font-bold transition-colors">
+                    <Link href="/login" className="font-semibold text-primary transition-colors hover:text-blue-700">
                         Sign in
                     </Link>
                 </p>

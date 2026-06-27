@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { useEffect, useState } from "react"
+import Link from "next/link"
 import { supabase } from "@/lib/supabase"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -19,6 +20,7 @@ import {
     User, Pencil, Trash2, Eye, ChevronLeft,
     ChevronRight, Loader2, Home, Search, SlidersHorizontal,
 } from "lucide-react"
+import { EmptyState } from "@/components/ui/empty-state"
 
 interface PropertyWithDetails extends Property {
     rentals: {
@@ -253,16 +255,17 @@ export function PropertyTable({ landlordId }: PropertyTableProps) {
 
             {/* ── Empty state ───────────────────────────────────────── */}
             {!loading && displayed.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-20 text-center gap-4 rounded-2xl border border-slate-700/40 bg-slate-800/30">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-800 border border-slate-700/50">
-                        <Home className="h-8 w-8 text-slate-500" />
-                    </div>
-                    <div>
-                        <p className="text-slate-200 font-semibold">No properties found</p>
-                        <p className="text-sm text-slate-500 mt-1">
-                            {searchQuery ? "Try a different search term." : "Add your first property to get started."}
-                        </p>
-                    </div>
+                <div className="py-10">
+                    <EmptyState
+                        icon={Home}
+                        title="No properties found"
+                        description={searchQuery ? "Try a different search term." : "Add your first property to get started."}
+                        action={!searchQuery ? (
+                            <Link href="/dashboard/landlord/properties/new">
+                                <Button className="bg-blue-600 hover:bg-blue-700">Add Property</Button>
+                            </Link>
+                        ) : undefined}
+                    />
                 </div>
             )}
 

@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase"
 import { ChatPanel } from "@/components/landlord/chat-panel"
 import { TenantChatPanel } from "@/components/tenant/tenant-chat-panel"
 import { ProviderChatPanel } from "@/components/provider/provider-chat-panel"
+import { PageHeader } from "@/components/page-header"
 import { Loader2, MessageSquare } from "lucide-react"
 
 export default function MessagesPage() {
@@ -42,7 +43,7 @@ export default function MessagesPage() {
         return (
             <div className="flex h-[400px] items-center justify-center">
                 <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     <p className="text-sm text-muted-foreground">Loading messages…</p>
                 </div>
             </div>
@@ -53,7 +54,7 @@ export default function MessagesPage() {
         return (
             <div className="flex h-[400px] items-center justify-center">
                 <div className="text-center">
-                    <MessageSquare className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+                    <MessageSquare className="mx-auto mb-3 h-12 w-12 text-muted-foreground/30" />
                     <p className="text-muted-foreground">Please log in to view messages.</p>
                 </div>
             </div>
@@ -61,24 +62,22 @@ export default function MessagesPage() {
     }
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-600/20 rounded-lg flex items-center justify-center">
-                    <MessageSquare className="h-4 w-4 text-blue-500" />
-                </div>
-                <div>
-                    <h1 className="text-xl sm:text-2xl font-bold text-foreground">Messages</h1>
-                    <p className="text-muted-foreground text-sm">Chat with your tenants, landlords, and service providers.</p>
-                </div>
-            </div>
+        <div className="mx-auto max-w-7xl space-y-6">
+            <PageHeader
+                title="Messages"
+                description="Chat with your tenants, landlords, and service providers."
+                icon={MessageSquare}
+            />
 
-            {user.role === 'landlord' ? (
-                <ChatPanel landlordId={user.id} />
-            ) : user.role === 'service_provider' ? (
-                <ProviderChatPanel providerId={user.id} />
-            ) : (
-                <TenantChatPanel tenantId={user.id} />
-            )}
+            <div className="rounded-xl border border-border bg-white p-2 shadow-sm">
+                {user.role === 'landlord' ? (
+                    <ChatPanel landlordId={user.id} />
+                ) : user.role === 'service_provider' ? (
+                    <ProviderChatPanel providerId={user.id} />
+                ) : (
+                    <TenantChatPanel tenantId={user.id} />
+                )}
+            </div>
         </div>
     )
 }

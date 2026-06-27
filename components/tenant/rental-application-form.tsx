@@ -48,16 +48,16 @@ export function RentalApplicationForm({ propertyId, tenantId, rentAmount, onSucc
                     tenant_id: tenantId,
                     status: 'pending',
                     rent_amount: rentAmount,
-                    // Optionally handle move-in date if we add it to schema, 
-                    // otherwise it's just a confirmation.
+                    rent_start_date: moveInDate || null,
                 })
 
             if (insertError) throw insertError
 
             onSuccess()
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err)
-            setError(err.message || "Failed to submit application")
+            const message = err instanceof Error ? err.message : "Failed to submit application"
+            setError(message)
         } finally {
             setLoading(false)
         }
@@ -91,7 +91,7 @@ export function RentalApplicationForm({ propertyId, tenantId, rentAmount, onSucc
             </div>
 
             <p className="text-sm text-muted-foreground">
-                By clicking "Submit Application", you agree to share your profile details with the landlord for review.
+                By clicking &quot;Submit Application&quot;, you agree to share your profile details with the landlord for review.
             </p>
 
             <Button type="submit" className="w-full" disabled={loading}>

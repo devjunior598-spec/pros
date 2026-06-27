@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -12,19 +12,43 @@ interface LandlordApplicationsListProps {
     landlordId: string
 }
 
+interface ApplicationRecord {
+    id: string
+    property_id: string
+    rent_amount: number | null
+    rent_start_date: string | null
+    created_at: string
+    status: string
+    notes: string | null
+    employment: string | null
+    income: string | null
+    property?: {
+        title: string | null
+        address: string | null
+        landlord_id: string | null
+    }
+    tenant?: {
+        name: string | null
+        full_name: string | null
+        email: string | null
+        phone: string | null
+    }
+}
+
 export function LandlordApplicationsList({ landlordId }: LandlordApplicationsListProps) {
-    const [applications, setApplications] = useState<any[]>([])
+    const [applications, setApplications] = useState<ApplicationRecord[]>([])
     const [loading, setLoading] = useState(true)
     const [actionLoading, setActionLoading] = useState<string | null>(null)
 
-    const fetchApplications = async (signal?: AbortSignal) => {
+    const fetchApplications = useCallback(async (signal?: AbortSignal) => {
         setLoading(true)
         try {
             const { data, error } = await supabase
                 .from('rentals')
                 .select(`
                     *,
-                    property:properties (
+                    property:properties!property_id (
+                        id,
                         title,
                         address,
                         landlord_id
@@ -36,7 +60,7 @@ export function LandlordApplicationsList({ landlordId }: LandlordApplicationsLis
                         phone
                     )
                 `)
-                .eq('landlord_id', landlordId)
+                .eq('property.landlord_id', landlordId)
                 .eq('status', 'pending')
                 .order('created_at', { ascending: false })
                 .abortSignal(signal as AbortSignal)
@@ -47,9 +71,9 @@ export function LandlordApplicationsList({ landlordId }: LandlordApplicationsLis
                     console.error("Error fetching applications object:", error)
                 }
             } else if (!signal?.aborted) {
-                setApplications(data || [])
+                setApplications((data as ApplicationRecord[] | null) || [])
             }
-        } catch (error) {
+        } catch (error: unknown) {
             if (!signal?.aborted) {
                 console.error("Error in fetchApplications:", error)
             }
@@ -58,7 +82,7 @@ export function LandlordApplicationsList({ landlordId }: LandlordApplicationsLis
                 setLoading(false)
             }
         }
-    }
+    }, [landlordId])
 
     useEffect(() => {
         const controller = new AbortController()
@@ -66,7 +90,7 @@ export function LandlordApplicationsList({ landlordId }: LandlordApplicationsLis
             fetchApplications(controller.signal)
         }
         return () => controller.abort()
-    }, [landlordId])
+    }, [fetchApplications, landlordId])
 
     const handleAction = async (requestId: string, propertyId: string, status: RentalStatus) => {
         setActionLoading(requestId)
@@ -112,7 +136,7 @@ export function LandlordApplicationsList({ landlordId }: LandlordApplicationsLis
 
             // 3. Refresh list
             await fetchApplications()
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(`Error during application ${status}:`, error)
             alert(`Failed to ${status} application.`)
         } finally {

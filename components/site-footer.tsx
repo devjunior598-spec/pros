@@ -1,47 +1,48 @@
 import Link from "next/link"
+import { Logo } from "@/components/logo"
 
 export function SiteFooter() {
-    return (
-        <footer className="bg-gray-900 text-white border-t border-gray-800">
-            <div className="container py-8 sm:py-12 md:py-16">
-                <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-                    <div className="space-y-4">
-                        <div className="font-bold text-xl uppercase tracking-tighter">PRMS</div>
-                        <p className="text-sm text-gray-400 leading-relaxed max-w-xs">
-                            The most trusted platform for property management in Nigeria.
-                            Built for landlords and tenants who value efficiency and transparency.
-                        </p>
-                    </div>
-                    <div>
-                        <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider">Company</h4>
-                        <ul className="space-y-2 text-sm text-gray-400">
-                            <li><Link href="/about" className="hover:text-white transition-colors">About Us</Link></li>
-                            <li><Link href="/features" className="hover:text-white transition-colors">Features</Link></li>
-                            <li><Link href="/contact" className="hover:text-white transition-colors">Contact</Link></li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider">Resources</h4>
-                        <ul className="space-y-2 text-sm text-gray-400">
-                            <li><Link href="/listings" className="hover:text-white transition-colors">Browse Listings</Link></li>
-                            <li><Link href="/faq" className="hover:text-white transition-colors">FAQ</Link></li>
-                            <li><Link href="/signup" className="hover:text-white transition-colors">Join as Landlord</Link></li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h4 className="font-semibold mb-4 text-sm uppercase tracking-wider">Legal</h4>
-                        <ul className="space-y-2 text-sm text-gray-400">
-                            <li><Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link></li>
-                            <li><Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
-                        </ul>
-                    </div>
-                </div>
-                <div className="mt-12 pt-8 border-t border-gray-800 text-center text-xs text-gray-500">
-                    &copy; {new Date().getFullYear()} PRMS. Owned by JUNIOR PROPERTY TECHNOLOGIES.
-                    <br className="sm:hidden" />
-                    Built by Junior Dev Tech Solutions.
-                </div>
-            </div>
-        </footer>
-    )
+  return (
+    <footer className="border-t border-border bg-white">
+      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-2 lg:grid-cols-4 lg:px-8">
+        <div>
+          <Logo href="/" />
+          <p className="mt-4 max-w-xs text-sm leading-relaxed text-prms-slate">
+            PRMS gives landlords, tenants, and property teams a calm, dependable way to manage rentals across Nigeria.
+          </p>
+        </div>
+
+        <div>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-prms-slate">Company</h3>
+          <ul className="mt-4 space-y-2.5 text-sm text-prms-slate">
+            <li><Link href="/about" className="transition hover:text-prms-navy">About</Link></li>
+            <li><Link href="/features" className="transition hover:text-prms-navy">Features</Link></li>
+            <li><Link href="/contact" className="transition hover:text-prms-navy">Contact</Link></li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-prms-slate">Explore</h3>
+          <ul className="mt-4 space-y-2.5 text-sm text-prms-slate">
+            <li><Link href="/listings" className="transition hover:text-prms-navy">Properties</Link></li>
+            <li><Link href="/faq" className="transition hover:text-prms-navy">FAQ</Link></li>
+            <li><Link href="/privacy" className="transition hover:text-prms-navy">Privacy</Link></li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-prms-slate">Support</h3>
+          <ul className="mt-4 space-y-2.5 text-sm text-prms-slate">
+            <li><Link href="/login" className="transition hover:text-prms-navy">Login</Link></li>
+            <li><Link href="/signup" className="transition hover:text-prms-navy">Create account</Link></li>
+            <li><Link href="/terms" className="transition hover:text-prms-navy">Terms</Link></li>
+          </ul>
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-7xl border-t border-border px-4 py-6 text-sm text-prms-slate sm:px-6 lg:px-8">
+        © {new Date().getFullYear()} PRMS. Built for serious property rental management.
+      </div>
+    </footer>
+  )
 }
