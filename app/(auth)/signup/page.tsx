@@ -78,9 +78,19 @@ export default function SignupPage() {
             }
             if (!authData.user) throw new Error("User was not created. Please try again.")
 
-            // Profile is created automatically by the handle_new_user database trigger (SECURITY DEFINER).
-            // No client-side insert/upsert needed — it would violate RLS since auth.uid() may not
-            // be available yet (e.g., when email confirmation is required).
+            // Insert profile row — id must equal authData.user.id so RLS (auth.uid() = id) passes
+            const fullName = `${formData.firstName} ${formData.lastName}`.trim()
+            const { error: profileError } = await supabase
+                .from("profiles")
+                .upsert(
+                    { id: authData.user.id, name: fullName, email: formData.email, role: formData.role },
+                    { onConflict: "id" }
+                )
+
+            if (profileError) {
+                console.error("Profile upsert error:", profileError)
+                // Don't block signup — the trigger may have already created the profile
+            }
 
             const resolvedRole = (authData.user.user_metadata?.role as "tenant" | "landlord" | "admin" | undefined) ?? formData.role
             
