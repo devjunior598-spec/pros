@@ -78,18 +78,20 @@ export default function SignupPage() {
             }
             if (!authData.user) throw new Error("User was not created. Please try again.")
 
-            // Insert profile row — id must equal authData.user.id so RLS (auth.uid() = id) passes
+            // Insert profile row — id must equal authData.user.id
             const fullName = `${formData.firstName} ${formData.lastName}`.trim()
             const { error: profileError } = await supabase
                 .from("profiles")
-                .upsert(
-                    { id: authData.user.id, name: fullName, email: formData.email, role: formData.role },
-                    { onConflict: "id" }
-                )
+                .insert({
+                    id: authData.user.id,
+                    name: fullName,
+                    full_name: fullName,
+                    email: formData.email,
+                    role: formData.role
+                })
 
             if (profileError) {
-                console.error("Profile upsert error:", profileError)
-                // Don't block signup — the trigger may have already created the profile
+                throw profileError
             }
 
             const resolvedRole = (authData.user.user_metadata?.role as "tenant" | "landlord" | "admin" | undefined) ?? formData.role

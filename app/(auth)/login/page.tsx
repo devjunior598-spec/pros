@@ -62,11 +62,13 @@ export default function LoginPage() {
                 localStorage.removeItem("pending_application_id")
                 router.push(`/dashboard/tenant/apply/${pendingPropId}`)
             } else if (profile?.role === "landlord") {
-                router.push("/dashboard")
+                router.push("/dashboard/landlord")
             } else if (profile?.role === "admin") {
                 router.push("/admin/dashboard")
+            } else if (profile?.role === "tenant") {
+                router.push("/dashboard/tenant")
             } else {
-                router.push("/dashboard")
+                router.push("/dashboard/tenant")
             }
         } catch (err: unknown) {
             setError(getErrorMessage(err) || "Failed to sign in. Check your email and password.")
