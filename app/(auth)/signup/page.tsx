@@ -78,26 +78,9 @@ export default function SignupPage() {
             }
             if (!authData.user) throw new Error("User was not created. Please try again.")
 
-            // 7. Create/update profile in profiles table
-            const fullName = `${formData.firstName} ${formData.lastName}`.trim()
-            const { error: profileError } = await promiseWithTimeout(
-                Promise.resolve(
-                    supabase
-                        .from("profiles")
-                        .upsert(
-                            { id: authData.user.id, name: fullName, email: formData.email, role: formData.role, dashboard_unlocked: false },
-                            { onConflict: "id" }
-                        )
-                ),
-                15000,
-                "Profile creation is taking too long. Please check your internet and try again."
-            )
-
-            // 8. If profile creation fails, still stop loading and show the error
-            if (profileError) {
-                console.error("Supabase Database profile upsert error:", profileError)
-                throw profileError
-            }
+            // Profile is created automatically by the handle_new_user database trigger (SECURITY DEFINER).
+            // No client-side insert/upsert needed — it would violate RLS since auth.uid() may not
+            // be available yet (e.g., when email confirmation is required).
 
             const resolvedRole = (authData.user.user_metadata?.role as "tenant" | "landlord" | "admin" | undefined) ?? formData.role
             
