@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Building2 } from "lucide-react"
+import Image from "next/image"
 import { cn } from "@/lib/utils"
 
 interface LogoProps {
@@ -17,15 +17,10 @@ export function Logo({
   size = "md",
   dark = false,
 }: LogoProps) {
-  const iconSizes = {
-    sm: "h-7 w-7",
-    md: "h-9 w-9",
-    lg: "h-11 w-11",
-  }
-  const iconInnerSizes = {
-    sm: "h-3.5 w-3.5",
-    md: "h-4 w-4",
-    lg: "h-5 w-5",
+  const imageSizes = {
+    sm: { width: 28, height: 28 },
+    md: { width: 36, height: 36 },
+    lg: { width: 44, height: 44 },
   }
   const textSizes = {
     sm: "text-lg",
@@ -42,14 +37,14 @@ export function Logo({
       )}
       aria-label="PRMS – Property Rental Management System"
     >
-      <div
-        className={cn(
-          "flex items-center justify-center rounded-lg bg-prms-navy shrink-0",
-          iconSizes[size],
-        )}
-      >
-        <Building2 className={cn("text-white", iconInnerSizes[size])} />
-      </div>
+      <Image
+        src="/prms-logo.png"
+        alt="PRMS Logo"
+        width={imageSizes[size].width}
+        height={imageSizes[size].height}
+        className="shrink-0 rounded-md object-contain"
+        priority
+      />
 
       {!iconOnly && (
         <div className="flex flex-col leading-none">
