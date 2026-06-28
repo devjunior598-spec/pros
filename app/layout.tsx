@@ -11,6 +11,11 @@ export const metadata: Metadata = {
   title: "PRMS – Property Rental Management System",
   description: "Nigeria's #1 property rental management platform. Verified landlords, smart tenant screening, online rent collection and more.",
   keywords: "property management, Nigeria, rental, landlord, tenant, PRMS",
+  icons: {
+    icon: "/prms-logo.png",
+    shortcut: "/prms-logo.png",
+    apple: "/prms-logo.png",
+  },
   openGraph: {
     title: "PRMS – Property Rental Management System",
     description: "Join the property network that values verification, speed, and safety.",
