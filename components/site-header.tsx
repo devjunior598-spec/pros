@@ -37,7 +37,7 @@ export function SiteHeader({ hideNav = false }: SiteHeaderProps) {
     const [profile, setProfile] = useState<any>(null)
 
     useEffect(() => {
-        const controller = new AbortController()
+        let mounted = true
 
         const fetchProfile = async () => {
             try {
@@ -52,12 +52,12 @@ export function SiteHeader({ hideNav = false }: SiteHeaderProps) {
                         .maybeSingle()
 
                     if (profileError) throw profileError
-                    if (!controller.signal.aborted) {
+                    if (mounted) {
                         setProfile(data)
                     }
                 }
             } catch (error: any) {
-                if (error?.name === 'AbortError' || error?.message?.includes('aborted') || error?.message?.includes('AbortError')) return
+                if (!mounted) return
                 if (error.name === 'AuthSessionMissingError') return
                 console.error("Error fetching profile:", JSON.stringify(error, null, 2))
             }
@@ -74,7 +74,7 @@ export function SiteHeader({ hideNav = false }: SiteHeaderProps) {
             .subscribe()
 
         return () => {
-            controller.abort()
+            mounted = false
             supabase.removeChannel(channel)
         }
     }, [profile?.id])
