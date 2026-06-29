@@ -15,14 +15,7 @@ const getErrorMessage = (error: unknown): string => {
     return "An unexpected error occurred."
 }
 
-const promiseWithTimeout = <T extends unknown>(promise: Promise<T>, ms: number, timeoutErrorMsg: string): Promise<T> => {
-    return Promise.race([
-        promise,
-        new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error(timeoutErrorMsg)), ms)
-        )
-    ])
-}
+
 
 export default function SignupPage() {
     const router = useRouter()
@@ -51,8 +44,8 @@ export default function SignupPage() {
         setIsLoading(true)
         setError(null)
         try {
-            // 3. Sign up with Supabase Auth correctly
-            const signupPromise = supabase.auth.signUp({
+            // 1. Sign up with Supabase Auth (no artificial timeout — let it complete or fail naturally)
+            const { data: authData, error: authError } = await supabase.auth.signUp({
                 email: formData.email,
                 password: formData.password,
                 options: {
@@ -64,21 +57,13 @@ export default function SignupPage() {
                 },
             })
 
-            // 9. Add timeout protection (15s)
-            const { data: authData, error: authError } = await promiseWithTimeout(
-                signupPromise,
-                15000,
-                "Signup is taking too long. Please check your internet and try again."
-            )
-
-            // 4. Log error to console and throw it
             if (authError) {
                 console.error("Supabase Auth signUp error:", authError)
-                throw authError
+                throw new Error(authError.message || "Signup failed. Please try again.")
             }
             if (!authData.user) throw new Error("User was not created. Please try again.")
 
-            // Insert profile row — id must equal authData.user.id
+            // 2. Insert profile row using the auth user's id
             const fullName = `${formData.firstName} ${formData.lastName}`.trim()
             const { error: profileError } = await supabase
                 .from("profiles")
@@ -91,12 +76,16 @@ export default function SignupPage() {
                 })
 
             if (profileError) {
-                throw profileError
+                // Surface the real error (e.g. RLS policy violation) instead of timing out silently
+                console.error("Profile insert error:", profileError)
+                const detail = profileError.message || profileError.details || "Unknown database error"
+                const hint = profileError.hint ? ` Hint: ${profileError.hint}` : ""
+                throw new Error(`Failed to create profile: ${detail}.${hint}`)
             }
 
             const resolvedRole = (authData.user.user_metadata?.role as "tenant" | "landlord" | "admin" | undefined) ?? formData.role
             
-            // 7. Redirect based on role: landlord -> /dashboard/landlord, tenant -> /dashboard/tenant
+            // 3. Redirect based on role
             const redirectToDashboard = () => {
                 if (resolvedRole === "landlord") {
                     router.replace("/dashboard/landlord")
@@ -112,17 +101,11 @@ export default function SignupPage() {
                 return
             }
 
-            // Attempt auto sign in to avoid manual step if session is not active
-            const signInPromise = supabase.auth.signInWithPassword({
+            // 4. Attempt auto sign-in if no session yet
+            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
                 email: formData.email,
                 password: formData.password,
             })
-
-            const { data: signInData, error: signInError } = await promiseWithTimeout(
-                signInPromise,
-                15000,
-                "Auto sign-in is taking too long. Please check your internet and try again."
-            )
 
             if (!signInError && signInData.session) {
                 redirectToDashboard()
@@ -137,17 +120,15 @@ export default function SignupPage() {
 
             if (signInError) {
                 console.error("Auto sign-in error:", signInError)
-                throw signInError
+                throw new Error(signInError.message || "Auto sign-in failed. Please try logging in manually.")
             }
 
             setRequiresEmailConfirm(true)
             setIsSuccess(true)
         } catch (err: unknown) {
             console.error("Signup process exception:", err)
-            // 4. Show the exact error message on screen
             setError(getErrorMessage(err) || "Something went wrong. Please try again.")
         } finally {
-            // 5. Always stop loading using finally
             setIsLoading(false)
         }
     }
