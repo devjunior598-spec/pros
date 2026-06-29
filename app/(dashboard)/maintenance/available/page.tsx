@@ -50,19 +50,19 @@ export default function AvailableJobsPage() {
 
     useEffect(() => {
         let mounted = true
-        const fetchJobs = async (signal: AbortSignal) => {
+        const fetchJobs = async () => {
             setLoading(true)
             try {
                 // 1. Get current provider details to pre-filter
                 const { data: { user } } = await supabase.auth.getUser()
-                if (user && !signal.aborted) {
+                if (user && mounted) {
                     const { data: providerData } = await supabase
                         .from('service_providers')
                         .select('*')
                         .eq('user_id', user.id)
                         .single()
 
-                    if (!signal.aborted) {
+                    if (mounted) {
                         setProvider(providerData)
                         if (providerData) {
                             setSelectedCategory(providerData.category)
@@ -70,7 +70,7 @@ export default function AvailableJobsPage() {
                     }
                 }
 
-                if (signal.aborted) return
+                if (!mounted) return
 
                 // 2. Fetch all pending jobs
                 const { data: jobsData, error } = await supabase
@@ -83,21 +83,21 @@ export default function AvailableJobsPage() {
                     .eq('status', 'pending')
                     .order('created_at', { ascending: false })
 
-                if (error && !signal.aborted) throw error
-                if (!signal.aborted) {
+                if (error && mounted) throw error
+                if (mounted) {
                     setJobs(jobsData || [])
                 }
             } catch (error) {
-                if (signal.aborted) return
+                if (!mounted) return
                 console.error("Error fetching jobs:", error)
             } finally {
-                if (!signal.aborted) {
+                if (mounted) {
                     setLoading(false)
                 }
             }
         }
         fetchJobs()
-        return () => mounted = false
+        return () => { mounted = false }
     }, [])
 
     const filteredJobs = jobs.filter(job => {

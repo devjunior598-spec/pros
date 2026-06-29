@@ -104,7 +104,7 @@ export default function AdminMaintenancePage() {
     useEffect(() => {
         let mounted = true
         fetchRequests()
-        return () => mounted = false
+        return () => { mounted = false }
     }, [fetchRequests])
 
     const filtered = requests.filter(r => {

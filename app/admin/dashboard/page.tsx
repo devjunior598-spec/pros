@@ -36,7 +36,7 @@ export default function AdminDashboardPage() {
 
     useEffect(() => {
         let mounted = true
-        const fetchStats = async (signal: AbortSignal) => {
+        const fetchStats = async () => {
             setLoading(true)
             try {
                 // In a real app, many of these counts should be cached or retrieved via a single RPC
@@ -56,7 +56,7 @@ export default function AdminDashboardPage() {
 
                 const results = await Promise.all(queries)
 
-                if (!signal.aborted) {
+                if (mounted) {
                     setStats({
                         totalUsers: results[0].count || 0,
                         tenants: results[1].count || 0,
@@ -71,16 +71,16 @@ export default function AdminDashboardPage() {
                     })
                 }
             } catch (error: any) {
-                if (signal.aborted) return
+                if (!mounted) return
                 console.error("Error fetching admin stats:", error)
             } finally {
-                if (!signal.aborted) {
+                if (mounted) {
                     setLoading(false)
                 }
             }
         }
         fetchStats()
-        return () => mounted = false
+        return () => { mounted = false }
     }, [])
 
     return (

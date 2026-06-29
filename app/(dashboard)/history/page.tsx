@@ -22,12 +22,12 @@ export default function PaymentHistoryPage() {
 
     useEffect(() => {
         let mounted = true
-        const fetchHistory = async (signal: AbortSignal) => {
+        const fetchHistory = async () => {
             setLoading(true)
             try {
                 const { data: { user } } = await supabase.auth.getUser()
 
-                if (user && !signal.aborted) {
+                if (user && mounted) {
                     const { data, error } = await supabase
                         .from('bills')
                         .select('*, rental:rentals!inner(property:properties(title))')
@@ -35,22 +35,22 @@ export default function PaymentHistoryPage() {
                         .eq('status', 'paid')
                         .order('updated_at', { ascending: false })
 
-                    if (!signal.aborted) {
+                    if (mounted) {
                         setPayments(data || [])
                     }
                 }
             } catch (error) {
-                if (!signal.aborted) {
+                if (mounted) {
                     console.error("Error fetching payment history:", error)
                 }
             } finally {
-                if (!signal.aborted) {
+                if (mounted) {
                     setLoading(false)
                 }
             }
         }
         fetchHistory()
-        return () => mounted = false
+        return () => { mounted = false }
     }, [])
 
     if (loading) {

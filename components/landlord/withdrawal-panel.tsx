@@ -68,7 +68,7 @@ export function WithdrawalPanel({ landlordId }: WithdrawalPanelProps) {
     useEffect(() => {
         let mounted = true
         if (landlordId) fetchData()
-        return () => mounted = false
+        return () => { mounted = false }
     }, [landlordId, fetchData])
 
     const handleWithdraw = async (e: React.FormEvent) => {

@@ -12,13 +12,13 @@ export default function TenantsPage() {
 
     useEffect(() => {
         let mounted = true
-        const fetchUser = async (signal: AbortSignal) => {
+        const fetchUser = async () => {
             const { data: { user } } = await supabase.auth.getUser()
-            if (user && !signal.aborted) setLandlordId(user.id)
-            if (!signal.aborted) setLoading(false)
+            if (user && mounted) setLandlordId(user.id)
+            if (mounted) setLoading(false)
         }
         fetchUser()
-        return () => mounted = false
+        return () => { mounted = false }
     }, [])
 
     if (loading) {

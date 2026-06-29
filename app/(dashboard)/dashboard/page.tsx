@@ -120,7 +120,7 @@ function DashboardContent() {
         }
         fetchUser()
 
-        return () => mounted = false
+        return () => { mounted = false }
     }, [ctxLoading, ctxUser, ctxUserId, ctxProfile])
 
     if (loading) {

@@ -139,7 +139,7 @@ export function ServiceProviderMarketplace({
                 fetchQuotes()
             }
         }
-        return () => mounted = false
+        return () => { mounted = false }
     }, [isOpen, request, fetchProviders, fetchQuotes])
 
     const filteredProviders = providers.filter(provider => {

@@ -87,7 +87,7 @@ function LandlordDashboardContent() {
 
         fetchMetrics()
 
-        return () => mounted = false
+        return () => { mounted = false }
     }, [ctxLoading, ctxUser, ctxUserId, ctxProfile, router])
 
     if (ctxLoading || loading) {

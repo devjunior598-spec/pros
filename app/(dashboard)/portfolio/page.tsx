@@ -39,44 +39,44 @@ export default function PortfolioPage() {
 
     useEffect(() => {
         let mounted = true
-        const fetchPortfolio = async (signal: AbortSignal) => {
+        const fetchPortfolio = async () => {
             setLoading(true)
             try {
                 const { data: { user } } = await supabase.auth.getUser()
-                if (user && !signal.aborted) {
+                if (user && mounted) {
                     const { data: providerData } = await supabase
                         .from('service_providers')
                         .select('*')
                         .eq('user_id', user.id)
                         .single()
 
-                    if (!signal.aborted) {
+                    if (mounted) {
                         setProvider(providerData)
                     }
 
-                    if (providerData && !signal.aborted) {
+                    if (providerData && mounted) {
                         const { data } = await supabase
                             .from('provider_portfolio')
                             .select('*')
                             .eq('provider_id', providerData.id)
                             .order('created_at', { ascending: false })
 
-                        if (!signal.aborted) {
+                        if (mounted) {
                             setPortfolio(data || [])
                         }
                     }
                 }
             } catch (error) {
-                if (signal.aborted) return
+                if (!mounted) return
                 console.error("Error fetching portfolio:", error)
             } finally {
-                if (!signal.aborted) {
+                if (mounted) {
                     setLoading(false)
                 }
             }
         }
         fetchPortfolio()
-        return () => mounted = false
+        return () => { mounted = false }
     }, [])
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

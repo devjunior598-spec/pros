@@ -22,12 +22,12 @@ export default function EarningsPage() {
 
     useEffect(() => {
         let mounted = true
-        const fetchEarnings = async (signal: AbortSignal) => {
+        const fetchEarnings = async () => {
             setLoading(true)
             try {
                 const { data: { user } } = await supabase.auth.getUser()
 
-                if (user && !signal.aborted) {
+                if (user && mounted) {
                     const { data } = await supabase
                         .from('bills')
                         .select('*, rental:rentals!inner(property:properties(title, landlord_id))')
@@ -35,7 +35,7 @@ export default function EarningsPage() {
                         .eq('status', 'paid')
                         .order('updated_at', { ascending: false })
 
-                    if (!signal.aborted) {
+                    if (mounted) {
                         const paidEarnings = data || []
                         const total = paidEarnings.reduce((sum, item) => sum + (item.amount || 0), 0)
 
@@ -53,13 +53,13 @@ export default function EarningsPage() {
                     }
                 }
             } catch (error) {
-                if (!signal.aborted) console.error("Error fetching earnings:", error)
+                if (mounted) console.error("Error fetching earnings:", error)
             } finally {
-                if (!signal.aborted) setLoading(false)
+                if (mounted) setLoading(false)
             }
         }
         fetchEarnings()
-        return () => mounted = false
+        return () => { mounted = false }
     }, [])
 
     if (loading) {

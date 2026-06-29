@@ -14,28 +14,28 @@ export default function MessagesPage() {
 
     useEffect(() => {
         let mounted = true
-        const fetchUser = async (signal: AbortSignal) => {
+        const fetchUser = async () => {
             try {
                 const { data: { user: authUser } } = await supabase.auth.getUser()
-                if (authUser && !signal.aborted) {
+                if (authUser && mounted) {
                     const { data: profile } = await supabase
                         .from('profiles')
                         .select('role')
                         .eq('id', authUser.id)
                         .single()
 
-                    if (profile && !signal.aborted) {
+                    if (profile && mounted) {
                         setUser({ id: authUser.id, role: profile.role })
                     }
                 }
             } catch (error) {
-                if (!signal.aborted) console.error("Error fetching user for messages:", error)
+                if (mounted) console.error("Error fetching user for messages:", error)
             } finally {
-                if (!signal.aborted) setLoading(false)
+                if (mounted) setLoading(false)
             }
         }
         fetchUser()
-        return () => mounted = false
+        return () => { mounted = false }
     }, [])
 
     if (loading) {

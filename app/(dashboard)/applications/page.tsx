@@ -320,7 +320,7 @@ export default function ApplicationsPage() {
             }
         }
         init()
-        return () => mounted = false
+        return () => { mounted = false }
     }, [])
 
     const handleWithdraw = async (id: string) => {

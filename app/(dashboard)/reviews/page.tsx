@@ -21,18 +21,18 @@ export default function ProviderReviewsPage() {
 
     useEffect(() => {
         let mounted = true
-        const fetchReviews = async (signal: AbortSignal) => {
+        const fetchReviews = async () => {
             setLoading(true)
             try {
                 const { data: { user } } = await supabase.auth.getUser()
-                if (user && !signal.aborted) {
+                if (user && mounted) {
                     const { data: providerData } = await supabase
                         .from('service_providers')
                         .select('*')
                         .eq('user_id', user.id)
                         .single()
 
-                    if (providerData && !signal.aborted) {
+                    if (providerData && mounted) {
                         setStats({
                             rating: providerData.rating,
                             totalJobs: providerData.total_jobs_completed
@@ -48,22 +48,22 @@ export default function ProviderReviewsPage() {
                             .eq('provider_id', providerData.id)
                             .order('created_at', { ascending: false })
 
-                        if (!signal.aborted) {
+                        if (mounted) {
                             setReviews(data || [])
                         }
                     }
                 }
             } catch (error) {
-                if (signal.aborted) return
+                if (!mounted) return
                 console.error("Error fetching reviews:", error)
             } finally {
-                if (!signal.aborted) {
+                if (mounted) {
                     setLoading(false)
                 }
             }
         }
         fetchReviews()
-        return () => mounted = false
+        return () => { mounted = false }
     }, [])
 
     return (

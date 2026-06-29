@@ -88,7 +88,7 @@ export function LandlordApplicationsList({ landlordId }: LandlordApplicationsLis
         if (landlordId) {
             fetchApplications()
         }
-        return () => mounted = false
+        return () => { mounted = false }
     }, [fetchApplications, landlordId])
 
     const handleAction = async (requestId: string, propertyId: string, status: RentalStatus) => {

@@ -129,7 +129,7 @@ function AnalyticsDashboard() {
                 } = await supabase.auth.getUser()
                 if (!user || !mounted) return
                 setLandlordId(user.id)
-                await fetchAnalytics(user.id, range, controller.signal)
+                await fetchAnalytics(user.id, range)
             } catch (err) {
                 if (mounted) console.error("Analytics init:", err)
             } finally {
@@ -137,7 +137,7 @@ function AnalyticsDashboard() {
             }
         }
         init()
-        return () => mounted = false
+        return () => { mounted = false }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
@@ -145,14 +145,14 @@ function AnalyticsDashboard() {
         if (!landlordId) return
         let mounted = true
         setLoading(true)
-        fetchAnalytics(landlordId, range, controller.signal).finally(() => {
+        fetchAnalytics(landlordId, range).finally(() => {
             if (mounted) setLoading(false)
         })
-        return () => mounted = false
+        return () => { mounted = false }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [range, landlordId])
 
-    const fetchAnalytics = async (uid: string, selectedRange: DateRange, signal: AbortSignal) => {
+    const fetchAnalytics = async (uid: string, selectedRange: DateRange) => {
         try {
             const now = new Date()
             const daysBack = selectedRange === "30d" ? 30 : selectedRange === "90d" ? 90 : 365
@@ -229,20 +229,18 @@ function AnalyticsDashboard() {
                 (a: any) => a.status === "approved" || a.status === "active"
             ).length
 
-            if (!signal.aborted) {
-                setData({
-                    totalRevenue,
-                    occupancyRate,
-                    activeTenants,
-                    avgRent,
-                    monthlyRevenue,
-                    topProperties,
-                    totalApplications,
-                    approvedApplications,
-                })
-            }
+            setData({
+                totalRevenue,
+                occupancyRate,
+                activeTenants,
+                avgRent,
+                monthlyRevenue,
+                topProperties,
+                totalApplications,
+                approvedApplications,
+            })
         } catch (err) {
-            if (!signal.aborted) console.error("Analytics fetch:", err)
+            console.error("Analytics fetch:", err)
         }
     }
 

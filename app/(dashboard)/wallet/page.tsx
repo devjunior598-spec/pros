@@ -88,12 +88,12 @@ export default function WalletPage() {
 
     useEffect(() => {
         let mounted = true
-        const fetchWalletData = async (signal: AbortSignal) => {
+        const fetchWalletData = async () => {
             setLoading(true)
             try {
                 const { data: { user } } = await supabase.auth.getUser()
 
-                if (user && !signal.aborted) {
+                if (user && mounted) {
                     // Fetch profile
                     const { data: profileData } = await supabase
                         .from('profiles')
@@ -101,7 +101,7 @@ export default function WalletPage() {
                         .eq('id', user.id)
                         .single()
 
-                    if (!signal.aborted) {
+                    if (mounted) {
                         setProfile(profileData)
                     }
 
@@ -112,7 +112,7 @@ export default function WalletPage() {
                         .eq('tenant_id', user.id)
                         .maybeSingle()
 
-                    if (!signal.aborted) {
+                    if (mounted) {
                         setWallet(walletData)
                     }
 
@@ -123,22 +123,22 @@ export default function WalletPage() {
                         .order('created_at', { ascending: false })
                         .limit(10)
 
-                    if (!signal.aborted) {
+                    if (mounted) {
                         setTransactions(txData || [])
                     }
                 }
             } catch (error) {
-                if (!signal.aborted) {
+                if (mounted) {
                     console.error("Error fetching wallet data:", error)
                 }
             } finally {
-                if (!signal.aborted) {
+                if (mounted) {
                     setLoading(false)
                 }
             }
         }
         fetchWalletData()
-        return () => mounted = false
+        return () => { mounted = false }
     }, [])
 
     if (loading) {

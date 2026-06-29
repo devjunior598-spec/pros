@@ -94,7 +94,7 @@ export function LandlordMaintenanceList({ landlordId, limit }: LandlordMaintenan
         if (landlordId) {
             fetchRequests()
         }
-        return () => mounted = false
+        return () => { mounted = false }
     }, [landlordId, fetchRequests])
 
     const updateStatus = async (requestId: string, newStatus: MaintenanceStatus) => {

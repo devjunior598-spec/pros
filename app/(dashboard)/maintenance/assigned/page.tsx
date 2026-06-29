@@ -27,22 +27,22 @@ export default function AssignedJobsPage() {
 
     useEffect(() => {
         let mounted = true
-        const fetchAssignments = async (signal: AbortSignal) => {
+        const fetchAssignments = async () => {
             setLoading(true)
             try {
                 const { data: { user } } = await supabase.auth.getUser()
-                if (user && !signal.aborted) {
+                if (user && mounted) {
                     const { data: providerData } = await supabase
                         .from('service_providers')
                         .select('*')
                         .eq('user_id', user.id)
                         .single()
 
-                    if (!signal.aborted) {
+                    if (mounted) {
                         setProvider(providerData)
                     }
 
-                    if (providerData && !signal.aborted) {
+                    if (providerData && mounted) {
                         const { data, error } = await supabase
                             .from('repair_assignments')
                             .select(`
@@ -61,23 +61,23 @@ export default function AssignedJobsPage() {
                             .eq('provider_id', providerData.id)
                             .order('created_at', { ascending: false })
 
-                        if (error && !signal.aborted) throw error
-                        if (!signal.aborted) {
+                        if (error && mounted) throw error
+                        if (mounted) {
                             setAssignments(data || [])
                         }
                     }
                 }
             } catch (error) {
-                if (signal.aborted) return
+                if (!mounted) return
                 console.error("Error fetching assignments:", error)
             } finally {
-                if (!signal.aborted) {
+                if (mounted) {
                     setLoading(false)
                 }
             }
         }
         fetchAssignments()
-        return () => mounted = false
+        return () => { mounted = false }
     }, [])
 
     const updateJobStatus = async (assignmentId: string, requestId: string, newStatus: string) => {

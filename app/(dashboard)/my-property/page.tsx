@@ -143,7 +143,7 @@ export default function MyPropertyPage() {
             }
         }
         fetchData()
-        return () => mounted = false
+        return () => { mounted = false }
     }, [])
 
     if (loading) {

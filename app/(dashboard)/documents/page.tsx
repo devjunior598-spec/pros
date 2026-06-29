@@ -13,11 +13,11 @@ export default function DocumentsPage() {
 
     useEffect(() => {
         let mounted = true
-        const fetchData = async (signal: AbortSignal) => {
+        const fetchData = async () => {
             setLoading(true)
             try {
                 const { data: { user } } = await supabase.auth.getUser()
-                if (user && !signal.aborted) {
+                if (user && mounted) {
                     setUser(user)
                     const { data: profileData } = await supabase
                         .from('profiles')
@@ -25,22 +25,22 @@ export default function DocumentsPage() {
                         .eq('id', user.id)
                         .single()
 
-                    if (!signal.aborted) {
+                    if (mounted) {
                         setProfile(profileData)
                     }
                 }
             } catch (error) {
-                if (!signal.aborted) {
+                if (mounted) {
                     console.error("Error fetching documents data:", error)
                 }
             } finally {
-                if (!signal.aborted) {
+                if (mounted) {
                     setLoading(false)
                 }
             }
         }
         fetchData()
-        return () => mounted = false
+        return () => { mounted = false }
     }, [])
 
     if (loading) {

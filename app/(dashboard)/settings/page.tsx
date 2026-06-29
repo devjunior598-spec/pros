@@ -14,26 +14,26 @@ export default function SettingsPage() {
 
     useEffect(() => {
         let mounted = true
-        const getUserInfo = async (signal: AbortSignal) => {
+        const getUserInfo = async () => {
             try {
                 const { data: { user } } = await supabase.auth.getUser()
 
-                if (user && !signal.aborted) {
+                if (user && mounted) {
                     setUser(user)
                 }
             } catch (error) {
-                if (!signal.aborted) {
+                if (mounted) {
                     console.error("Error loading user data:", error)
                 }
             } finally {
-                if (!signal.aborted) {
+                if (mounted) {
                     setLoading(false)
                 }
             }
         }
 
         getUserInfo()
-        return () => mounted = false
+        return () => { mounted = false }
     }, [])
 
     if (loading) {
