@@ -63,34 +63,52 @@ export default function SignupPage() {
             }
             if (!authData.user) throw new Error("User was not created. Please try again.")
 
-            // 2. Insert profile row using the auth user's id
+            // 2. Insert or update profile row using existing columns
             const fullName = `${formData.firstName} ${formData.lastName}`.trim()
-            const { error: profileError } = await supabase
+            
+            // Check if the profile was already created (e.g. by a database trigger)
+            const { data: existingProfile } = await supabase
                 .from("profiles")
-                .insert({
-                    id: authData.user.id,
-                    name: fullName,
-                    full_name: fullName,
-                    email: formData.email,
-                    role: formData.role
-                })
+                .select("id")
+                .eq("id", authData.user.id)
+                .maybeSingle()
 
-            if (profileError) {
-                // If it failed, check if the profile was already created (e.g. by a database trigger)
-                const { data: existingProfile } = await supabase
+            if (existingProfile) {
+                // If it already exists, update it to make sure first_name, last_name, and other fields are set
+                const { error: updateError } = await supabase
                     .from("profiles")
-                    .select("id")
+                    .update({
+                        first_name: formData.firstName,
+                        last_name: formData.lastName,
+                        name: fullName,
+                        full_name: fullName,
+                        role: formData.role
+                    })
                     .eq("id", authData.user.id)
-                    .maybeSingle()
 
-                if (!existingProfile) {
-                    // Surface the real error (e.g. RLS policy violation) instead of timing out silently
-                    console.error("Profile insert error:", profileError)
-                    const detail = profileError.message || profileError.details || "Unknown database error"
-                    const hint = profileError.hint ? ` Hint: ${profileError.hint}` : ""
+                if (updateError) {
+                    console.error("Profile update error:", updateError)
+                    throw new Error(`Failed to update profile: ${updateError.message || "Unknown database error"}`)
+                }
+            } else {
+                // If it doesn't exist, insert it
+                const { error: insertError } = await supabase
+                    .from("profiles")
+                    .insert({
+                        id: authData.user.id,
+                        email: formData.email,
+                        first_name: formData.firstName,
+                        last_name: formData.lastName,
+                        name: fullName,
+                        full_name: fullName,
+                        role: formData.role
+                    })
+
+                if (insertError) {
+                    console.error("Profile insert error:", insertError)
+                    const detail = insertError.message || insertError.details || "Unknown database error"
+                    const hint = insertError.hint ? ` Hint: ${insertError.hint}` : ""
                     throw new Error(`Failed to create profile: ${detail}.${hint}`)
-                } else {
-                    console.log("Profile already exists (likely created by trigger), proceeding.")
                 }
             }
 
