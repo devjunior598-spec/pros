@@ -44,7 +44,7 @@ export default function SignupPage() {
         setIsLoading(true)
         setError(null)
         try {
-            // 1. Sign up with Supabase Auth (no artificial timeout — let it complete or fail naturally)
+            // 1. Sign up with Supabase Auth
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email: formData.email,
                 password: formData.password,
@@ -57,60 +57,24 @@ export default function SignupPage() {
                 },
             })
 
-            if (authError) {
-                console.error("Supabase Auth signUp error:", authError)
-                throw new Error(authError.message || "Signup failed. Please try again.")
-            }
+            if (authError) throw authError
             if (!authData.user) throw new Error("User was not created. Please try again.")
 
-            // 2. Insert or update profile row using existing columns
+            // 2. Profile creation must be simple
             const fullName = `${formData.firstName} ${formData.lastName}`.trim()
-            
-            // Check if the profile was already created (e.g. by a database trigger)
-            const { data: existingProfile } = await supabase
+            const { error: profileError } = await supabase
                 .from("profiles")
-                .select("id")
-                .eq("id", authData.user.id)
-                .maybeSingle()
+                .insert({
+                    id: authData.user.id,
+                    email: formData.email,
+                    first_name: formData.firstName,
+                    last_name: formData.lastName,
+                    name: fullName,
+                    full_name: fullName,
+                    role: formData.role
+                })
 
-            if (existingProfile) {
-                // If it already exists, update it to make sure first_name, last_name, and other fields are set
-                const { error: updateError } = await supabase
-                    .from("profiles")
-                    .update({
-                        first_name: formData.firstName,
-                        last_name: formData.lastName,
-                        name: fullName,
-                        full_name: fullName,
-                        role: formData.role
-                    })
-                    .eq("id", authData.user.id)
-
-                if (updateError) {
-                    console.error("Profile update error:", updateError)
-                    throw new Error(`Failed to update profile: ${updateError.message || "Unknown database error"}`)
-                }
-            } else {
-                // If it doesn't exist, insert it
-                const { error: insertError } = await supabase
-                    .from("profiles")
-                    .insert({
-                        id: authData.user.id,
-                        email: formData.email,
-                        first_name: formData.firstName,
-                        last_name: formData.lastName,
-                        name: fullName,
-                        full_name: fullName,
-                        role: formData.role
-                    })
-
-                if (insertError) {
-                    console.error("Profile insert error:", insertError)
-                    const detail = insertError.message || insertError.details || "Unknown database error"
-                    const hint = insertError.hint ? ` Hint: ${insertError.hint}` : ""
-                    throw new Error(`Failed to create profile: ${detail}.${hint}`)
-                }
-            }
+            if (profileError) throw profileError
 
             const resolvedRole = (authData.user.user_metadata?.role as "tenant" | "landlord" | "admin" | undefined) ?? formData.role
             
@@ -147,10 +111,7 @@ export default function SignupPage() {
                 return
             }
 
-            if (signInError) {
-                console.error("Auto sign-in error:", signInError)
-                throw new Error(signInError.message || "Auto sign-in failed. Please try logging in manually.")
-            }
+            if (signInError) throw signInError
 
             setRequiresEmailConfirm(true)
             setIsSuccess(true)
