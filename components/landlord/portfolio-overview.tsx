@@ -22,7 +22,7 @@ export function PortfolioOverview({ landlordId }: PortfolioOverviewProps) {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        const controller = new AbortController()
+        let mounted = true
 
         const fetchPortfolio = async () => {
             if (!landlordId) {
@@ -46,11 +46,10 @@ export function PortfolioOverview({ landlordId }: PortfolioOverviewProps) {
                     .eq('landlord_id', landlordId)
                     .order('created_at', { ascending: false })
                     .limit(5)
-                    .abortSignal(controller.signal)
 
                 if (error) throw error
 
-                if (data && !controller.signal.aborted) {
+                if (data && mounted) {
                     const formatted = data.map((prop: any) => ({
                         ...prop,
                         active_tenants: prop.rentals?.filter((r: any) => r.status === 'approved' || r.status === 'active').length || 0
@@ -61,7 +60,7 @@ export function PortfolioOverview({ landlordId }: PortfolioOverviewProps) {
                 if (err?.name === 'AbortError' || err?.message?.includes('Fetch is aborted') || err?.message?.includes('signal is aborted') || err?.message?.includes('aborted')) return
                 console.error("Error fetching portfolio:", err?.message || JSON.stringify(err) || err)
             } finally {
-                if (!controller.signal.aborted) {
+                if (mounted) {
                     setLoading(false)
                 }
             }
@@ -70,7 +69,7 @@ export function PortfolioOverview({ landlordId }: PortfolioOverviewProps) {
         fetchPortfolio()
 
         return () => {
-            controller.abort()
+            mounted = false
         }
     }, [landlordId])
 

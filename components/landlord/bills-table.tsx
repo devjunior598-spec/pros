@@ -66,7 +66,7 @@ export function BillsTable({ landlordId }: BillsTableProps) {
                 .eq('rental.landlord_id', landlordId)
 
             if (signal) {
-                query = query.abortSignal(signal)
+                query = query
             }
 
             const { data, error } = await query
@@ -91,9 +91,9 @@ export function BillsTable({ landlordId }: BillsTableProps) {
     }, [landlordId])
 
     useEffect(() => {
-        const controller = new AbortController()
+        let mounted = true
         if (landlordId) {
-            fetchBills(controller.signal)
+            fetchBills()
 
             const channel = supabase
                 .channel('bills-table-changes')
@@ -104,12 +104,12 @@ export function BillsTable({ landlordId }: BillsTableProps) {
                         schema: 'public',
                         table: 'bills',
                     },
-                    () => fetchBills(controller.signal)
+                    () => fetchBills()
                 )
                 .subscribe()
 
             return () => {
-                controller.abort()
+                mounted = false
                 supabase.removeChannel(channel)
             }
         }

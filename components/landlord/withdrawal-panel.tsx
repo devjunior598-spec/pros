@@ -42,7 +42,6 @@ export function WithdrawalPanel({ landlordId }: WithdrawalPanelProps) {
                 .from('profiles')
                 .select('balance')
                 .eq('id', landlordId)
-                .abortSignal(signal as AbortSignal)
                 .single()
 
             if (profile && !signal?.aborted) setBalance(profile.balance || 0)
@@ -53,7 +52,6 @@ export function WithdrawalPanel({ landlordId }: WithdrawalPanelProps) {
                 .select('*')
                 .eq('landlord_id', landlordId)
                 .order('created_at', { ascending: false })
-                .abortSignal(signal as AbortSignal)
 
             if (withdrawalData && !signal?.aborted) setWithdrawals(withdrawalData)
         } catch (error) {
@@ -68,9 +66,9 @@ export function WithdrawalPanel({ landlordId }: WithdrawalPanelProps) {
     }, [landlordId])
 
     useEffect(() => {
-        const controller = new AbortController()
-        if (landlordId) fetchData(controller.signal)
-        return () => controller.abort()
+        let mounted = true
+        if (landlordId) fetchData()
+        return () => mounted = false
     }, [landlordId, fetchData])
 
     const handleWithdraw = async (e: React.FormEvent) => {

@@ -59,7 +59,7 @@ export function TenantMonitoring({ landlordId }: TenantMonitoringProps) {
                 .eq('status', 'approved')
 
             if (signal) {
-                query = query.abortSignal(signal)
+                query = query
             }
 
             const { data, error } = await query
@@ -87,26 +87,26 @@ export function TenantMonitoring({ landlordId }: TenantMonitoringProps) {
     }, [landlordId])
 
     useEffect(() => {
-        const controller = new AbortController()
+        let mounted = true
         if (landlordId) {
-            fetchTenants(controller.signal)
+            fetchTenants()
 
             const channel = supabase
                 .channel('tenant-monitoring-changes')
                 .on(
                     'postgres_changes',
                     { event: '*', schema: 'public', table: 'rentals' },
-                    () => fetchTenants(controller.signal)
+                    () => fetchTenants()
                 )
                 .on(
                     'postgres_changes',
                     { event: '*', schema: 'public', table: 'payments' },
-                    () => fetchTenants(controller.signal)
+                    () => fetchTenants()
                 )
                 .subscribe()
 
             return () => {
-                controller.abort()
+                mounted = false
                 supabase.removeChannel(channel)
             }
         }

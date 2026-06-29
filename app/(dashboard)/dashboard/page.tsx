@@ -50,7 +50,7 @@ function DashboardContent() {
     }, [tabParam])
 
     useEffect(() => {
-        const controller = new AbortController()
+        let mounted = true
 
         const fetchUser = async () => {
             try {
@@ -64,7 +64,7 @@ function DashboardContent() {
                     setLoading(false)
                     return 
                 }
-                if (controller.signal.aborted) return
+                if (!mounted) return
 
                 setUserId(uid)
                 if (role) setUserRole(role)
@@ -81,15 +81,13 @@ function DashboardContent() {
                         .from('rentals')
                         .select('status, property_id')
                         .eq('landlord_id', uid)
-                        .abortSignal(controller.signal)
 
                     const { count: propertyCount } = await supabase
                         .from('properties')
                         .select('*', { count: 'exact', head: true })
                         .eq('landlord_id', uid)
-                        .abortSignal(controller.signal)
 
-                    if (!controller.signal.aborted) {
+                    if (mounted) {
                         const landlordRentals = rentalsData || []
                         const activeT  = landlordRentals.filter(r => r.status === 'approved' || r.status === 'active').length
                         const newApp   = landlordRentals.filter(r => r.status === 'pending').length
@@ -99,7 +97,6 @@ function DashboardContent() {
                             .from('payments')
                             .select('amount, status')
                             .eq('status', 'success')
-                            .abortSignal(controller.signal)
 
                         const revenue = paymentsData?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0
 
@@ -113,17 +110,17 @@ function DashboardContent() {
                     }
                 }
             } catch (error: any) {
-                if (error?.name === 'AbortError' || error?.message?.includes('aborted')) return
+                if (!mounted) return
                 console.error("Error fetching dashboard profile:", error)
             } finally {
-                if (!controller.signal.aborted) {
+                if (mounted) {
                     setLoading(false)
                 }
             }
         }
         fetchUser()
 
-        return () => controller.abort()
+        return () => mounted = false
     }, [ctxLoading, ctxUser, ctxUserId, ctxProfile])
 
     if (loading) {

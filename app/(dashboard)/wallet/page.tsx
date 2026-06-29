@@ -87,7 +87,7 @@ export default function WalletPage() {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        const controller = new AbortController()
+        let mounted = true
         const fetchWalletData = async (signal: AbortSignal) => {
             setLoading(true)
             try {
@@ -99,7 +99,6 @@ export default function WalletPage() {
                         .from('profiles')
                         .select('*')
                         .eq('id', user.id)
-                        .abortSignal(signal)
                         .single()
 
                     if (!signal.aborted) {
@@ -111,7 +110,6 @@ export default function WalletPage() {
                         .from('wallets')
                         .select('*')
                         .eq('tenant_id', user.id)
-                        .abortSignal(signal)
                         .maybeSingle()
 
                     if (!signal.aborted) {
@@ -124,7 +122,6 @@ export default function WalletPage() {
                         .select('*, bill:bills(type, rental:rentals(property:properties(title)))')
                         .order('created_at', { ascending: false })
                         .limit(10)
-                        .abortSignal(signal)
 
                     if (!signal.aborted) {
                         setTransactions(txData || [])
@@ -140,8 +137,8 @@ export default function WalletPage() {
                 }
             }
         }
-        fetchWalletData(controller.signal)
-        return () => controller.abort()
+        fetchWalletData()
+        return () => mounted = false
     }, [])
 
     if (loading) {

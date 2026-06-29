@@ -20,7 +20,7 @@ export default function ProviderReviewsPage() {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        const controller = new AbortController()
+        let mounted = true
         const fetchReviews = async (signal: AbortSignal) => {
             setLoading(true)
             try {
@@ -30,7 +30,6 @@ export default function ProviderReviewsPage() {
                         .from('service_providers')
                         .select('*')
                         .eq('user_id', user.id)
-                        .abortSignal(signal)
                         .single()
 
                     if (providerData && !signal.aborted) {
@@ -48,7 +47,6 @@ export default function ProviderReviewsPage() {
                             `)
                             .eq('provider_id', providerData.id)
                             .order('created_at', { ascending: false })
-                            .abortSignal(signal)
 
                         if (!signal.aborted) {
                             setReviews(data || [])
@@ -64,8 +62,8 @@ export default function ProviderReviewsPage() {
                 }
             }
         }
-        fetchReviews(controller.signal)
-        return () => controller.abort()
+        fetchReviews()
+        return () => mounted = false
     }, [])
 
     return (

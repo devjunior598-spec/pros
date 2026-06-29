@@ -38,7 +38,7 @@ function LandlordDashboardContent() {
             return
         }
 
-        const controller = new AbortController()
+        let mounted = true
         setUserId(ctxUserId ?? null)
 
         const fetchMetrics = async () => {
@@ -48,15 +48,13 @@ function LandlordDashboardContent() {
                     .from('rentals')
                     .select('status, property_id')
                     .eq('landlord_id', ctxUserId)
-                    .abortSignal(controller.signal)
 
                 const { count: propertyCount } = await supabase
                     .from('properties')
                     .select('*', { count: 'exact', head: true })
                     .eq('landlord_id', ctxUserId)
-                    .abortSignal(controller.signal)
 
-                if (!controller.signal.aborted) {
+                if (mounted) {
                     const landlordRentals = rentalsData || []
                     const activeT = landlordRentals.filter(r => r.status === 'approved' || r.status === 'active').length
                     const newApp = landlordRentals.filter(r => r.status === 'pending').length
@@ -66,7 +64,6 @@ function LandlordDashboardContent() {
                         .from('payments')
                         .select('amount, status')
                         .eq('status', 'success')
-                        .abortSignal(controller.signal)
 
                     const revenue = paymentsData?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0
 
@@ -79,10 +76,10 @@ function LandlordDashboardContent() {
                     })
                 }
             } catch (error: any) {
-                if (error?.name === 'AbortError' || error?.message?.includes('aborted')) return
+                if (!mounted) return
                 console.error("Error fetching dashboard metrics:", error)
             } finally {
-                if (!controller.signal.aborted) {
+                if (mounted) {
                     setLoading(false)
                 }
             }
@@ -90,7 +87,7 @@ function LandlordDashboardContent() {
 
         fetchMetrics()
 
-        return () => controller.abort()
+        return () => mounted = false
     }, [ctxLoading, ctxUser, ctxUserId, ctxProfile, router])
 
     if (ctxLoading || loading) {

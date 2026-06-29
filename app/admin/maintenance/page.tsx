@@ -81,7 +81,7 @@ export default function AdminMaintenancePage() {
                 .order('created_at', { ascending: false })
 
             if (signal) {
-                query = query.abortSignal(signal)
+                query = query
             }
 
             const { data, error } = await query
@@ -102,9 +102,9 @@ export default function AdminMaintenancePage() {
     }, [])
 
     useEffect(() => {
-        const controller = new AbortController()
-        fetchRequests(controller.signal)
-        return () => controller.abort()
+        let mounted = true
+        fetchRequests()
+        return () => mounted = false
     }, [fetchRequests])
 
     const filtered = requests.filter(r => {

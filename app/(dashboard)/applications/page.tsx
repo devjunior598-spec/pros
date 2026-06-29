@@ -262,13 +262,13 @@ export default function ApplicationsPage() {
     const [withdrawingId, setWithdrawingId] = useState<string | null>(null)
 
     useEffect(() => {
-        const controller = new AbortController()
+        let mounted = true
         const init = async () => {
             try {
                 const {
                     data: { user },
                 } = await supabase.auth.getUser()
-                if (!user || controller.signal.aborted) return
+                if (!user || !mounted) return
 
                 const { data: profile } = await supabase
                     .from("profiles")
@@ -276,7 +276,7 @@ export default function ApplicationsPage() {
                     .eq("id", user.id)
                     .single()
 
-                if (controller.signal.aborted) return
+                if (!mounted) return
                 const userRole = profile?.role as "tenant" | "landlord"
                 setRole(userRole)
                 setUserId(user.id)
@@ -307,21 +307,20 @@ export default function ApplicationsPage() {
                         `)
                         .eq("tenant_id", user.id)
                         .order("created_at", { ascending: false })
-                        .abortSignal(controller.signal)
 
-                    if (!controller.signal.aborted) {
+                    if (mounted) {
                         setApplications((data as unknown as Application[]) || [])
                         setAppLoading(false)
                     }
                 }
             } catch (err) {
-                if (!controller.signal.aborted) console.error("Applications page init:", err)
+                if (mounted) console.error("Applications page init:", err)
             } finally {
-                if (!controller.signal.aborted) setLoading(false)
+                if (mounted) setLoading(false)
             }
         }
         init()
-        return () => controller.abort()
+        return () => mounted = false
     }, [])
 
     const handleWithdraw = async (id: string) => {

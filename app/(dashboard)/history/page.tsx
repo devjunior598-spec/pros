@@ -21,7 +21,7 @@ export default function PaymentHistoryPage() {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        const controller = new AbortController()
+        let mounted = true
         const fetchHistory = async (signal: AbortSignal) => {
             setLoading(true)
             try {
@@ -34,7 +34,6 @@ export default function PaymentHistoryPage() {
                         .eq('rental.tenant_id', user.id)
                         .eq('status', 'paid')
                         .order('updated_at', { ascending: false })
-                        .abortSignal(signal)
 
                     if (!signal.aborted) {
                         setPayments(data || [])
@@ -50,8 +49,8 @@ export default function PaymentHistoryPage() {
                 }
             }
         }
-        fetchHistory(controller.signal)
-        return () => controller.abort()
+        fetchHistory()
+        return () => mounted = false
     }, [])
 
     if (loading) {

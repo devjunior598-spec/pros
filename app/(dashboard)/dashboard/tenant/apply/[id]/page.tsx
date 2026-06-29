@@ -39,7 +39,7 @@ export default function TenantApplyPage() {
     })
 
     useEffect(() => {
-        const controller = new AbortController()
+        let mounted = true
 
         const fetchData = async () => {
             try {
@@ -59,11 +59,10 @@ export default function TenantApplyPage() {
                         .from('properties')
                         .select('*')
                         .eq('id', params.id)
-                        .abortSignal(controller.signal)
                         .single()
 
                     if (propertyError) throw propertyError
-                    if (!controller.signal.aborted) {
+                    if (mounted) {
                         setProperty(data)
                     }
                 }
@@ -79,7 +78,7 @@ export default function TenantApplyPage() {
         fetchData()
 
         return () => {
-            controller.abort()
+            mounted = false
         }
     }, [params.id, router])
 

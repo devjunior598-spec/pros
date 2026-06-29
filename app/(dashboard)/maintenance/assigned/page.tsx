@@ -26,7 +26,7 @@ export default function AssignedJobsPage() {
     const [provider, setProvider] = useState<any>(null)
 
     useEffect(() => {
-        const controller = new AbortController()
+        let mounted = true
         const fetchAssignments = async (signal: AbortSignal) => {
             setLoading(true)
             try {
@@ -36,7 +36,6 @@ export default function AssignedJobsPage() {
                         .from('service_providers')
                         .select('*')
                         .eq('user_id', user.id)
-                        .abortSignal(signal)
                         .single()
 
                     if (!signal.aborted) {
@@ -61,7 +60,6 @@ export default function AssignedJobsPage() {
                             `)
                             .eq('provider_id', providerData.id)
                             .order('created_at', { ascending: false })
-                            .abortSignal(signal)
 
                         if (error && !signal.aborted) throw error
                         if (!signal.aborted) {
@@ -78,8 +76,8 @@ export default function AssignedJobsPage() {
                 }
             }
         }
-        fetchAssignments(controller.signal)
-        return () => controller.abort()
+        fetchAssignments()
+        return () => mounted = false
     }, [])
 
     const updateJobStatus = async (assignmentId: string, requestId: string, newStatus: string) => {

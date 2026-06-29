@@ -12,7 +12,7 @@ export default function DocumentsPage() {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        const controller = new AbortController()
+        let mounted = true
         const fetchData = async (signal: AbortSignal) => {
             setLoading(true)
             try {
@@ -23,7 +23,6 @@ export default function DocumentsPage() {
                         .from('profiles')
                         .select('*')
                         .eq('id', user.id)
-                        .abortSignal(signal)
                         .single()
 
                     if (!signal.aborted) {
@@ -40,8 +39,8 @@ export default function DocumentsPage() {
                 }
             }
         }
-        fetchData(controller.signal)
-        return () => controller.abort()
+        fetchData()
+        return () => mounted = false
     }, [])
 
     if (loading) {

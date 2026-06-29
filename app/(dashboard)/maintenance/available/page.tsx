@@ -49,7 +49,7 @@ export default function AvailableJobsPage() {
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     useEffect(() => {
-        const controller = new AbortController()
+        let mounted = true
         const fetchJobs = async (signal: AbortSignal) => {
             setLoading(true)
             try {
@@ -60,7 +60,6 @@ export default function AvailableJobsPage() {
                         .from('service_providers')
                         .select('*')
                         .eq('user_id', user.id)
-                        .abortSignal(signal)
                         .single()
 
                     if (!signal.aborted) {
@@ -83,7 +82,6 @@ export default function AvailableJobsPage() {
                     `)
                     .eq('status', 'pending')
                     .order('created_at', { ascending: false })
-                    .abortSignal(signal)
 
                 if (error && !signal.aborted) throw error
                 if (!signal.aborted) {
@@ -98,8 +96,8 @@ export default function AvailableJobsPage() {
                 }
             }
         }
-        fetchJobs(controller.signal)
-        return () => controller.abort()
+        fetchJobs()
+        return () => mounted = false
     }, [])
 
     const filteredJobs = jobs.filter(job => {

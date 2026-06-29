@@ -13,7 +13,7 @@ export default function SettingsPage() {
     const [user, setUser] = useState<any>(null)
 
     useEffect(() => {
-        const controller = new AbortController()
+        let mounted = true
         const getUserInfo = async (signal: AbortSignal) => {
             try {
                 const { data: { user } } = await supabase.auth.getUser()
@@ -32,8 +32,8 @@ export default function SettingsPage() {
             }
         }
 
-        getUserInfo(controller.signal)
-        return () => controller.abort()
+        getUserInfo()
+        return () => mounted = false
     }, [])
 
     if (loading) {

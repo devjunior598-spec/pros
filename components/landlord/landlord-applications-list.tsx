@@ -63,7 +63,6 @@ export function LandlordApplicationsList({ landlordId }: LandlordApplicationsLis
                 .eq('property.landlord_id', landlordId)
                 .eq('status', 'pending')
                 .order('created_at', { ascending: false })
-                .abortSignal(signal as AbortSignal)
 
             if (error) {
                 if (!signal?.aborted) {
@@ -85,11 +84,11 @@ export function LandlordApplicationsList({ landlordId }: LandlordApplicationsLis
     }, [landlordId])
 
     useEffect(() => {
-        const controller = new AbortController()
+        let mounted = true
         if (landlordId) {
-            fetchApplications(controller.signal)
+            fetchApplications()
         }
-        return () => controller.abort()
+        return () => mounted = false
     }, [fetchApplications, landlordId])
 
     const handleAction = async (requestId: string, propertyId: string, status: RentalStatus) => {

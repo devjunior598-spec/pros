@@ -102,18 +102,18 @@ export function PropertyTable({ landlordId }: PropertyTableProps) {
     const [deletingId, setDeletingId] = useState<string | null>(null)
 
     useEffect(() => {
-        const controller = new AbortController()
+        let mounted = true
         if (landlordId) {
-            fetchProperties(controller.signal)
+            fetchProperties()
 
             const channel = supabase
                 .channel("property-table-changes")
-                .on("postgres_changes", { event: "*", schema: "public", table: "properties", filter: `landlord_id=eq.${landlordId}` }, () => fetchProperties(controller.signal))
-                .on("postgres_changes", { event: "*", schema: "public", table: "rentals" }, () => fetchProperties(controller.signal))
+                .on("postgres_changes", { event: "*", schema: "public", table: "properties", filter: `landlord_id=eq.${landlordId}` }, () => fetchProperties())
+                .on("postgres_changes", { event: "*", schema: "public", table: "rentals" }, () => fetchProperties())
                 .subscribe()
 
             return () => {
-                controller.abort()
+                mounted = false
                 supabase.removeChannel(channel)
             }
         }
@@ -136,7 +136,7 @@ export function PropertyTable({ landlordId }: PropertyTableProps) {
             const from = (page - 1) * pageSize
             const to = from + pageSize - 1
             query = query.range(from, to)
-            if (signal) query = query.abortSignal(signal)
+            if (signal) query = query
 
             const { data, count, error } = await query
             if (error) { if (!signal?.aborted) console.error(error) }

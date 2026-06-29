@@ -67,7 +67,7 @@ export function LandlordMaintenanceList({ landlordId, limit }: LandlordMaintenan
             }
 
             if (signal) {
-                query = query.abortSignal(signal)
+                query = query
             }
 
             const { data, error } = await query
@@ -90,11 +90,11 @@ export function LandlordMaintenanceList({ landlordId, limit }: LandlordMaintenan
     }, [landlordId, limit])
 
     useEffect(() => {
-        const controller = new AbortController()
+        let mounted = true
         if (landlordId) {
-            fetchRequests(controller.signal)
+            fetchRequests()
         }
-        return () => controller.abort()
+        return () => mounted = false
     }, [landlordId, fetchRequests])
 
     const updateStatus = async (requestId: string, newStatus: MaintenanceStatus) => {

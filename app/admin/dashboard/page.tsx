@@ -35,23 +35,23 @@ export default function AdminDashboardPage() {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        const controller = new AbortController()
+        let mounted = true
         const fetchStats = async (signal: AbortSignal) => {
             setLoading(true)
             try {
                 // In a real app, many of these counts should be cached or retrieved via a single RPC
                 // We use Promise.all to fetch everything in parallel
                 const queries = [
-                    supabase.from('profiles').select('*', { count: 'exact', head: true }).abortSignal(signal),
-                    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'tenant').abortSignal(signal),
-                    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'landlord').abortSignal(signal),
-                    supabase.from('service_providers').select('*', { count: 'exact', head: true }).abortSignal(signal),
-                    supabase.from('properties').select('*', { count: 'exact', head: true }).abortSignal(signal),
-                    supabase.from('rentals').select('*', { count: 'exact', head: true }).eq('status', 'active').abortSignal(signal),
-                    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_verified', false).abortSignal(signal),
-                    supabase.from('withdrawals').select('*', { count: 'exact', head: true }).eq('status', 'pending').abortSignal(signal),
-                    supabase.from('wallets').select('balance').abortSignal(signal),
-                    supabase.from('accounts').select('balance').eq('code', '4001').abortSignal(signal).single()
+                    supabase.from('profiles').select('*', { count: 'exact', head: true }),
+                    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'tenant'),
+                    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'landlord'),
+                    supabase.from('service_providers').select('*', { count: 'exact', head: true }),
+                    supabase.from('properties').select('*', { count: 'exact', head: true }),
+                    supabase.from('rentals').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+                    supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_verified', false),
+                    supabase.from('withdrawals').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+                    supabase.from('wallets').select('balance'),
+                    supabase.from('accounts').select('balance').eq('code', '4001').single()
                 ]
 
                 const results = await Promise.all(queries)
@@ -79,8 +79,8 @@ export default function AdminDashboardPage() {
                 }
             }
         }
-        fetchStats(controller.signal)
-        return () => controller.abort()
+        fetchStats()
+        return () => mounted = false
     }, [])
 
     return (

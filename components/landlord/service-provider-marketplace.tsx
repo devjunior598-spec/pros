@@ -81,7 +81,7 @@ export function ServiceProviderMarketplace({
                 .order('created_at', { ascending: false })
 
             if (signal) {
-                query = query.abortSignal(signal)
+                query = query
             }
 
             const { data, error } = await query
@@ -111,7 +111,7 @@ export function ServiceProviderMarketplace({
                 .order('rating', { ascending: false })
 
             if (signal) {
-                query = query.abortSignal(signal)
+                query = query
             }
 
             const { data, error } = await query
@@ -132,14 +132,14 @@ export function ServiceProviderMarketplace({
     }, [])
 
     useEffect(() => {
-        const controller = new AbortController()
+        let mounted = true
         if (isOpen) {
-            fetchProviders(controller.signal)
+            fetchProviders()
             if (request) {
-                fetchQuotes(controller.signal)
+                fetchQuotes()
             }
         }
-        return () => controller.abort()
+        return () => mounted = false
     }, [isOpen, request, fetchProviders, fetchQuotes])
 
     const filteredProviders = providers.filter(provider => {

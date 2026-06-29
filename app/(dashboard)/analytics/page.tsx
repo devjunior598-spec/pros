@@ -121,34 +121,34 @@ function AnalyticsDashboard() {
     })
 
     useEffect(() => {
-        const controller = new AbortController()
+        let mounted = true
         const init = async () => {
             try {
                 const {
                     data: { user },
                 } = await supabase.auth.getUser()
-                if (!user || controller.signal.aborted) return
+                if (!user || !mounted) return
                 setLandlordId(user.id)
                 await fetchAnalytics(user.id, range, controller.signal)
             } catch (err) {
-                if (!controller.signal.aborted) console.error("Analytics init:", err)
+                if (mounted) console.error("Analytics init:", err)
             } finally {
-                if (!controller.signal.aborted) setLoading(false)
+                if (mounted) setLoading(false)
             }
         }
         init()
-        return () => controller.abort()
+        return () => mounted = false
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     useEffect(() => {
         if (!landlordId) return
-        const controller = new AbortController()
+        let mounted = true
         setLoading(true)
         fetchAnalytics(landlordId, range, controller.signal).finally(() => {
-            if (!controller.signal.aborted) setLoading(false)
+            if (mounted) setLoading(false)
         })
-        return () => controller.abort()
+        return () => mounted = false
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [range, landlordId])
 
@@ -163,7 +163,6 @@ function AnalyticsDashboard() {
                 .select("amount, created_at, rental_id, status, rental:rentals!inner(property:properties!inner(title, city, landlord_id))")
                 .gte("created_at", since)
                 .eq("status", "paid")
-                .abortSignal(signal)
 
             const landlordBills = (bills || []).filter(
                 (b: any) => b.rental?.property?.landlord_id === uid
@@ -185,7 +184,6 @@ function AnalyticsDashboard() {
                 .select("id, rent_amount, property:properties!inner(id, title, city, landlord_id)")
                 .eq("landlord_id", uid)
                 .in("status", ["approved", "active"])
-                .abortSignal(signal)
 
             const activeTenants = (activeRentals || []).length
             const avgRent =
@@ -197,7 +195,6 @@ function AnalyticsDashboard() {
                 .from("properties")
                 .select("id")
                 .eq("landlord_id", uid)
-                .abortSignal(signal)
             const totalProps = (allProps || []).length
             const occupancyRate = totalProps > 0 ? Math.round((activeTenants / totalProps) * 100) : 0
 
@@ -226,7 +223,6 @@ function AnalyticsDashboard() {
                 .select("id, status")
                 .eq("landlord_id", uid)
                 .gte("created_at", since)
-                .abortSignal(signal)
 
             const totalApplications = (appData || []).length
             const approvedApplications = (appData || []).filter(

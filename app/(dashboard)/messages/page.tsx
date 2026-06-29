@@ -13,7 +13,7 @@ export default function MessagesPage() {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        const controller = new AbortController()
+        let mounted = true
         const fetchUser = async (signal: AbortSignal) => {
             try {
                 const { data: { user: authUser } } = await supabase.auth.getUser()
@@ -22,7 +22,6 @@ export default function MessagesPage() {
                         .from('profiles')
                         .select('role')
                         .eq('id', authUser.id)
-                        .abortSignal(signal)
                         .single()
 
                     if (profile && !signal.aborted) {
@@ -35,8 +34,8 @@ export default function MessagesPage() {
                 if (!signal.aborted) setLoading(false)
             }
         }
-        fetchUser(controller.signal)
-        return () => controller.abort()
+        fetchUser()
+        return () => mounted = false
     }, [])
 
     if (loading) {

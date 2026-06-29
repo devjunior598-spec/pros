@@ -21,7 +21,7 @@ export default function EarningsPage() {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        const controller = new AbortController()
+        let mounted = true
         const fetchEarnings = async (signal: AbortSignal) => {
             setLoading(true)
             try {
@@ -34,7 +34,6 @@ export default function EarningsPage() {
                         .eq('rental.property.landlord_id', user.id)
                         .eq('status', 'paid')
                         .order('updated_at', { ascending: false })
-                        .abortSignal(signal)
 
                     if (!signal.aborted) {
                         const paidEarnings = data || []
@@ -59,8 +58,8 @@ export default function EarningsPage() {
                 if (!signal.aborted) setLoading(false)
             }
         }
-        fetchEarnings(controller.signal)
-        return () => controller.abort()
+        fetchEarnings()
+        return () => mounted = false
     }, [])
 
     if (loading) {

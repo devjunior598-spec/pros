@@ -76,11 +76,22 @@ export default function SignupPage() {
                 })
 
             if (profileError) {
-                // Surface the real error (e.g. RLS policy violation) instead of timing out silently
-                console.error("Profile insert error:", profileError)
-                const detail = profileError.message || profileError.details || "Unknown database error"
-                const hint = profileError.hint ? ` Hint: ${profileError.hint}` : ""
-                throw new Error(`Failed to create profile: ${detail}.${hint}`)
+                // If it failed, check if the profile was already created (e.g. by a database trigger)
+                const { data: existingProfile } = await supabase
+                    .from("profiles")
+                    .select("id")
+                    .eq("id", authData.user.id)
+                    .maybeSingle()
+
+                if (!existingProfile) {
+                    // Surface the real error (e.g. RLS policy violation) instead of timing out silently
+                    console.error("Profile insert error:", profileError)
+                    const detail = profileError.message || profileError.details || "Unknown database error"
+                    const hint = profileError.hint ? ` Hint: ${profileError.hint}` : ""
+                    throw new Error(`Failed to create profile: ${detail}.${hint}`)
+                } else {
+                    console.log("Profile already exists (likely created by trigger), proceeding.")
+                }
             }
 
             const resolvedRole = (authData.user.user_metadata?.role as "tenant" | "landlord" | "admin" | undefined) ?? formData.role

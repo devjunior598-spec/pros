@@ -11,14 +11,14 @@ export default function TenantsPage() {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        const controller = new AbortController()
+        let mounted = true
         const fetchUser = async (signal: AbortSignal) => {
             const { data: { user } } = await supabase.auth.getUser()
             if (user && !signal.aborted) setLandlordId(user.id)
             if (!signal.aborted) setLoading(false)
         }
-        fetchUser(controller.signal)
-        return () => controller.abort()
+        fetchUser()
+        return () => mounted = false
     }, [])
 
     if (loading) {

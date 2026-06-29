@@ -13,7 +13,7 @@ export default function PaymentsPage() {
     const [activeTab, setActiveTab] = useState<'withdrawals' | 'billing'>('withdrawals')
 
     useEffect(() => {
-        const controller = new AbortController()
+        let mounted = true
         const fetchUser = async (signal: AbortSignal) => {
             const { data: { user } } = await supabase.auth.getUser()
             if (user && !signal.aborted) {
@@ -23,8 +23,8 @@ export default function PaymentsPage() {
                 setLoading(false)
             }
         }
-        fetchUser(controller.signal)
-        return () => controller.abort()
+        fetchUser()
+        return () => mounted = false
     }, [])
 
     if (loading) return <div className="flex justify-center p-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>

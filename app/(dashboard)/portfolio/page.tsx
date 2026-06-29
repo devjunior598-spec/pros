@@ -38,7 +38,7 @@ export default function PortfolioPage() {
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     useEffect(() => {
-        const controller = new AbortController()
+        let mounted = true
         const fetchPortfolio = async (signal: AbortSignal) => {
             setLoading(true)
             try {
@@ -48,7 +48,6 @@ export default function PortfolioPage() {
                         .from('service_providers')
                         .select('*')
                         .eq('user_id', user.id)
-                        .abortSignal(signal)
                         .single()
 
                     if (!signal.aborted) {
@@ -61,7 +60,6 @@ export default function PortfolioPage() {
                             .select('*')
                             .eq('provider_id', providerData.id)
                             .order('created_at', { ascending: false })
-                            .abortSignal(signal)
 
                         if (!signal.aborted) {
                             setPortfolio(data || [])
@@ -77,8 +75,8 @@ export default function PortfolioPage() {
                 }
             }
         }
-        fetchPortfolio(controller.signal)
-        return () => controller.abort()
+        fetchPortfolio()
+        return () => mounted = false
     }, [])
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

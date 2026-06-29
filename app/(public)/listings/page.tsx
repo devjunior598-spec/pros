@@ -214,13 +214,13 @@ function ListingsContent() {
 
   // Debounced fetch
   useEffect(() => {
-    const controller = new AbortController()
+    let mounted = true
     const timer = setTimeout(() => {
-      fetchProperties(controller.signal)
+      fetchProperties()
     }, 300)
     return () => {
       clearTimeout(timer)
-      controller.abort()
+      mounted = false
     }
   }, [fetchProperties])
 

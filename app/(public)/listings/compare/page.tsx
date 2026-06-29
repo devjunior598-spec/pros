@@ -51,7 +51,7 @@ function CompareContent() {
 
   useEffect(() => {
     if (ids.length === 0) return
-    const controller = new AbortController()
+    let mounted = true
 
     const fetchProperties = async () => {
       setLoading(true)
@@ -63,7 +63,7 @@ function CompareContent() {
           .in("id", ids)
 
         if (dbError) throw dbError
-        if (!controller.signal.aborted) {
+        if (mounted) {
           // Preserve the order from the URL
           const ordered = ids
             .map((id) => (data || []).find((p: any) => p.id === id))
@@ -71,16 +71,16 @@ function CompareContent() {
           setProperties(ordered)
         }
       } catch (err: any) {
-        if (!controller.signal.aborted) {
+        if (mounted) {
           setError(err.message || "Failed to load properties.")
         }
       } finally {
-        if (!controller.signal.aborted) setLoading(false)
+        if (mounted) setLoading(false)
       }
     }
 
     fetchProperties()
-    return () => controller.abort()
+    return () => mounted = false
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idsParam])
 

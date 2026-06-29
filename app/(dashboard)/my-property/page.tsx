@@ -81,13 +81,13 @@ export default function MyPropertyPage() {
     const [billsLoading, setBillsLoading] = useState(false)
 
     useEffect(() => {
-        const controller = new AbortController()
+        let mounted = true
         const fetchData = async () => {
             try {
                 const {
                     data: { user },
                 } = await supabase.auth.getUser()
-                if (!user || controller.signal.aborted) return
+                if (!user || !mounted) return
 
                 const { data: rentalData } = await supabase
                     .from("rentals")
@@ -117,9 +117,8 @@ export default function MyPropertyPage() {
                     .in("status", ["approved", "active"])
                     .order("created_at", { ascending: false })
                     .limit(1)
-                    .abortSignal(controller.signal)
 
-                if (controller.signal.aborted) return
+                if (!mounted) return
                 const activeRental = (rentalData?.[0] as unknown as RentalData) ?? null
                 setRental(activeRental)
 
@@ -131,21 +130,20 @@ export default function MyPropertyPage() {
                         .eq("rental_id", activeRental.id)
                         .order("created_at", { ascending: false })
                         .limit(5)
-                        .abortSignal(controller.signal)
 
-                    if (!controller.signal.aborted) {
+                    if (mounted) {
                         setBills((billsData as Bill[]) || [])
                         setBillsLoading(false)
                     }
                 }
             } catch (err) {
-                if (!controller.signal.aborted) console.error("My Property fetch error:", err)
+                if (mounted) console.error("My Property fetch error:", err)
             } finally {
-                if (!controller.signal.aborted) setLoading(false)
+                if (mounted) setLoading(false)
             }
         }
         fetchData()
-        return () => controller.abort()
+        return () => mounted = false
     }, [])
 
     if (loading) {
