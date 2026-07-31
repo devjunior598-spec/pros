@@ -60,25 +60,10 @@ export default function SignupPage() {
             if (authError) throw authError
             if (!authData.user) throw new Error("User was not created. Please try again.")
 
-            // 2. Profile creation must be simple
-            const fullName = `${formData.firstName} ${formData.lastName}`.trim()
-            const { error: profileError } = await supabase
-                .from("profiles")
-                .insert({
-                    id: authData.user.id,
-                    email: formData.email,
-                    first_name: formData.firstName,
-                    last_name: formData.lastName,
-                    name: fullName,
-                    full_name: fullName,
-                    role: formData.role
-                })
-
-            if (profileError) throw profileError
-
             const resolvedRole = (authData.user.user_metadata?.role as "tenant" | "landlord" | "admin" | undefined) ?? formData.role
             
-            // 3. Redirect based on role
+            // 2. The database trigger creates the profile atomically with the Auth user.
+            // Redirect based on role.
             const redirectToDashboard = () => {
                 if (resolvedRole === "landlord") {
                     router.replace("/dashboard/landlord")
@@ -94,7 +79,7 @@ export default function SignupPage() {
                 return
             }
 
-            // 4. Attempt auto sign-in if no session yet
+            // 3. Attempt auto sign-in if no session yet
             const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
                 email: formData.email,
                 password: formData.password,

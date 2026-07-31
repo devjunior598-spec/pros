@@ -24,7 +24,7 @@ export async function POST(req: Request) {
         }
 
         // 2. Extract Data
-        const { status, amount, metadata, customer, channel } = data.data;
+        const { status, amount, metadata, customer, channel, authorization } = data.data;
 
         if (status !== 'success') {
             return NextResponse.json({ message: `Payment status is ${status}` }, { status: 400 });
@@ -82,7 +82,10 @@ export async function POST(req: Request) {
             .from('wallets')
             .update({
                 balance: newBalance,
-                paystack_customer_id: customer?.customer_code || null // Optionally save customer code
+                paystack_customer_id: customer?.customer_code || null,
+                paystack_authorization_code: authorization?.reusable ? authorization.authorization_code : undefined,
+                payment_card_last4: authorization?.reusable ? authorization.last4 : undefined,
+                payment_card_brand: authorization?.reusable ? authorization.brand : undefined
             })
             .eq('id', wallet.id);
 

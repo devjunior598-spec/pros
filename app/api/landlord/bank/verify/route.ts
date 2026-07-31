@@ -1,20 +1,29 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { paystack } from '@/lib/paystack';
+import { getCurrentUserWithRole } from '@/lib/supabase-server';
 
 export async function POST(req: Request) {
     try {
-        const { accountNumber, bankCode, userId } = await req.json();
+        const currentUser = await getCurrentUserWithRole();
+        if (!currentUser) {
+            return NextResponse.json({ success: false, message: 'Authentication required' }, { status: 401 });
+        }
+        if (currentUser.role !== 'landlord') {
+            return NextResponse.json({ success: false, message: 'Only landlords can verify withdrawal bank accounts' }, { status: 403 });
+        }
 
-        if (!accountNumber || !bankCode || !userId) {
+        const { accountNumber, bankCode } = await req.json();
+
+        if (!accountNumber || !bankCode || !/^\d{10}$/.test(accountNumber)) {
             return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
         }
 
         // 1. Fetch landlord's registered name from profile
-        const { data: profile, error: profileError } = await supabase
+        const { data: profile, error: profileError } = await supabaseAdmin
             .from('profiles')
-            .select('name')
-            .eq('id', userId)
+            .select('full_name, name')
+            .eq('id', currentUser.user.id)
             .single();
 
         if (profileError || !profile) {
@@ -30,7 +39,10 @@ export async function POST(req: Request) {
         }
 
         const resolvedName = resolvedAccount.account_name.toUpperCase();
-        const profileName = profile.name.toUpperCase();
+        const profileName = (profile.full_name || profile.name || '').toUpperCase();
+        if (!profileName) {
+            return NextResponse.json({ success: false, message: 'Add your full name before verifying a bank account.' }, { status: 400 });
+        }
 
         // 3. Strict Name Matching Logic
         // We clean up names to handle slight variations in spacing or common titles
@@ -46,10 +58,10 @@ export async function POST(req: Request) {
         }
 
         // 4. Create Transfer Recipient on Paystack
-        const recipient = await paystack.createTransferRecipient(profile.name, accountNumber, bankCode);
+        const recipient = await paystack.createTransferRecipient(profile.full_name || profile.name, accountNumber, bankCode);
 
         // 5. Save/Update Bank Details in Landlord Wallet
-        const { error: walletError } = await supabase
+        const { error: walletError } = await supabaseAdmin
             .from('landlord_wallets')
             .update({
                 bank_account_number: accountNumber,
@@ -58,7 +70,7 @@ export async function POST(req: Request) {
                 account_name: resolvedAccount.account_name,
                 recipient_code: recipient.recipient_code
             })
-            .eq('landlord_id', userId);
+            .eq('landlord_id', currentUser.user.id);
 
         if (walletError) {
             throw walletError;

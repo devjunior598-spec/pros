@@ -10,6 +10,69 @@ import Link from "next/link"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Switch } from "@/components/ui/switch"
+
+function AutoRefillCard({ verified }: { verified: boolean }) {
+    const [open, setOpen] = useState(false)
+    const [enabled, setEnabled] = useState(false)
+    const [threshold, setThreshold] = useState("5000")
+    const [refillAmount, setRefillAmount] = useState("20000")
+    const [hasPaymentMethod, setHasPaymentMethod] = useState(false)
+    const [cardLabel, setCardLabel] = useState("")
+    const [saving, setSaving] = useState(false)
+
+    useEffect(() => {
+        fetch("/api/wallet/auto-refill/settings")
+            .then((response) => response.json())
+            .then((result) => {
+                const settings = result.settings
+                if (!settings) return
+                setEnabled(Boolean(settings.auto_refill_enabled))
+                setThreshold(String(settings.auto_refill_threshold ?? 5000))
+                setRefillAmount(String(settings.auto_refill_amount ?? 20000))
+                setHasPaymentMethod(Boolean(settings.hasPaymentMethod))
+                setCardLabel(settings.payment_card_last4 ? `${settings.payment_card_brand || "Card"} •••• ${settings.payment_card_last4}` : "")
+            })
+            .catch(() => undefined)
+    }, [open])
+
+    const save = async () => {
+        setSaving(true)
+        try {
+            const response = await fetch("/api/wallet/auto-refill/settings", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ enabled, threshold: Number(threshold), amount: Number(refillAmount) })
+            })
+            const result = await response.json()
+            if (!response.ok) throw new Error(result.error || "Failed to save Auto-Refill")
+            setOpen(false)
+        } catch (error) {
+            alert(error instanceof Error ? error.message : "Failed to save Auto-Refill")
+        } finally { setSaving(false) }
+    }
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Card className="cursor-pointer border-none bg-purple-50/50 shadow-sm transition-colors hover:bg-purple-100/70 dark:bg-purple-900/10 dark:hover:bg-purple-900/20">
+                    <CardHeader className="pb-2"><Plus className="mb-2 h-5 w-5 text-purple-600" /><div className="flex items-center justify-between"><CardTitle className="text-sm">Auto-Refill</CardTitle><Badge variant={enabled ? "default" : "secondary"}>{enabled ? "On" : "Off"}</Badge></div></CardHeader>
+                    <CardContent><p className="text-xs text-muted-foreground">Automatically add funds when your wallet reaches your chosen balance.</p></CardContent>
+                </Card>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader><DialogTitle>Wallet Auto-Refill</DialogTitle><DialogDescription>Charge your saved Paystack card when the wallet balance falls to or below the threshold.</DialogDescription></DialogHeader>
+                <div className="space-y-5 py-2">
+                    <div className="flex items-center justify-between rounded-lg border p-4"><div><p className="text-sm font-medium">Enable Auto-Refill</p><p className="text-xs text-muted-foreground">You can switch this off at any time.</p></div><Switch checked={enabled} onCheckedChange={setEnabled} disabled={!verified} /></div>
+                    <div className="grid grid-cols-2 gap-4"><div className="space-y-2"><Label htmlFor="refill-threshold">Balance threshold</Label><Input id="refill-threshold" type="number" min="0" value={threshold} onChange={(event) => setThreshold(event.target.value)} /></div><div className="space-y-2"><Label htmlFor="refill-amount">Refill amount</Label><Input id="refill-amount" type="number" min="1000" value={refillAmount} onChange={(event) => setRefillAmount(event.target.value)} /></div></div>
+                    <div className="rounded-lg bg-muted p-3 text-xs text-muted-foreground">{hasPaymentMethod ? `Payment method: ${cardLabel}` : "No reusable card saved. Fund your wallet once using a Paystack card, then return here to enable Auto-Refill."}</div>
+                    {!verified && <p className="text-xs text-orange-600">Complete identity verification before enabling Auto-Refill.</p>}
+                </div>
+                <DialogFooter><Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button><Button onClick={save} disabled={saving || !verified || (enabled && !hasPaymentMethod)}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save Auto-Refill</Button></DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
 
 function FundWalletForm({ userId, email }: { userId: string, email: string }) {
     const [amount, setAmount] = useState("")
@@ -168,7 +231,7 @@ export default function WalletPage() {
                                 <p className="text-orange-700 dark:text-orange-400/80 text-sm mb-4">
                                     You need to verify your identity before you can fund your wallet or pay bills using PRMS Wallet.
                                 </p>
-                                <Link href="/kyc">
+                                <Link href="/settings?tab=identity">
                                     <Button variant="default" className="bg-orange-600 hover:bg-orange-700">Verify Now</Button>
                                 </Link>
                             </div>
@@ -288,15 +351,7 @@ export default function WalletPage() {
                         <p className="text-xs text-muted-foreground">All transactions are secured with industry-standard encryption and PRMS protection.</p>
                     </CardContent>
                 </Card>
-                <Card className="border-none shadow-sm bg-purple-50/50 dark:bg-purple-900/10">
-                    <CardHeader className="pb-2">
-                        <Plus className="h-5 w-5 text-purple-600 mb-2" />
-                        <CardTitle className="text-sm">Auto-Refill</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-xs text-muted-foreground">Set up auto-refill to ensure you never miss a payment and avoid late fees.</p>
-                    </CardContent>
-                </Card>
+                <AutoRefillCard verified={Boolean(profile?.is_verified)} />
             </div>
         </div>
     )

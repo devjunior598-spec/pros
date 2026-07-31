@@ -6,7 +6,7 @@ import { Bell, CreditCard, Wrench, FileText, UserPlus, MessageSquare } from "luc
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { formatDistanceToNow } from "date-fns"
 
-interface ActivityItem {
+export interface ActivityItem {
   id: string
   type: 'payment' | 'maintenance' | 'application' | 'message' | 'system'
   title: string
@@ -19,15 +19,7 @@ interface ActivityFeedProps {
   activities?: ActivityItem[]
 }
 
-const mockActivities: ActivityItem[] = [
-  { id: '1', type: 'payment', title: 'Rent Payment Received', description: 'John Doe paid ₦150,000 for Apartment 4A.', timestamp: new Date(Date.now() - 1000 * 60 * 30), read: false },
-  { id: '2', type: 'application', title: 'New Tenant Application', description: 'Jane Smith applied for Sunset Villa.', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), read: false },
-  { id: '3', type: 'maintenance', title: 'Maintenance Request', description: 'Plumbing issue reported at Unit 12.', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5), read: true },
-  { id: '4', type: 'message', title: 'New Message', description: 'Michael asked about the parking space.', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24), read: true },
-  { id: '5', type: 'system', title: 'Lease Expiring Soon', description: 'Lease for Apartment 2B expires in 30 days.', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48), read: true },
-]
-
-export function ActivityFeed({ activities = mockActivities }: ActivityFeedProps) {
+export function ActivityFeed({ activities = [] }: ActivityFeedProps) {
   
   const getIcon = (type: string) => {
     switch (type) {

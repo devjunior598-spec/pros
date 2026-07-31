@@ -1,7 +1,5 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
 import { SiteHeader } from "@/components/site-header"
 import { DashboardNav } from "@/components/dashboard-nav"
 import { DashboardGuard } from "@/components/dashboard-guard"
@@ -13,97 +11,16 @@ import Link from "next/link"
 import { ChatProvider } from "@/components/chat/chat-provider"
 import { CallModal } from "@/components/chat/call-modal"
 import { Logo } from "@/components/logo"
+import { useAuth } from "@/contexts/auth-context"
 
 export default function DashboardLayout({
     children,
 }: {
     children: React.ReactNode
 }) {
-    const [userRole, setUserRole] = useState<string | null>(null)
-    const [isVerified, setIsVerified] = useState<boolean>(false)
-    const [profile, setProfile] = useState<any>(null)
-    const [providerStatus, setProviderStatus] = useState<string | null>(null)
-
-    useEffect(() => {
-        let mounted = true
-
-        const fetchUserData = async () => {
-            try {
-                const { data: { user }, error: authError } = await supabase.auth.getUser()
-                if (authError) throw authError
-
-                if (user && mounted) {
-                    const { data: profile, error: profileError } = await supabase
-                        .from('profiles')
-                        .select('*')
-                        .eq('id', user.id)
-                        .maybeSingle()
-
-                    if (profileError) throw profileError
-
-                    if (profile && mounted) {
-                        setUserRole(profile.role)
-                        setIsVerified(profile.is_verified)
-                        setProfile(profile)
-
-                        if (profile.role === 'service_provider') {
-                            const { data: provider } = await supabase
-                                .from('service_providers')
-                                .select('approval_status')
-                                .eq('user_id', user.id)
-                                .maybeSingle()
-
-                            if (provider && mounted) {
-                                setProviderStatus(provider.approval_status)
-                            }
-                        }
-                    }
-                }
-            } catch (error: any) {
-                if (!mounted) return
-                console.error("Error fetching user data:", JSON.stringify(error, null, 2))
-            }
-        }
-        fetchUserData()
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            if (session?.user && mounted) {
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', session.user.id)
-                    .maybeSingle()
-
-                if (profile && mounted) {
-                    setUserRole(profile.role)
-                    setIsVerified(profile.is_verified)
-                    setProfile(profile)
-
-                    if (profile.role === 'service_provider') {
-                        const { data: provider } = await supabase
-                            .from('service_providers')
-                            .select('approval_status')
-                            .eq('user_id', session.user.id)
-                            .maybeSingle()
-
-                        if (provider && mounted) {
-                            setProviderStatus(provider.approval_status)
-                        }
-                    }
-                }
-            } else if (mounted) {
-                setUserRole(null)
-                setIsVerified(false)
-                setProfile(null)
-                setProviderStatus(null)
-            }
-        })
-
-        return () => {
-            mounted = false
-            subscription.unsubscribe()
-        }
-    }, [])
+    const { profile, providerStatus } = useAuth()
+    const userRole = profile?.role ?? null
+    const isVerified = profile?.is_verified ?? false
 
     return (
         <ChatProvider>

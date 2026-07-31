@@ -9,11 +9,12 @@ import { Loader2, TrendingUp, TrendingDown, DollarSign, Building2 } from "lucide
 
 export default function AdminFinancePage() {
     const [loading, setLoading] = useState(true)
+    const [journalEntries, setJournalEntries] = useState<any[]>([])
     const [metrics, setMetrics] = useState({
         totalRevenue: 0,
         bankBalance: 0,
         pendingPayouts: 0,
-        totalRentCollected: 0
+        operatingExpenses: 0
     })
 
     useEffect(() => {
@@ -39,6 +40,9 @@ export default function AdminFinancePage() {
                 const revenue = accounts
                     .filter(a => a.type === 'income')
                     .reduce((sum, a) => sum + (a.balance || 0), 0) // Income is Credit (negative normally? No, migrating schema uses positive for reporting usually, check RPC logic)
+                const expenses = accounts
+                    .filter(a => a.type === 'expense')
+                    .reduce((sum, a) => sum + (a.balance || 0), 0)
                 // RPC Logic: Balance = Balance + Debit - Credit.
                 // For Income: Credit increases balance? 
                 // Wait, standard accounting: Assets (Dr), Liabilities (Cr), Equity (Cr), Income (Cr), Expenses (Dr).
@@ -59,8 +63,18 @@ export default function AdminFinancePage() {
                     bankBalance: bank, // Asset (Positive)
                     pendingPayouts: Math.abs(liability), // Liability (Negative)
                     totalRevenue: Math.abs(revenue), // Income (Negative)
-                    totalRentCollected: 0 // Need to aggregate specific account or bill query
+                    operatingExpenses: Math.abs(expenses)
                 })
+            }
+
+            const { data: entries, error: entriesError } = await supabase
+                .from('journal_entries')
+                .select('id, date, description, reference_type, created_at')
+                .order('created_at', { ascending: false })
+                .limit(8)
+
+            if (!entriesError) {
+                setJournalEntries(entries || [])
             }
         } catch (error) {
             console.error(error)
@@ -87,7 +101,7 @@ export default function AdminFinancePage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{formatCurrency(metrics.totalRevenue)}</div>
-                        <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+                        <p className="text-xs text-muted-foreground">Income ledger balance</p>
                     </CardContent>
                 </Card>
                 <Card>
@@ -116,7 +130,7 @@ export default function AdminFinancePage() {
                         <TrendingUp className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{formatCurrency(0)}</div>
+                        <div className="text-2xl font-bold">{formatCurrency(metrics.operatingExpenses)}</div>
                         <p className="text-xs text-muted-foreground">Processing fees & ops</p>
                     </CardContent>
                 </Card>
@@ -136,8 +150,11 @@ export default function AdminFinancePage() {
                             <CardDescription>Monthly revenue performance.</CardDescription>
                         </CardHeader>
                         <CardContent className="pl-2">
-                            <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-                                Chart Placeholder (Integrate Recharts)
+                            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                <FinanceMetric label="Revenue" value={formatCurrency(metrics.totalRevenue)} />
+                                <FinanceMetric label="Bank balance" value={formatCurrency(metrics.bankBalance)} />
+                                <FinanceMetric label="Pending payouts" value={formatCurrency(metrics.pendingPayouts)} />
+                                <FinanceMetric label="Operating expenses" value={formatCurrency(metrics.operatingExpenses)} />
                             </div>
                         </CardContent>
                     </Card>
@@ -148,8 +165,10 @@ export default function AdminFinancePage() {
                             <CardTitle>Income Statement</CardTitle>
                             <CardDescription>Profit and Loss Report.</CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            <p>Report generation coming soon...</p>
+                        <CardContent className="space-y-3">
+                            <FinanceRow label="Income" value={formatCurrency(metrics.totalRevenue)} />
+                            <FinanceRow label="Expenses" value={formatCurrency(metrics.operatingExpenses)} />
+                            <FinanceRow label="Net operating position" value={formatCurrency(metrics.totalRevenue - metrics.operatingExpenses)} />
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -159,12 +178,56 @@ export default function AdminFinancePage() {
                             <CardTitle>Balance Sheet</CardTitle>
                             <CardDescription>Assets vs Liabilities.</CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            <p>Report generation coming soon...</p>
+                        <CardContent className="space-y-3">
+                            <FinanceRow label="Platform bank balance" value={formatCurrency(metrics.bankBalance)} />
+                            <FinanceRow label="Landlord wallet liability" value={formatCurrency(metrics.pendingPayouts)} />
+                            <FinanceRow label="Net platform position" value={formatCurrency(metrics.bankBalance - metrics.pendingPayouts)} />
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                <TabsContent value="transactions">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Recent Transactions</CardTitle>
+                            <CardDescription>Latest entries recorded in the accounting ledger.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            {journalEntries.length === 0 ? (
+                                <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+                                    No ledger entries have been recorded yet.
+                                </div>
+                            ) : (
+                                journalEntries.map((entry) => (
+                                    <div key={entry.id} className="flex items-center justify-between rounded-lg border bg-muted/30 px-4 py-3">
+                                        <div>
+                                            <p className="text-sm font-medium">{entry.description || "Ledger entry"}</p>
+                                            <p className="text-xs text-muted-foreground">{entry.reference_type || "accounting"} · {new Date(entry.date || entry.created_at).toLocaleDateString()}</p>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                         </CardContent>
                     </Card>
                 </TabsContent>
             </Tabs>
+        </div>
+    )
+}
+
+function FinanceMetric({ label, value }: { label: string; value: string }) {
+    return (
+        <div className="rounded-lg border bg-muted/30 p-4">
+            <p className="text-xs text-muted-foreground">{label}</p>
+            <p className="mt-1 text-lg font-semibold">{value}</p>
+        </div>
+    )
+}
+
+function FinanceRow({ label, value }: { label: string; value: string }) {
+    return (
+        <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-4 py-3">
+            <span className="text-sm text-muted-foreground">{label}</span>
+            <span className="text-sm font-semibold">{value}</span>
         </div>
     )
 }

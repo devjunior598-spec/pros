@@ -56,8 +56,8 @@ export default function LeasesHubPage() {
                 .select(`
                     *, 
                     property:properties(title, address), 
-                    tenant:profiles!tenant_id(name, email, phone, fullname), 
-                    landlord:profiles!landlord_id(name, email, phone, fullname),
+                    tenant:profiles!tenant_id(name, email, phone, full_name), 
+                    landlord:profiles!landlord_id(name, email, phone, full_name),
                     signatures:lease_signatures(*)
                 `)
                 .order("created_at", { ascending: false })
@@ -112,10 +112,10 @@ export default function LeasesHubPage() {
             const doc = generateLeasePDF({
                 title: lease.title,
                 templateType: lease.template_type,
-                landlordName: lease.landlord?.fullname || lease.landlord?.name || 'Landlord',
+                landlordName: lease.landlord?.full_name || lease.landlord?.name || 'Landlord',
                 landlordEmail: lease.landlord?.email || '',
                 landlordPhone: lease.landlord?.phone || '',
-                tenantName: lease.tenant?.fullname || lease.tenant?.name || 'Tenant',
+                tenantName: lease.tenant?.full_name || lease.tenant?.name || 'Tenant',
                 tenantEmail: lease.tenant?.email || '',
                 tenantPhone: lease.tenant?.phone || '',
                 propertyName: lease.property?.title || 'Property',
@@ -255,8 +255,8 @@ export default function LeasesHubPage() {
                                                     <span>•</span>
                                                     <span>
                                                         {isLandlord 
-                                                            ? `Tenant: ${lease.tenant?.fullname || lease.tenant?.name || "Unassigned"}`
-                                                            : `Landlord: ${lease.landlord?.fullname || lease.landlord?.name || "Lessor"}`
+                                                            ? `Tenant: ${lease.tenant?.full_name || lease.tenant?.name || "Unassigned"}`
+                                                            : `Landlord: ${lease.landlord?.full_name || lease.landlord?.name || "Lessor"}`
                                                         }
                                                     </span>
                                                 </div>

@@ -25,30 +25,13 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Refresh session if expired
-  const { data: { user } } = await supabase.auth.getUser()
+  // Verify the cookie-backed access token locally against Supabase's ES256
+  // signing key. Unlike getUser(), this does not make every navigation depend
+  // on a remote Auth request once the public signing key is cached.
+  const { data: claimsData } = await supabase.auth.getClaims()
+  const userId = claimsData?.claims.sub ?? null
 
   const { pathname } = request.nextUrl
-
-  // Public paths that never need auth
-  const publicPaths = [
-    '/',
-    '/login',
-    '/signup',
-    '/forgot-password',
-    '/reset-password',
-    '/about',
-    '/contact',
-    '/faq',
-    '/features',
-    '/landlords',
-    '/privacy',
-    '/terms',
-  ]
-
-  const isPublicPath = publicPaths.some(
-    (p) => pathname === p || pathname.startsWith('/listings') || pathname.startsWith('/_next') || pathname.startsWith('/api') || pathname.includes('.')
-  )
 
   // Dashboard routes require authentication
   const isDashboardPath = pathname.startsWith('/dashboard') || pathname.startsWith('/messages') || pathname.startsWith('/pay-bills') || pathname.startsWith('/payments') || pathname.startsWith('/kyc') || pathname.startsWith('/applications') || pathname.startsWith('/maintenance') || pathname.startsWith('/settings') || pathname.startsWith('/earnings') || pathname.startsWith('/tenants') || pathname.startsWith('/properties') || pathname.startsWith('/verification') || pathname.startsWith('/documents') || pathname.startsWith('/receipts') || pathname.startsWith('/reports') || pathname.startsWith('/analytics') || pathname.startsWith('/wallet') || pathname.startsWith('/withdrawals') || pathname.startsWith('/reviews') || pathname.startsWith('/portfolio') || pathname.startsWith('/requests') || pathname.startsWith('/my-property') || pathname.startsWith('/history') || pathname.startsWith('/provider-dashboard') || pathname.startsWith('/payment-success')
@@ -56,25 +39,25 @@ export async function middleware(request: NextRequest) {
   // Admin routes require admin role
   const isAdminPath = pathname.startsWith('/admin')
 
-  if (!user && isDashboardPath) {
+  if (!userId && isDashboardPath) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     url.searchParams.set('redirect', pathname)
     return NextResponse.redirect(url)
   }
 
-  if (!user && isAdminPath) {
+  if (!userId && isAdminPath) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
-  if (user && isAdminPath) {
+  if (userId && isAdminPath) {
     // Fetch profile to check admin role
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
-      .eq('id', user.id)
+      .eq('id', userId)
       .maybeSingle()
 
     if (!profile || profile.role !== 'admin') {
@@ -85,11 +68,11 @@ export async function middleware(request: NextRequest) {
   }
 
   // Redirect logged-in users away from auth pages to their dashboard
-  if (user && (pathname === '/login' || pathname === '/signup')) {
+  if (userId && (pathname === '/login' || pathname === '/signup')) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
-      .eq('id', user.id)
+      .eq('id', userId)
       .maybeSingle()
 
     const role = profile?.role

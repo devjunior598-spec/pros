@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { supabase } from "@/lib/supabase"
-import { useEffect, useState, useRef } from "react"
+import { useChat } from "@/components/chat/chat-provider"
 import {
     LayoutDashboard,
     Building,
@@ -12,15 +12,9 @@ import {
     Settings,
     CreditCard,
     Users,
-    Wallet,
     Wrench,
-    History,
-    Bell,
     LogOut,
     BarChart,
-    ArrowUpRight,
-    DollarSign,
-    Briefcase,
     ClipboardList,
     Image,
     Star,
@@ -36,96 +30,15 @@ interface DashboardNavProps extends React.HTMLAttributes<HTMLElement> {
 }
 
 export function DashboardNav({ className, userRole, isVerified, ...props }: DashboardNavProps) {
+    void isVerified
     const router = useRouter()
     const pathname = usePathname()
-    const [unreadCount, setUnreadCount] = useState(0)
-    const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
+    const { unreadMessageCount: unreadCount } = useChat()
 
     const handleLogout = async () => {
         await supabase.auth.signOut()
         router.push("/login")
     }
-
-    // ── Unread messages badge ───────────────────────────────────────────────────
-    useEffect(() => {
-        let userId: string | null = null
-        // Track when this session started to count "new" messages since then
-        const sessionStart = new Date().toISOString()
-
-        const fetchUnreadCount = async (uid: string) => {
-            // Get all conversations this user is part of
-            const { data: convs } = await supabase
-                .from('conversations')
-                .select('id')
-                .or(`tenant_id.eq.${uid},landlord_id.eq.${uid}`)
-
-            if (!convs || convs.length === 0) {
-                setUnreadCount(0)
-                return
-            }
-
-            const convIds = convs.map(c => c.id)
-
-            // Count messages in those conversations not sent by this user, arrived after session start
-            const { count } = await supabase
-                .from('messages')
-                .select('*', { count: 'exact', head: true })
-                .in('conversation_id', convIds)
-                .neq('sender_id', uid)
-                .gte('created_at', sessionStart)
-
-            setUnreadCount(count ?? 0)
-        }
-
-        const init = async () => {
-            try {
-                const { data } = await supabase.auth.getUser()
-                userId = data.user?.id ?? null
-            } catch {
-                return
-            }
-            if (!userId) return
-
-            // 1. Initial fetch (will be 0 at session start)
-            await fetchUnreadCount(userId)
-
-            // 2. Realtime subscription for new messages
-            channelRef.current = supabase
-                .channel(`nav-messages-${userId}`)
-                .on(
-                    'postgres_changes',
-                    {
-                        event: 'INSERT',
-                        schema: 'public',
-                        table: 'messages',
-                    },
-                    async (payload) => {
-                        // Only count if not sent by this user
-                        if (payload.new.sender_id !== userId) {
-                            setUnreadCount(prev => prev + 1)
-                        }
-                    }
-                )
-                .subscribe()
-        }
-
-        init()
-
-        return () => {
-            if (channelRef.current) {
-                supabase.removeChannel(channelRef.current)
-                channelRef.current = null
-            }
-        }
-    }, [])
-
-    // ── Reset badge when visiting messages page ─────────────────────────────────
-    useEffect(() => {
-        if (pathname === '/messages' && unreadCount > 0) {
-            // Optimistically clear — actual mark-as-read happens in the messages page
-            setUnreadCount(0)
-        }
-    }, [pathname, unreadCount])
 
     const items = [
         // Shared
@@ -143,15 +56,9 @@ export function DashboardNav({ className, userRole, isVerified, ...props }: Dash
         },
         {
             title: "Payments",
-            href: "/dashboard/payments",
+            href: "/payments",
             icon: CreditCard,
-            roles: ["landlord"],
-        },
-        {
-            title: "Rent Payments",
-            href: "/dashboard/rent-payments",
-            icon: CreditCard,
-            roles: ["tenant"],
+            roles: ["landlord", "tenant"],
         },
         {
             title: "Lease Agreements",
@@ -192,27 +99,9 @@ export function DashboardNav({ className, userRole, isVerified, ...props }: Dash
             roles: ["tenant"],
         },
         {
-            title: "My Wallet",
-            href: "/wallet",
-            icon: Wallet,
-            roles: ["tenant"],
-        },
-        {
-            title: "Pay Bills",
-            href: "/pay-bills",
-            icon: CreditCard,
-            roles: ["tenant"],
-        },
-        {
             title: "Maintenance",
             href: "/requests",
             icon: Wrench,
-            roles: ["tenant"],
-        },
-        {
-            title: "History",
-            href: "/history",
-            icon: History,
             roles: ["tenant"],
         },
         // Landlord Specific
@@ -223,21 +112,15 @@ export function DashboardNav({ className, userRole, isVerified, ...props }: Dash
             roles: ["landlord"],
         },
         {
-            title: "Tenants",
-            href: "/tenants",
-            icon: Users,
+            title: "Applications",
+            href: "/applications",
+            icon: ClipboardList,
             roles: ["landlord"],
         },
         {
-            title: "Earnings",
-            href: "/earnings",
-            icon: DollarSign,
-            roles: ["landlord", "service_provider"],
-        },
-        {
-            title: "Withdrawals",
-            href: "/withdrawals",
-            icon: ArrowUpRight,
+            title: "Tenants",
+            href: "/tenants",
+            icon: Users,
             roles: ["landlord"],
         },
         {
@@ -281,7 +164,7 @@ export function DashboardNav({ className, userRole, isVerified, ...props }: Dash
         <nav className={cn("flex flex-col space-y-1", className)} {...props}>
             {filteredItems.map((item) => {
                 const isActive = pathname === item.href
-                const showBadge = (item as any).badge && unreadCount > 0
+                const showBadge = "badge" in item && item.badge && unreadCount > 0
 
                 return (
                     <Link key={item.href} href={item.href} onClick={props.onClick}>

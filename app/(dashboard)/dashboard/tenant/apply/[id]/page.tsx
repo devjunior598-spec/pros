@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import type { User } from "@supabase/supabase-js"
 
 interface Property {
     id: string
@@ -27,7 +28,7 @@ export default function TenantApplyPage() {
     const [loading, setLoading] = useState(true)
     const [submitting, setSubmitting] = useState(false)
     const [property, setProperty] = useState<Property | null>(null)
-    const [user, setUser] = useState<any>(null)
+    const [user, setUser] = useState<User | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
 
@@ -66,9 +67,10 @@ export default function TenantApplyPage() {
                         setProperty(data)
                     }
                 }
-            } catch (err: any) {
-                if (err?.name === 'AbortError' || err?.message?.includes('aborted') || err?.message?.includes('AbortError')) return
-                console.error("Error fetching data:", err)
+            } catch (error: unknown) {
+                const message = error instanceof Error ? error.message : ""
+                if (error instanceof Error && (error.name === 'AbortError' || message.includes('aborted') || message.includes('AbortError'))) return
+                console.error("Error fetching data:", error)
                 setError("Failed to load property details")
             } finally {
                 setLoading(false)
@@ -94,30 +96,27 @@ export default function TenantApplyPage() {
         setError(null)
 
         try {
-            const { error: insertError } = await supabase
-                .from('rentals')
-                .insert({
-                    property_id: property.id,
-                    tenant_id: user.id,
-                    landlord_id: property.landlord_id,
+            const response = await fetch('/api/rentals/apply', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    propertyId: property.id,
                     employment: formData.employment,
                     income: formData.income,
                     notes: formData.notes,
-                    rent_start_date: formData.rent_start_date || null,
-                    status: 'pending'
-                })
-
-            if (insertError) throw insertError
+                    rentStartDate: formData.rent_start_date || null,
+                }),
+            })
+            const result = await response.json()
+            if (!response.ok) throw new Error(result.error || 'Failed to submit application')
 
             setSuccess(true)
             setTimeout(() => {
                 router.push("/dashboard")
             }, 2000)
-        } catch (err: any) {
-            console.error("Error submitting application object:", err)
-            console.error("Error submitting application JSON:", JSON.stringify(err, null, 2))
-
-            setError(err.message || "Failed to submit application. See console for details.")
+        } catch (error: unknown) {
+            console.error("Error submitting application:", error)
+            setError(error instanceof Error ? error.message : "Failed to submit application.")
         } finally {
             setSubmitting(false)
         }

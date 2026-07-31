@@ -15,7 +15,7 @@ import { DashboardHero } from "@/components/landlord/dashboard-hero"
 import { QuickActions } from "@/components/landlord/quick-actions"
 import { StatCard } from "@/components/landlord/stat-card"
 import { PerformanceCharts } from "@/components/landlord/performance-charts"
-import { ActivityFeed } from "@/components/landlord/activity-feed"
+import { ActivityFeed, type ActivityItem } from "@/components/landlord/activity-feed"
 
 // Old components (still used for some sections if needed, but we'll try to rely on new ones)
 import { LandlordMaintenanceList } from "@/components/landlord/landlord-maintenance-list"
@@ -41,6 +41,9 @@ function DashboardContent() {
         newApplications: 0,
         occupancyRate: 0,
     })
+    const [revenueData, setRevenueData] = useState<{ name: string; revenue: number }[]>([])
+    const [occupancyData, setOccupancyData] = useState<{ name: string; rate: number }[]>([])
+    const [activities, setActivities] = useState<ActivityItem[]>([])
 
     // Sync tab with URL
     useEffect(() => {
@@ -70,16 +73,10 @@ function DashboardContent() {
                 if (role) setUserRole(role)
 
                 if (role === 'landlord' || role === 'admin') {
-                    // 1. Revenue from paid bills
-                    const { data: billsData } = await supabase
-                        .from('bills')
-                        .select('amount_paid, rental:rentals!inner(property_id)')
-                        .eq('status', 'paid')
-
-                    // 2. Rentals & portfolio size
+                    // Rentals & portfolio size
                     const { data: rentalsData } = await supabase
                         .from('rentals')
-                        .select('status, property_id')
+                        .select('id, status, property_id')
                         .eq('landlord_id', uid)
 
                     const { count: propertyCount } = await supabase
@@ -93,12 +90,35 @@ function DashboardContent() {
                         const newApp   = landlordRentals.filter(r => r.status === 'pending').length
                         const occupancy = propertyCount ? Math.round((activeT / propertyCount) * 100) : 0
 
-                        const { data: paymentsData } = await supabase
-                            .from('payments')
-                            .select('amount, status')
-                            .eq('status', 'success')
+                        const rentalIds = landlordRentals.map(rental => rental.id)
+                        const { data: paidBills } = rentalIds.length > 0 ? await supabase
+                            .from('bills')
+                            .select('amount_paid, updated_at')
+                            .in('rental_id', rentalIds)
+                            .eq('status', 'paid') : { data: [] }
+                        const revenue = (paidBills || []).reduce((sum, bill) => sum + Number(bill.amount_paid || 0), 0)
+                        const months = Array.from({ length: 6 }, (_, index) => {
+                            const date = new Date()
+                            date.setMonth(date.getMonth() - (5 - index))
+                            return { key: `${date.getFullYear()}-${date.getMonth()}`, name: date.toLocaleDateString('en', { month: 'short' }), revenue: 0 }
+                        })
+                        for (const bill of paidBills || []) {
+                            const date = new Date(bill.updated_at)
+                            const bucket = months.find(month => month.key === `${date.getFullYear()}-${date.getMonth()}`)
+                            if (bucket) bucket.revenue += Number(bill.amount_paid || 0)
+                        }
 
-                        const revenue = paymentsData?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0
+                        const { data: notificationData } = await supabase.from('notifications')
+                            .select('id, type, title, message, created_at, read_at')
+                            .eq('user_id', uid).order('created_at', { ascending: false }).limit(8)
+                        const mappedActivities: ActivityItem[] = (notificationData || []).map(notification => ({
+                            id: notification.id,
+                            type: notification.type.includes('payment') || notification.type.includes('bill') ? 'payment' : notification.type.includes('maintenance') || notification.type.includes('quote') ? 'maintenance' : notification.type.includes('application') || notification.type.includes('rental') ? 'application' : notification.type.includes('message') ? 'message' : 'system',
+                            title: notification.title,
+                            description: notification.message,
+                            timestamp: notification.created_at,
+                            read: Boolean(notification.read_at)
+                        }))
 
                         setMetrics({
                             totalRevenue: revenue,
@@ -107,6 +127,9 @@ function DashboardContent() {
                             newApplications: newApp,
                             occupancyRate: occupancy,
                         })
+                        setRevenueData(months.map(({ name, revenue: monthlyRevenue }) => ({ name, revenue: monthlyRevenue })))
+                        setOccupancyData(propertyCount ? [{ name: 'Current', rate: occupancy }] : [])
+                        setActivities(mappedActivities)
                     }
                 }
             } catch (error: any) {
@@ -171,21 +194,19 @@ function DashboardContent() {
                     <StatCard
                         title="Total Revenue"
                         value={`₦${metrics.totalRevenue.toLocaleString()}`}
-                        description="vs last month"
+                        description="All successful rent collections"
                         icon={DollarSign}
                         iconClassName="text-blue-600 dark:text-blue-400"
-                        trend="up"
-                        trendValue="+12.5%"
+                        trend="neutral"
                         delay={0.1}
                     />
                     <StatCard
                         title="Active Tenants"
                         value={metrics.activeTenants.toString()}
-                        description="vs last month"
+                        description="Approved or active rentals"
                         icon={Users}
                         iconClassName="text-purple-600 dark:text-purple-400"
-                        trend="up"
-                        trendValue="+2"
+                        trend="neutral"
                         delay={0.2}
                     />
                     <StatCard
@@ -212,10 +233,10 @@ function DashboardContent() {
                 {/* 4. Performance Charts & Activity Feed */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="lg:col-span-2">
-                        <PerformanceCharts />
+                        <PerformanceCharts revenueData={revenueData} occupancyData={occupancyData} />
                     </div>
                     <div className="lg:col-span-1 h-[300px] lg:h-auto">
-                        <ActivityFeed />
+                        <ActivityFeed activities={activities} />
                     </div>
                 </div>
 

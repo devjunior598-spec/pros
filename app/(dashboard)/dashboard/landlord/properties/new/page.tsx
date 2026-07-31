@@ -49,7 +49,6 @@ export default function PostPropertyPage() {
         local_government: "",
         latitude: "",
         longitude: "",
-        available_date: "",
         status: "available",
         virtual_tour_url: "",
     })
@@ -167,13 +166,31 @@ export default function PostPropertyPage() {
                 imageUrls.push(publicUrl)
             }
 
-            // 8. Check the properties table insert.
+            // Preserve extended details in the description until the corresponding
+            // structured columns are deployed to the production database.
+            const extendedDetails = [
+                `Payment frequency: ${formData.frequency}`,
+                formData.toilets && `Toilets: ${formData.toilets}`,
+                formData.kitchen && `Kitchens: ${formData.kitchen}`,
+                formData.parking && `Parking spaces: ${formData.parking}`,
+                `Furnished: ${formData.furnished === "true" ? "Yes" : "No"}`,
+                formData.local_government && `Local government: ${formData.local_government}`,
+                formData.latitude && formData.longitude && `Coordinates: ${formData.latitude}, ${formData.longitude}`,
+                rules.length > 0 && `Property rules: ${rules.join("; ")}`,
+                videoUrls.length > 0 && `Video links: ${videoUrls.join(", ")}`,
+                formData.virtual_tour_url && `Virtual tour: ${formData.virtual_tour_url}`,
+            ].filter(Boolean)
+
+            const storedDescription = extendedDetails.length > 0
+                ? `${formData.description.trim()}\n\nAdditional property details\n${extendedDetails.join("\n")}`
+                : formData.description.trim()
+
+            // Insert only columns currently available in the connected production schema.
             // 9. Make sure landlord_id uses the logged-in user id.
             const { error: insertError } = await supabase.from("properties").insert({
                 title: formData.title.trim(),
-                description: formData.description.trim(),
+                description: storedDescription,
                 price: Number(formData.price),
-                frequency: formData.frequency,
                 address: formData.address.trim(),
                 city: formData.city.trim(),
                 state: formData.state.trim(),
@@ -182,26 +199,16 @@ export default function PostPropertyPage() {
                 type: formData.type,
                 bedrooms: formData.bedrooms ? Number(formData.bedrooms) : 0,
                 bathrooms: formData.bathrooms ? Number(formData.bathrooms) : 0,
-                toilets: formData.toilets ? Number(formData.toilets) : 0,
-                kitchen: formData.kitchen ? Number(formData.kitchen) : 1,
-                parking: formData.parking ? Number(formData.parking) : 0,
-                furnished: formData.furnished === "true",
-                size: formData.size ? Number(formData.size) : null,
-                square_footage: formData.square_meters ? Number(formData.square_meters) : null,
-                square_meters: formData.square_meters ? Number(formData.square_meters) : null,
+                square_footage: formData.square_meters
+                    ? Number(formData.square_meters)
+                    : formData.size
+                        ? Number(formData.size)
+                        : null,
                 amenities,
-                rules,
-                videos: videoUrls,
-                local_government: formData.local_government || null,
-                latitude: formData.latitude ? Number(formData.latitude) : null,
-                longitude: formData.longitude ? Number(formData.longitude) : null,
-                available_date: formData.available_date || null,
                 images: imageUrls,
+                image_url: imageUrls[0] || null,
                 landlord_id: user.id,
                 status: mode === "published" ? "available" : "pending",
-                publish_status: mode === "published" ? "published" : "draft",
-                verification_status: "pending",
-                virtual_tour_url: formData.virtual_tour_url || null,
             })
 
             // 12. If database insert fails, show the error.
@@ -488,10 +495,6 @@ export default function PostPropertyPage() {
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="available_date" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Available Date</Label>
-                                    <Input id="available_date" name="available_date" type="date" value={formData.available_date} onChange={handleChange} className="h-12 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl text-base md:text-sm" />
-                                </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="local_government" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Local Government</Label>
                                     <Input id="local_government" name="local_government" placeholder="Eti-Osa" value={formData.local_government} onChange={handleChange} className="h-12 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl text-base md:text-sm" />

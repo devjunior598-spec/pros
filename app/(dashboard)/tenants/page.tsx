@@ -13,7 +13,8 @@ export default function TenantsPage() {
     useEffect(() => {
         let mounted = true
         const fetchUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser()
+            const { data: { session } } = await supabase.auth.getSession()
+            const user = session?.user
             if (user && mounted) setLandlordId(user.id)
             if (mounted) setLoading(false)
         }

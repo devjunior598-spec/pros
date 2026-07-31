@@ -1,8 +1,17 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { getCurrentUserWithRole } from '@/lib/supabase-server';
 
 export async function POST(req: Request) {
     try {
+        const currentUser = await getCurrentUserWithRole();
+        if (!currentUser) {
+            return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+        }
+        if (currentUser.role !== 'tenant') {
+            return NextResponse.json({ error: 'Only tenants can verify rent payments' }, { status: 403 });
+        }
+
         const { reference, gateway } = await req.json();
 
         if (!reference || !gateway) {
@@ -85,7 +94,7 @@ export async function POST(req: Request) {
         const billId = metadata.bill_id;
         const dueDate = metadata.due_date;
 
-        if (!landlordId || !propertyId) {
+        if (!tenantId || !landlordId || !propertyId || tenantId !== currentUser.user.id) {
             return NextResponse.json({ error: 'Invalid payment metadata' }, { status: 400 });
         }
 

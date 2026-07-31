@@ -1,25 +1,35 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { paystack } from '@/lib/paystack';
+import { getCurrentUserWithRole } from '@/lib/supabase-server';
 
 export async function POST(req: Request) {
     try {
-        const { userId, amount } = await req.json();
+        const currentUser = await getCurrentUserWithRole();
+        if (!currentUser) {
+            return NextResponse.json({ success: false, message: 'Authentication required' }, { status: 401 });
+        }
+        if (currentUser.role !== 'landlord') {
+            return NextResponse.json({ success: false, message: 'Only landlords can withdraw funds' }, { status: 403 });
+        }
 
-        if (!userId || !amount) {
+        const { amount } = await req.json();
+        const withdrawalAmount = Number(amount);
+
+        if (!Number.isFinite(withdrawalAmount)) {
             return NextResponse.json({ success: false, message: 'Missing required fields' }, { status: 400 });
         }
 
         const MIN_WITHDRAWAL = 5000;
-        if (amount < MIN_WITHDRAWAL) {
+        if (withdrawalAmount < MIN_WITHDRAWAL) {
             return NextResponse.json({ success: false, message: `Minimum withdrawal amount is ₦${MIN_WITHDRAWAL.toLocaleString()}` }, { status: 400 });
         }
 
         // 1. Fetch landlord wallet and verify bank details
-        const { data: wallet, error: walletError } = await supabase
+        const { data: wallet, error: walletError } = await supabaseAdmin
             .from('landlord_wallets')
             .select('balance, recipient_code, bank_account_number, bank_name, total_withdrawn')
-            .eq('landlord_id', userId)
+            .eq('landlord_id', currentUser.user.id)
             .single();
 
         if (walletError || !wallet) {
@@ -30,19 +40,19 @@ export async function POST(req: Request) {
             return NextResponse.json({ success: false, message: 'Please link and verify your bank account first' }, { status: 400 });
         }
 
-        if (wallet.balance < amount) {
+        if (Number(wallet.balance) < withdrawalAmount) {
             return NextResponse.json({ success: false, message: 'Insufficient balance' }, { status: 400 });
         }
 
         // 2. Prepare Reference
-        const reference = `wd-${userId.substring(0, 8)}-${Date.now()}`;
+        const reference = `wd-${currentUser.user.id.substring(0, 8)}-${Date.now()}`;
 
         // 3. Log Pending Withdrawal in DB
-        const { error: withdrawError } = await supabase
+        const { error: withdrawError } = await supabaseAdmin
             .from('withdrawals')
             .insert({
-                landlord_id: userId,
-                amount: amount,
+                landlord_id: currentUser.user.id,
+                amount: withdrawalAmount,
                 status: 'pending',
                 reference: reference,
                 bank_details: {
@@ -57,7 +67,7 @@ export async function POST(req: Request) {
         let transfer;
         try {
             transfer = await paystack.initiateTransfer(
-                amount,
+                withdrawalAmount,
                 wallet.recipient_code,
                 reference,
                 `Withdrawal to ${wallet.bank_name}`
@@ -65,7 +75,7 @@ export async function POST(req: Request) {
         } catch (err: any) {
             // If initiation fails, we should ideally mark as failed or just return error
             // We'll mark as failed in DB
-            await supabase
+            await supabaseAdmin
                 .from('withdrawals')
                 .update({ status: 'failed' })
                 .eq('reference', reference);
@@ -75,23 +85,23 @@ export async function POST(req: Request) {
 
         // 5. Deduct Balance from Wallet (Optimistic)
         // We deduct now, and if it fails later (webhook), we refund.
-        const { error: deductError } = await supabase
+        const { error: deductError } = await supabaseAdmin
             .from('landlord_wallets')
             .update({
-                balance: wallet.balance - amount,
-                total_withdrawn: (wallet.total_withdrawn || 0) + amount
+                balance: Number(wallet.balance) - withdrawalAmount,
+                total_withdrawn: Number(wallet.total_withdrawn || 0) + withdrawalAmount
             })
-            .eq('landlord_id', userId);
+            .eq('landlord_id', currentUser.user.id)
 
         if (deductError) throw deductError;
 
         // 6. Log Transaction
-        await supabase
+        await supabaseAdmin
             .from('landlord_transactions')
             .insert({
-                landlord_id: userId,
+                landlord_id: currentUser.user.id,
                 type: 'debit',
-                amount: amount,
+                amount: withdrawalAmount,
                 description: `Withdrawal request to ${wallet.bank_name}`,
                 reference: reference
             });

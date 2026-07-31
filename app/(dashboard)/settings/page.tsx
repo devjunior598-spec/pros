@@ -1,40 +1,21 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { supabase } from "@/lib/supabase"
 import { ProfileSettings } from "@/components/profile-settings"
 import { AccountSettings } from "@/components/settings/account-settings"
 import { NotificationSettings } from "@/components/settings/notification-settings"
+import VerificationCenterPage from "@/app/(dashboard)/verification/page"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2, User, Key, Bell } from "lucide-react"
+import { Loader2, User, Key, Bell, ShieldCheck } from "lucide-react"
+import { useAuth } from "@/contexts/auth-context"
+import { useSearchParams } from "next/navigation"
 
 export default function SettingsPage() {
-    const [loading, setLoading] = useState(true)
-    const [user, setUser] = useState<any>(null)
-
-    useEffect(() => {
-        let mounted = true
-        const getUserInfo = async () => {
-            try {
-                const { data: { user } } = await supabase.auth.getUser()
-
-                if (user && mounted) {
-                    setUser(user)
-                }
-            } catch (error) {
-                if (mounted) {
-                    console.error("Error loading user data:", error)
-                }
-            } finally {
-                if (mounted) {
-                    setLoading(false)
-                }
-            }
-        }
-
-        getUserInfo()
-        return () => { mounted = false }
-    }, [])
+    const { user, loading } = useAuth()
+    const searchParams = useSearchParams()
+    const requestedTab = searchParams.get("tab")
+    const initialTab = ["profile", "account", "notifications", "identity"].includes(requestedTab || "")
+        ? requestedTab!
+        : "profile"
 
     if (loading) {
         return <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
@@ -53,8 +34,8 @@ export default function SettingsPage() {
                 </div>
             </div>
 
-            <Tabs defaultValue="profile" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-3 max-w-md bg-muted/50 p-1">
+            <Tabs defaultValue={initialTab} className="space-y-6">
+                <TabsList className="grid w-full grid-cols-4 max-w-xl bg-muted/50 p-1">
                     <TabsTrigger value="profile" className="flex items-center gap-2">
                         <User className="h-4 w-4" />
                         <span className="hidden sm:inline">Profile</span>
@@ -66,6 +47,10 @@ export default function SettingsPage() {
                     <TabsTrigger value="notifications" className="flex items-center gap-2">
                         <Bell className="h-4 w-4" />
                         <span className="hidden sm:inline">Notifications</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="identity" className="flex items-center gap-2">
+                        <ShieldCheck className="h-4 w-4" />
+                        <span className="hidden sm:inline">Identity</span>
                     </TabsTrigger>
                 </TabsList>
 
@@ -80,8 +65,11 @@ export default function SettingsPage() {
                 <TabsContent value="notifications" className="mt-6">
                     <NotificationSettings />
                 </TabsContent>
+
+                <TabsContent value="identity" className="mt-6">
+                    <VerificationCenterPage />
+                </TabsContent>
             </Tabs>
         </div>
     )
 }
-

@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { getCurrentUserWithRole } from '@/lib/supabase-server';
 
 export async function POST(req: Request) {
     try {
+        const currentUser = await getCurrentUserWithRole();
+        if (!currentUser) return NextResponse.json({ message: 'Authentication required' }, { status: 401 });
+        if (currentUser.role !== 'landlord') return NextResponse.json({ message: 'Only landlords can use this verification form' }, { status: 403 });
+
         const formData = await req.formData();
-        const landlordId = formData.get('landlordId') as string;
+        const landlordId = currentUser.user.id;
         const fullName = formData.get('fullName') as string;
         const phone = formData.get('phone') as string;
         const idType = formData.get('idType') as string;
@@ -15,7 +20,7 @@ export async function POST(req: Request) {
         const cacDoc = formData.get('cacDoc') as File | null;
         const addressProof = formData.get('addressProof') as File;
 
-        if (!landlordId || !idImage || !selfieImage || !addressProof) {
+        if (!idImage || !selfieImage || !addressProof) {
             return NextResponse.json({ message: 'Missing required files or fields' }, { status: 400 });
         }
 
@@ -96,8 +101,8 @@ export async function POST(req: Request) {
         });
 
         return NextResponse.json({ success: true, message: 'Landlord verification submitted successfully' });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Landlord verification submit error:', error);
-        return NextResponse.json({ message: error.message || 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ message: error instanceof Error ? error.message : 'Internal Server Error' }, { status: 500 });
     }
 }

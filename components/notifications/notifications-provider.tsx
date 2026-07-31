@@ -36,6 +36,7 @@ export const NotificationsProvider = ({ children }: { children: React.ReactNode 
     const [notifications, setNotifications] = useState<Notification[]>([])
     const [loading, setLoading] = useState(true)
     const [userId, setUserId] = useState<string | null>(null)
+    const [notificationsAvailable, setNotificationsAvailable] = useState(true)
 
     useEffect(() => {
         // Initialize user
@@ -62,8 +63,9 @@ export const NotificationsProvider = ({ children }: { children: React.ReactNode 
         if (!userId) return
 
         let isMounted = true
+        let channel: ReturnType<typeof supabase.channel> | null = null
 
-        const fetchNotifications = async () => {
+        const initializeNotifications = async () => {
             setLoading(true)
             const { data, error } = await supabase
                 .from('notifications')
@@ -73,19 +75,23 @@ export const NotificationsProvider = ({ children }: { children: React.ReactNode 
                 .limit(50) // Keep recent 50 in state
 
             if (error) {
-                console.error("Error fetching notifications:", error)
-            } else if (isMounted) {
-                setNotifications(data || [])
+                if (isMounted) {
+                    setNotifications([])
+                    setNotificationsAvailable(false)
+                    setLoading(false)
+                }
+                return
             }
-            if (isMounted) setLoading(false)
-        }
+            if (!isMounted) return
 
-        fetchNotifications()
+            setNotifications(data || [])
+            setNotificationsAvailable(true)
+            setLoading(false)
 
-        // Subscribe to real-time inserts/updates on public.notifications
-        const channel = supabase.channel(`notifications:user_id=eq.${userId}`)
+            // Subscribe only after confirming the notifications table is available.
+            channel = supabase.channel(`notifications:user_id=eq.${userId}`)
 
-        channel.on(
+            channel.on(
             'postgres_changes',
             {
                 event: 'INSERT',
@@ -103,7 +109,7 @@ export const NotificationsProvider = ({ children }: { children: React.ReactNode 
             }
         )
 
-        channel.on(
+            channel.on(
             'postgres_changes',
             {
                 event: 'UPDATE',
@@ -119,15 +125,19 @@ export const NotificationsProvider = ({ children }: { children: React.ReactNode 
             }
         )
 
-        channel.subscribe()
+            channel.subscribe()
+        }
+
+        initializeNotifications()
 
         return () => {
             isMounted = false
-            supabase.removeChannel(channel)
+            if (channel) supabase.removeChannel(channel)
         }
     }, [userId])
 
     const markAsRead = async (id: string) => {
+        if (!notificationsAvailable) return
         // Optimistic UI update
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, read_at: new Date().toISOString() } : n))
 
@@ -139,6 +149,7 @@ export const NotificationsProvider = ({ children }: { children: React.ReactNode 
     }
 
     const markAllAsRead = async () => {
+        if (!notificationsAvailable) return
         const now = new Date().toISOString()
         setNotifications(prev => prev.map(n => ({ ...n, read_at: n.read_at ? n.read_at : now })))
 

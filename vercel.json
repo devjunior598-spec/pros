@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/wallet/auto-refill/process",
+      "schedule": "0 * * * *"
+    }
+  ]
+}

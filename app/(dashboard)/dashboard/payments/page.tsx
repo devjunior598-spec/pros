@@ -95,7 +95,11 @@ export default function LandlordPaymentsPage() {
     const fetchPageData = useCallback(async () => {
         setLoading(true)
         try {
-            const { data: { user } } = await supabase.auth.getUser()
+            // The middleware has already validated the cookie-backed session for
+            // this protected route. Reading it locally avoids blocking the page on
+            // an additional Auth network request.
+            const { data: { session } } = await supabase.auth.getSession()
+            const user = session?.user
             if (!user) {
                 router.push("/login")
                 return
@@ -109,18 +113,31 @@ export default function LandlordPaymentsPage() {
                 .single()
             setProfile(prof)
 
-            // 2. Fetch Rent Payments where landlord_id = user.id
-            // We join property and tenant profiles
+            // 2. Fetch payments from the deployed transaction ledger. Some
+            // environments do not yet have the newer rent_payments migration, so
+            // normalize the established payments schema for this page.
             const { data: payLogs, error: payError } = await supabase
-                .from("rent_payments")
-                .select("*, property:properties(title, address), tenant:profiles!tenant_id(name, email)")
+                .from("payments")
+                .select("*")
                 .eq("landlord_id", user.id)
                 .order("created_at", { ascending: false })
 
             if (payError) {
-                console.error("Rent payments fetch error:", payError)
+                throw new Error(`Unable to load payments: ${payError.message}`, {
+                    cause: payError
+                })
             }
-            const activePayments = payLogs || []
+            const activePayments = (payLogs || []).map(payment => ({
+                ...payment,
+                payment_status:
+                    payment.status === "success" ? "Paid" :
+                    payment.status === "failed" ? "Failed" :
+                    payment.status === "refunded" ? "Refunded" : "Pending",
+                transaction_reference: payment.reference,
+                payment_date: payment.created_at,
+                property: null,
+                tenant: null
+            }))
             setPayments(activePayments)
 
             // 3. Fetch Outstanding invoices (bills) for properties owned by this landlord

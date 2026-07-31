@@ -1,7 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { supabase } from "@/lib/supabase"
+import { useState } from "react"
 import { Loader2, PlusCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -15,38 +14,12 @@ import {
 import { LandlordMaintenanceList } from "@/components/landlord/landlord-maintenance-list"
 import { MaintenanceRequestList } from "@/components/tenant/maintenance-request-list"
 import { MaintenanceRequestForm } from "@/components/tenant/maintenance-request-form"
+import { useAuth } from "@/contexts/auth-context"
 
 export default function MaintenancePage() {
-    const [userId, setUserId] = useState<string | null>(null)
-    const [userRole, setUserRole] = useState<string | null>(null)
-    const [loading, setLoading] = useState(true)
+    const { user, profile, loading } = useAuth()
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [refreshKey, setRefreshKey] = useState(0)
-
-    useEffect(() => {
-        const fetchUser = async () => {
-            try {
-                const { data: { user } } = await supabase.auth.getUser()
-                if (user) {
-                    setUserId(user.id)
-                    const { data: profile } = await supabase
-                        .from('profiles')
-                        .select('role')
-                        .eq('id', user.id)
-                        .single()
-
-                    if (profile) {
-                        setUserRole(profile.role)
-                    }
-                }
-            } catch (error) {
-                console.error("Error fetching user:", error)
-            } finally {
-                setLoading(false)
-            }
-        }
-        fetchUser()
-    }, [])
 
     const handleSuccess = () => {
         setRefreshKey(prev => prev + 1)
@@ -61,9 +34,12 @@ export default function MaintenancePage() {
         )
     }
 
-    if (!userId) {
+    if (!user) {
         return <div>Please log in to view maintenance requests.</div>
     }
+
+    const userId = user.id
+    const userRole = profile?.role
 
     return (
         <div className="space-y-6">

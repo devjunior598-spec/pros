@@ -1,8 +1,17 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { getCurrentUserWithRole } from '@/lib/supabase-server';
 
 export async function POST(req: Request) {
     try {
+        const currentUser = await getCurrentUserWithRole();
+        if (!currentUser) {
+            return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+        }
+        if (currentUser.role !== 'landlord') {
+            return NextResponse.json({ error: 'Only landlords can approve bank transfers' }, { status: 403 });
+        }
+
         const body = await req.json();
         const { paymentId, action, rejectionReason } = body;
 
@@ -15,6 +24,7 @@ export async function POST(req: Request) {
             .from('rent_payments')
             .select('*, property:properties(title)')
             .eq('id', paymentId)
+            .eq('landlord_id', currentUser.user.id)
             .maybeSingle();
 
         if (fetchError || !payment) {

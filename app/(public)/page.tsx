@@ -17,11 +17,9 @@ import {
   MessageSquare,
   Search,
   ShieldCheck,
-  Star,
   Wallet,
   Wrench,
 } from "lucide-react"
-import { supabase } from "@/lib/supabase"
 
 interface StatItem {
   label: string
@@ -69,24 +67,19 @@ function Section({ children, className = "", id = "" }: { children: React.ReactN
 
 export default function HomePage() {
   const [stats, setStats] = useState({ properties: 0, tenants: 0, landlords: 0, txns: 0 })
+  const [featuredProperties, setFeaturedProperties] = useState<Array<{ id: string; title: string; price: number; address: string | null; city: string | null; bedrooms: number | null; bathrooms: number | null; images: string[] | null; image_url: string | null }>>([])
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [{ count: props }, { count: tenants }, { count: landlords }] = await Promise.all([
-          supabase.from("properties").select("*", { count: "exact", head: true }),
-          supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "tenant"),
-          supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "landlord"),
-        ])
-
-        setStats({
-          properties: (props ?? 0) + 1200,
-          tenants: (tenants ?? 0) + 4500,
-          landlords: (landlords ?? 0) + 320,
-          txns: 98,
-        })
+        const response = await fetch("/api/public/home", { cache: "no-store" })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.error || "Unable to load homepage data")
+        setStats(result.stats)
+        setFeaturedProperties(result.featuredProperties)
       } catch {
-        setStats({ properties: 1200, tenants: 4500, landlords: 320, txns: 98 })
+        setStats({ properties: 0, tenants: 0, landlords: 0, txns: 0 })
+        setFeaturedProperties([])
       }
     }
 
@@ -95,39 +88,9 @@ export default function HomePage() {
 
   const statItems: StatItem[] = [
     { label: "Properties Managed", value: String(stats.properties) },
-    { label: "Active Tenants", value: String(stats.tenants) },
+    { label: "Registered Tenants", value: String(stats.tenants) },
     { label: "Verified Landlords", value: String(stats.landlords) },
-    { label: "Monthly Transactions", value: String(stats.txns), suffix: "+" },
-  ]
-
-  const featuredProperties = [
-    {
-      title: "Luxury 3-Bed Apartment",
-      price: "₦24,500,000",
-      location: "Lekki Phase 1, Lagos",
-      beds: 3,
-      baths: 3,
-      image: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80",
-      badge: "Verified",
-    },
-    {
-      title: "Modern Townhouse",
-      price: "₦18,200,000",
-      location: "Gwarinpa, Abuja",
-      beds: 4,
-      baths: 4,
-      image: "https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=1200&q=80",
-      badge: "New Listing",
-    },
-    {
-      title: "Executive Penthouse",
-      price: "₦36,000,000",
-      location: "Victoria Island, Lagos",
-      beds: 4,
-      baths: 5,
-      image: "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80",
-      badge: "Featured",
-    },
+    { label: "Transactions (30 days)", value: String(stats.txns) },
   ]
 
   const tenantBenefits = [
@@ -160,23 +123,6 @@ export default function HomePage() {
     { icon: <Building2 className="h-5 w-5" />, title: "Inspection booking", description: "Coordinate visits and keep a clear history of property activity." },
   ]
 
-  const testimonials = [
-    {
-      name: "Adaeze Okafor",
-      role: "Landlord, Lagos",
-      quote: "PRMS gave me clarity across my portfolio. I can review rent, maintenance, and tenant communication without chasing updates.",
-    },
-    {
-      name: "Emeka Ibe",
-      role: "Tenant, Abuja",
-      quote: "I found a verified apartment quickly and completed the process without stress. The platform feels professional and dependable.",
-    },
-    {
-      name: "Fatima Yusuf",
-      role: "Property Manager",
-      quote: "The dashboard is simple, calm, and efficient. It helps us stay responsive and organised for every property we manage.",
-    },
-  ]
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -282,34 +228,34 @@ export default function HomePage() {
               </Link>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-3">
+            {featuredProperties.length === 0 ? <div className="rounded-xl border border-dashed border-border py-12 text-center text-sm text-prms-slate">No available properties have been published yet.</div> : <div className="grid gap-6 lg:grid-cols-3">
               {featuredProperties.map((property) => (
-                <div key={property.title} className="overflow-hidden rounded-xl border border-border bg-white shadow-sm transition-shadow hover:shadow-md">
+                <div key={property.id} className="overflow-hidden rounded-xl border border-border bg-white shadow-sm transition-shadow hover:shadow-md">
                   <div className="relative h-52">
-                    <Image src={property.image} alt={property.title} fill className="object-cover" />
+                    <Image src={property.images?.[0] || property.image_url || "/hero-bg.png"} alt={property.title} fill className="object-cover" />
                     <div className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-prms-emerald shadow-sm">
-                      <ShieldCheck className="h-3 w-3" /> {property.badge}
+                      <ShieldCheck className="h-3 w-3" /> Available
                     </div>
                   </div>
                   <div className="p-5">
                     <div className="flex items-start justify-between gap-3">
                       <h3 className="text-lg font-semibold text-prms-navy">{property.title}</h3>
-                      <span className="shrink-0 rounded-md bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">{property.price}</span>
+                      <span className="shrink-0 rounded-md bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">₦{Number(property.price || 0).toLocaleString()}</span>
                     </div>
                     <div className="mt-2 flex items-center text-sm text-prms-slate">
-                      <MapPin className="mr-1.5 h-4 w-4" /> {property.location}
+                      <MapPin className="mr-1.5 h-4 w-4" /> {[property.address, property.city].filter(Boolean).join(", ") || "Location pending"}
                     </div>
                     <div className="mt-3 flex items-center gap-4 text-sm text-prms-slate">
-                      <span className="flex items-center"><BedDouble className="mr-1.5 h-4 w-4" /> {property.beds} beds</span>
-                      <span className="flex items-center"><Bath className="mr-1.5 h-4 w-4" /> {property.baths} baths</span>
+                      <span className="flex items-center"><BedDouble className="mr-1.5 h-4 w-4" /> {property.bedrooms || 0} beds</span>
+                      <span className="flex items-center"><Bath className="mr-1.5 h-4 w-4" /> {property.bathrooms || 0} baths</span>
                     </div>
-                    <Link href="/listings" className="mt-4 inline-flex items-center text-sm font-medium text-prms-blue transition hover:text-blue-700">
+                    <Link href={`/listings/${property.id}`} className="mt-4 inline-flex items-center text-sm font-medium text-prms-blue transition hover:text-blue-700">
                       View Details <ArrowRight className="ml-1.5 h-4 w-4" />
                     </Link>
                   </div>
                 </div>
               ))}
-            </div>
+            </div>}
           </div>
         </Section>
 
@@ -383,35 +329,6 @@ export default function HomePage() {
                   </div>
                   <h3 className="mt-4 text-base font-semibold text-prms-navy">{feature.title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-prms-slate">{feature.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Section>
-
-        {/* Testimonials */}
-        <Section className="py-16 sm:py-20">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-2xl text-center">
-              <p className="text-sm font-medium text-prms-blue">Testimonials</p>
-              <h2 className="mt-1 text-2xl font-semibold tracking-tight text-prms-navy sm:text-3xl">
-                Trusted by landlords, tenants, and property teams
-              </h2>
-            </div>
-
-            <div className="mt-10 grid gap-5 lg:grid-cols-3">
-              {testimonials.map((testimonial) => (
-                <div key={testimonial.name} className="rounded-xl border border-border bg-white p-6 shadow-sm">
-                  <div className="flex items-center gap-0.5 text-amber-400">
-                    {Array.from({ length: 5 }).map((_, index) => (
-                      <Star key={index} className="h-4 w-4 fill-current" />
-                    ))}
-                  </div>
-                  <p className="mt-4 text-sm leading-relaxed text-prms-slate">&ldquo;{testimonial.quote}&rdquo;</p>
-                  <div className="mt-5 border-t border-border pt-4">
-                    <p className="font-medium text-prms-navy">{testimonial.name}</p>
-                    <p className="text-sm text-prms-slate">{testimonial.role}</p>
-                  </div>
                 </div>
               ))}
             </div>

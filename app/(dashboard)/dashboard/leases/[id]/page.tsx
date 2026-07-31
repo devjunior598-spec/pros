@@ -35,6 +35,7 @@ export default function LeaseDetailsPage() {
     const [loading, setLoading] = useState(true)
     const [profile, setProfile] = useState<any>(null)
     const [lease, setLease] = useState<any>(null)
+    const [inspectionCompleted, setInspectionCompleted] = useState(false)
     const [signing, setSigning] = useState(false)
 
     const fetchLeaseDetails = useCallback(async () => {
@@ -62,6 +63,7 @@ export default function LeaseDetailsPage() {
                 throw new Error(result.error || "Failed to fetch lease details.")
             }
             setLease(result.lease)
+            setInspectionCompleted(Boolean(result.inspectionCompleted))
 
         } catch (error: any) {
             console.error(error)
@@ -90,7 +92,7 @@ export default function LeaseDetailsPage() {
                     leaseId: lease.id,
                     userId: profile.id,
                     role: profile.role, // 'landlord' or 'tenant'
-                    signerName: profile.fullname || profile.name || "Signer",
+                    signerName: profile.full_name || profile.name || "Signer",
                     signatureType: sigData.signatureType,
                     signatureValue: sigData.signatureValue
                 })
@@ -116,10 +118,10 @@ export default function LeaseDetailsPage() {
             const doc = generateLeasePDF({
                 title: lease.title,
                 templateType: lease.template_type,
-                landlordName: lease.landlord?.fullname || lease.landlord?.name || 'Landlord',
+                landlordName: lease.landlord?.full_name || lease.landlord?.name || 'Landlord',
                 landlordEmail: lease.landlord?.email || '',
                 landlordPhone: lease.landlord?.phone || '',
-                tenantName: lease.tenant?.fullname || lease.tenant?.name || 'Tenant',
+                tenantName: lease.tenant?.full_name || lease.tenant?.name || 'Tenant',
                 tenantEmail: lease.tenant?.email || '',
                 tenantPhone: lease.tenant?.phone || '',
                 propertyName: lease.property?.title || 'Property',
@@ -157,7 +159,8 @@ export default function LeaseDetailsPage() {
 
     const mySigSigned = isLandlord ? landlordSigned : tenantSigned
     // User can sign if lease status is not Draft, fully signed, cancelled, and they haven't signed yet
-    const canSign = lease.status !== "Draft" && lease.status !== "Fully Signed" && lease.status !== "Cancelled" && !mySigSigned
+    const tenantNeedsInspection = !isLandlord && !inspectionCompleted
+    const canSign = lease.status !== "Draft" && lease.status !== "Fully Signed" && lease.status !== "Cancelled" && !mySigSigned && !tenantNeedsInspection
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 pb-20">
@@ -208,12 +211,12 @@ export default function LeaseDetailsPage() {
                                     <div className="grid gap-3 sm:grid-cols-2 p-3 rounded-xl border bg-slate-50 dark:bg-slate-950/40">
                                         <div>
                                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Landlord (Lessor)</p>
-                                            <p className="font-bold text-slate-800 dark:text-slate-200 mt-0.5">{lease.landlord?.fullname || lease.landlord?.name}</p>
+                                            <p className="font-bold text-slate-800 dark:text-slate-200 mt-0.5">{lease.landlord?.full_name || lease.landlord?.name}</p>
                                             <p className="text-[11px] text-slate-400 font-semibold">{lease.landlord?.email}</p>
                                         </div>
                                         <div>
                                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tenant (Lessee)</p>
-                                            <p className="font-bold text-slate-800 dark:text-slate-200 mt-0.5">{lease.tenant?.fullname || lease.tenant?.name || "Unassigned"}</p>
+                                            <p className="font-bold text-slate-800 dark:text-slate-200 mt-0.5">{lease.tenant?.full_name || lease.tenant?.name || "Unassigned"}</p>
                                             <p className="text-[11px] text-slate-400 font-semibold">{lease.tenant?.email}</p>
                                         </div>
                                     </div>
@@ -319,6 +322,23 @@ export default function LeaseDetailsPage() {
                             </div>
                         </Card>
 
+                        {tenantNeedsInspection && !mySigSigned && (
+                            <Card className="border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30 shadow-sm rounded-2xl overflow-hidden">
+                                <CardContent className="p-5 space-y-3">
+                                    <div className="flex items-start gap-3">
+                                        <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                                        <div className="space-y-1">
+                                            <p className="text-sm font-extrabold text-amber-900 dark:text-amber-100">Property inspection required</p>
+                                            <p className="text-xs text-amber-800 dark:text-amber-200">You must attend a property inspection and have the landlord mark it completed before you can sign this lease agreement.</p>
+                                        </div>
+                                    </div>
+                                    <Button type="button" variant="outline" className="w-full border-amber-300 bg-white hover:bg-amber-100 dark:bg-slate-950" onClick={() => router.push("/dashboard/inspections")}>
+                                        View or schedule inspection
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        )}
+
                         {/* Embed Signature Pad if needed */}
                         {canSign ? (
                             <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-md rounded-2xl overflow-hidden">
@@ -330,7 +350,7 @@ export default function LeaseDetailsPage() {
                                 </CardHeader>
                                 <CardContent className="p-5">
                                     <DigitalSignaturePad 
-                                        signerName={profile.fullname || profile.name || ""} 
+                                        signerName={profile.full_name || profile.name || ""} 
                                         onSign={handleSignLease}
                                         processing={signing}
                                     />

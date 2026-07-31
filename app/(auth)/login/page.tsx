@@ -35,7 +35,7 @@ export default function LoginPage() {
         setError(null)
         setNeedsConfirm(false)
         try {
-            const { error } = await supabase.auth.signInWithPassword({
+            const { data: signInData, error } = await supabase.auth.signInWithPassword({
                 email: formData.email,
                 password: formData.password,
             })
@@ -50,11 +50,10 @@ export default function LoginPage() {
                 }
                 throw error
             }
-            const { data: userData } = await supabase.auth.getUser()
             const { data: profile } = await supabase
                 .from("profiles")
                 .select("role")
-                .eq("id", userData.user?.id)
+                .eq("id", signInData.user.id)
                 .maybeSingle()
 
             const pendingPropId = localStorage.getItem("pending_application_id")

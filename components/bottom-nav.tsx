@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { useChat } from "@/components/chat/chat-provider"
 import {
     LayoutDashboard,
     Wallet,
@@ -20,6 +21,7 @@ interface BottomNavProps {
 
 export function BottomNav({ userRole }: BottomNavProps) {
     const pathname = usePathname()
+    const { unreadMessageCount } = useChat()
 
     const tenantItems = [
         { title: "Home", href: "/dashboard", icon: LayoutDashboard },
@@ -60,10 +62,14 @@ export function BottomNav({ userRole }: BottomNavProps) {
                             href={item.href}
                             className="inline-flex min-h-[48px] flex-col items-center justify-center transition-colors active:scale-95"
                         >
-                            <item.icon className={cn(
-                                "mb-0.5 h-5 w-5 transition-colors",
-                                isActive ? "text-primary" : "text-muted-foreground"
-                            )} />
+                            <span className="relative">
+                                <item.icon className={cn("mb-0.5 h-5 w-5 transition-colors", isActive ? "text-primary" : "text-muted-foreground")} />
+                                {item.href === "/messages" && unreadMessageCount > 0 && (
+                                    <span className="absolute -right-2.5 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold leading-none text-white shadow-sm">
+                                        {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
+                                    </span>
+                                )}
+                            </span>
                             <span className={cn(
                                 "text-[10px] transition-colors",
                                 isActive ? "font-semibold text-primary" : "text-muted-foreground"

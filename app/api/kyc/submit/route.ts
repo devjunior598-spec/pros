@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { getCurrentUserWithRole } from '@/lib/supabase-server';
 
 export async function POST(req: Request) {
     try {
+        const currentUser = await getCurrentUserWithRole();
+        if (!currentUser) return NextResponse.json({ message: 'Authentication required' }, { status: 401 });
+        if (currentUser.role !== 'tenant') return NextResponse.json({ message: 'Only tenants can use this verification form' }, { status: 403 });
+
         const formData = await req.formData();
-        const userId = formData.get('userId') as string;
+        const userId = currentUser.user.id;
         const fullName = formData.get('fullName') as string;
         const phone = formData.get('phone') as string;
         const dob = formData.get('dob') as string;
@@ -21,7 +26,7 @@ export async function POST(req: Request) {
         const emergencyContactPhone = formData.get('emergencyContactPhone') as string || '';
         const emergencyContactRelationship = formData.get('emergencyContactRelationship') as string || '';
 
-        if (!userId || !idImage || !selfieImage) {
+        if (!idImage || !selfieImage) {
             return NextResponse.json({ message: 'Missing required data' }, { status: 400 });
         }
 
@@ -95,8 +100,8 @@ export async function POST(req: Request) {
         });
 
         return NextResponse.json({ success: true, message: 'KYC submitted successfully' });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('KYC Submission Error:', error);
-        return NextResponse.json({ message: error.message || 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ message: error instanceof Error ? error.message : 'Internal Server Error' }, { status: 500 });
     }
 }

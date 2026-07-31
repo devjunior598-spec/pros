@@ -23,8 +23,6 @@ function hasActiveFilters(
   priceRange: string,
   bedrooms: string,
   bathrooms: string,
-  furnished: string,
-  verifiedOnly: boolean,
   availableNow: boolean,
   showSavedOnly: boolean
 ) {
@@ -34,8 +32,6 @@ function hasActiveFilters(
     priceRange !== "all" ||
     bedrooms !== "all" ||
     bathrooms !== "all" ||
-    furnished !== "all" ||
-    verifiedOnly ||
     availableNow ||
     showSavedOnly
   )
@@ -92,8 +88,6 @@ function ListingsContent() {
   const [priceRange, setPriceRange] = useState<string>("all")
   const [bedrooms, setBedrooms] = useState<string>("all")
   const [bathrooms, setBathrooms] = useState<string>("all")
-  const [furnished, setFurnished] = useState<string>("all")
-  const [verifiedOnly, setVerifiedOnly] = useState(false)
   const [availableNow, setAvailableNow] = useState(false)
   const [showSavedOnly, setShowSavedOnly] = useState(false)
   const [savedIds, setSavedIds] = useState<string[]>([])
@@ -125,7 +119,6 @@ function ListingsContent() {
           .from("properties")
           .select("*")
           .eq("status", "available")
-          .eq("verification_status", "approved")
 
         if (searchQuery.trim()) {
           const q = searchQuery.trim()
@@ -154,16 +147,8 @@ function ListingsContent() {
           }
         }
 
-        if (furnished !== "all") {
-          query = query.eq("furnished", furnished === "furnished")
-        }
-
-        if (verifiedOnly) {
-          query = query.eq("verification_status", "approved")
-        }
-
         if (availableNow) {
-          query = query.lte("available_date", new Date().toISOString().slice(0, 10))
+          query = query.eq("status", "available")
         }
 
         if (priceRange !== "all") {
@@ -203,7 +188,7 @@ function ListingsContent() {
         }
       }
     },
-    [searchQuery, propertyType, priceRange, bedrooms, bathrooms, furnished, verifiedOnly, availableNow, showSavedOnly, savedIds]
+    [searchQuery, propertyType, priceRange, bedrooms, bathrooms, availableNow, showSavedOnly, savedIds]
   )
 
   // Sync search params
@@ -214,13 +199,11 @@ function ListingsContent() {
 
   // Debounced fetch
   useEffect(() => {
-    let mounted = true
     const timer = setTimeout(() => {
       fetchProperties()
     }, 300)
     return () => {
       clearTimeout(timer)
-      mounted = false
     }
   }, [fetchProperties])
 
@@ -230,8 +213,6 @@ function ListingsContent() {
     setPriceRange("all")
     setBedrooms("all")
     setBathrooms("all")
-    setFurnished("all")
-    setVerifiedOnly(false)
     setAvailableNow(false)
     setShowSavedOnly(false)
   }
@@ -242,8 +223,6 @@ function ListingsContent() {
     priceRange,
     bedrooms,
     bathrooms,
-    furnished,
-    verifiedOnly,
     availableNow,
     showSavedOnly
   )
@@ -251,8 +230,8 @@ function ListingsContent() {
   return (
     <PublicPageShell
       pageTitle="Browse Properties"
-      pageSubtitle="Discover verified rental properties across Nigeria."
-      badge="Verified Listings"
+      pageSubtitle="Discover available rental properties across Nigeria."
+      badge="Property Marketplace"
       showBanner={true}
     >
       <div className="mx-auto max-w-7xl px-4 pb-20 md:px-8">
@@ -340,16 +319,6 @@ function ListingsContent() {
                 <option value="3+">3+ Baths</option>
               </FilterSelect>
 
-              <FilterSelect
-                label="Furnished"
-                value={furnished}
-                onChange={setFurnished}
-              >
-                <option value="all">Any</option>
-                <option value="furnished">Furnished</option>
-                <option value="unfurnished">Unfurnished</option>
-              </FilterSelect>
-
               {/* Saved toggle */}
               <div className="flex flex-col gap-1">
                 <label className="px-1 text-xs font-medium text-muted-foreground">Saved</label>
@@ -369,9 +338,6 @@ function ListingsContent() {
               <div className="flex flex-col gap-1">
                 <label className="px-1 text-xs font-medium text-muted-foreground">Extras</label>
                 <div className="flex flex-wrap gap-2">
-                  <button onClick={() => setVerifiedOnly(!verifiedOnly)} className={`h-10 rounded-lg border px-3 text-sm font-medium transition-all ${verifiedOnly ? "border-prms-emerald bg-prms-emerald text-white" : "border-border bg-secondary/30 text-muted-foreground hover:bg-secondary"}`}>
-                    Verified Only
-                  </button>
                   <button onClick={() => setAvailableNow(!availableNow)} className={`h-10 rounded-lg border px-3 text-sm font-medium transition-all ${availableNow ? "border-primary bg-primary text-white" : "border-border bg-secondary/30 text-muted-foreground hover:bg-secondary"}`}>
                     Available Now
                   </button>

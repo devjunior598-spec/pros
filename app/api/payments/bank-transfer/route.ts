@@ -1,13 +1,38 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { getCurrentUserWithRole } from '@/lib/supabase-server';
 
 export async function POST(req: Request) {
     try {
-        const body = await req.json();
-        const { propertyId, tenantId, landlordId, amount, reference, dueDate, billId } = body;
+        const currentUser = await getCurrentUserWithRole();
+        if (!currentUser) {
+            return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+        }
+        if (currentUser.role !== 'tenant') {
+            return NextResponse.json({ error: 'Only tenants can submit bank transfer references' }, { status: 403 });
+        }
 
-        if (!propertyId || !landlordId || !amount || !reference) {
+        const body = await req.json();
+        const { amount, reference, billId } = body;
+        const paymentAmount = Number(amount);
+
+        if (!billId || !reference || !Number.isFinite(paymentAmount) || paymentAmount <= 0) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+        }
+
+        const { data: bill } = await supabaseAdmin
+            .from('bills')
+            .select('id, amount, amount_paid, due_date, status, rental:rentals!inner(tenant_id, landlord_id, property_id)')
+            .eq('id', billId)
+            .maybeSingle();
+
+        if (!bill || bill.rental?.tenant_id !== currentUser.user.id) {
+            return NextResponse.json({ error: 'You can only submit payments for your own bills' }, { status: 403 });
+        }
+
+        const outstandingAmount = Number(bill.amount) - Number(bill.amount_paid || 0);
+        if (paymentAmount > outstandingAmount || bill.status === 'paid') {
+            return NextResponse.json({ error: 'Payment amount exceeds the outstanding bill balance' }, { status: 400 });
         }
 
         // 1. Check if reference already used
@@ -25,15 +50,15 @@ export async function POST(req: Request) {
         const { data: paymentRecord, error: insertError } = await supabaseAdmin
             .from('rent_payments')
             .insert({
-                tenant_id: tenantId || null,
-                landlord_id: landlordId,
-                property_id: propertyId,
-                bill_id: billId || null,
-                amount: amount,
+                tenant_id: currentUser.user.id,
+                landlord_id: bill.rental.landlord_id,
+                property_id: bill.rental.property_id,
+                bill_id: bill.id,
+                amount: paymentAmount,
                 payment_method: 'Bank Transfer Reference',
                 transaction_reference: reference,
                 payment_status: 'Pending',
-                due_date: dueDate || null
+                due_date: bill.due_date || null
             })
             .select()
             .single();
@@ -52,14 +77,14 @@ export async function POST(req: Request) {
         const { data: propertyData } = await supabaseAdmin
             .from('properties')
             .select('title')
-            .eq('id', propertyId)
+            .eq('id', bill.rental.property_id)
             .maybeSingle();
 
         await supabaseAdmin.rpc('create_notification', {
-            p_user_id: landlordId,
+            p_user_id: bill.rental.landlord_id,
             p_type: 'bank_transfer_submitted',
             p_title: 'Bank Transfer Submitted',
-            p_message: `Tenant submitted a bank transfer of ₦${amount.toLocaleString()} for "${propertyData?.title || 'Property'}" with ref: ${reference}.`,
+            p_message: `Tenant submitted a bank transfer of ₦${paymentAmount.toLocaleString()} for "${propertyData?.title || 'Property'}" with ref: ${reference}.`,
             p_link: '/dashboard/payments'
         });
 

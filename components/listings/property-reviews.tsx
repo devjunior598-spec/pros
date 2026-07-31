@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
-import { Star, User } from 'lucide-react'
+import { Star } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 
@@ -109,6 +110,7 @@ function ReviewSkeleton() {
 export function PropertyReviews({ propertyId, currentUserId }: PropertyReviewsProps) {
   const [reviews, setReviews] = useState<Review[]>([])
   const [loading, setLoading] = useState(true)
+  const [reviewsAvailable, setReviewsAvailable] = useState(true)
   const [hasReviewed, setHasReviewed] = useState(false)
   const [showForm, setShowForm] = useState(false)
 
@@ -145,8 +147,11 @@ export function PropertyReviews({ propertyId, currentUserId }: PropertyReviewsPr
       if (currentUserId) {
         setHasReviewed(typedData.some((r) => r.reviewer_id === currentUserId))
       }
-    } catch (err) {
-      console.error('Error fetching reviews:', err)
+    } catch {
+      // The reviews migration is optional in older deployments. Hide this
+      // section instead of presenting a broken review form or logging noise.
+      setReviewsAvailable(false)
+      setReviews([])
     } finally {
       setLoading(false)
     }
@@ -181,8 +186,8 @@ export function PropertyReviews({ propertyId, currentUserId }: PropertyReviewsPr
       setComment('')
       setShowForm(false)
       await fetchReviews()
-    } catch (err: any) {
-      setSubmitError(err.message || 'Failed to submit review.')
+    } catch (error: unknown) {
+      setSubmitError(error instanceof Error ? error.message : 'Failed to submit review.')
     } finally {
       setSubmitting(false)
     }
@@ -192,6 +197,8 @@ export function PropertyReviews({ propertyId, currentUserId }: PropertyReviewsPr
     reviews.length > 0
       ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
       : 0
+
+  if (!loading && !reviewsAvailable) return null
 
   return (
     <div className="space-y-6 pt-6 border-t border-slate-200 dark:border-slate-800">
@@ -323,9 +330,11 @@ export function PropertyReviews({ propertyId, currentUserId }: PropertyReviewsPr
                   {/* Avatar */}
                   <div className="h-9 w-9 rounded-full flex-shrink-0 overflow-hidden border border-slate-800 bg-slate-800 flex items-center justify-center">
                     {reviewer?.profile_image_url ? (
-                      <img
+                      <Image
                         src={reviewer.profile_image_url}
                         alt={reviewer.name}
+                        width={36}
+                        height={36}
                         className="h-full w-full object-cover"
                       />
                     ) : (

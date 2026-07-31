@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -9,6 +10,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
 import { RoleGuard } from "@/components/role-guard"
 import {
@@ -20,9 +23,28 @@ import {
     Briefcase,
     Calendar,
     Save,
-    Loader2,
-    Users
+    Loader2
 } from "lucide-react"
+
+type LeaseProperty = {
+    id: string
+    title: string
+    address: string | null
+    status?: string | null
+}
+
+type LeaseTenant = {
+    id: string
+    name?: string | null
+    email: string | null
+    full_name?: string | null
+}
+
+type TenantAssignment = {
+    rentalId: string
+    propertyId: string
+    tenant: LeaseTenant
+}
 
 // Preset details for templates
 const TEMPLATE_PRESETS: Record<string, { terms: string; rules: string[] }> = {
@@ -66,8 +88,9 @@ export default function LeaseBuilderPage() {
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [landlordId, setLandlordId] = useState<string | null>(null)
-    const [properties, setProperties] = useState<any[]>([])
-    const [tenants, setTenants] = useState<any[]>([])
+    const [properties, setProperties] = useState<LeaseProperty[]>([])
+    const [tenantAssignments, setTenantAssignments] = useState<TenantAssignment[]>([])
+    const [optionsError, setOptionsError] = useState("")
 
     // Form State
     const [title, setTitle] = useState("")
@@ -82,6 +105,16 @@ export default function LeaseBuilderPage() {
     const [terms, setTerms] = useState("")
     const [rules, setRules] = useState<string[]>([])
     const [newRule, setNewRule] = useState("")
+    const [rentDueDay, setRentDueDay] = useState("1")
+    const [gracePeriod, setGracePeriod] = useState("5")
+    const [lateFeePercent, setLateFeePercent] = useState("5")
+    const [renewalType, setRenewalType] = useState("fixed")
+    const [noticePeriod, setNoticePeriod] = useState("30")
+    const [utilities, setUtilities] = useState("Tenant pays electricity, water, waste disposal, and internet charges.")
+    const [reviewed, setReviewed] = useState(false)
+    const [previewOpen, setPreviewOpen] = useState(false)
+    const [errors, setErrors] = useState<Record<string, string>>({})
+    const [templateEdited, setTemplateEdited] = useState(false)
 
     useEffect(() => {
         const fetchFormData = async () => {
@@ -93,19 +126,11 @@ export default function LeaseBuilderPage() {
                 }
                 setLandlordId(user.id)
 
-                // 1. Fetch Landlord Properties
-                const { data: props } = await supabase
-                    .from("properties")
-                    .select("id, title, address")
-                    .eq("landlord_id", user.id)
-                setProperties(props || [])
-
-                // 2. Fetch Tenants
-                const { data: profiles } = await supabase
-                    .from("profiles")
-                    .select("id, name, email, fullname")
-                    .eq("role", "tenant")
-                setTenants(profiles || [])
+                const response = await fetch("/api/leases/options", { cache: "no-store" })
+                const options = await response.json()
+                if (!response.ok) throw new Error(options.error || "Failed to load properties and tenants")
+                setProperties(options.properties || [])
+                setTenantAssignments(options.tenantAssignments || [])
 
                 // Initialize preset residential terms
                 setTerms(TEMPLATE_PRESETS.residential.terms)
@@ -113,6 +138,7 @@ export default function LeaseBuilderPage() {
 
             } catch (err) {
                 console.error("Error loading builder data:", err)
+                setOptionsError(err instanceof Error ? err.message : "Failed to load properties and tenants")
             } finally {
                 setLoading(false)
             }
@@ -122,11 +148,15 @@ export default function LeaseBuilderPage() {
 
     // Update terms and rules when template changes
     const handleTemplateChange = (type: string) => {
+        if (templateEdited && !window.confirm("Changing the template will replace your edited terms and house rules. Continue?")) {
+            return
+        }
         setTemplateType(type)
         const preset = TEMPLATE_PRESETS[type]
         if (preset) {
             setTerms(preset.terms)
             setRules(preset.rules)
+            setTemplateEdited(false)
         }
     }
 
@@ -144,10 +174,30 @@ export default function LeaseBuilderPage() {
         e.preventDefault()
         if (!landlordId) return
 
-        if (!selectedProperty || !selectedTenant || !title || !rentAmount || !startDate || !endDate) {
-            alert("Please fill in all required fields.")
+        const nextErrors: Record<string, string> = {}
+        if (!title.trim()) nextErrors.title = "Enter a clear lease title."
+        if (!selectedProperty) nextErrors.property = "Select a property."
+        if (!selectedTenant) nextErrors.tenant = "Select an approved tenant."
+        if (!rentAmount || Number(rentAmount) <= 0) nextErrors.rentAmount = "Rent must be greater than zero."
+        if (Number(securityDeposit) < 0) nextErrors.securityDeposit = "Deposit cannot be negative."
+        if (!startDate) nextErrors.startDate = "Select the lease start date."
+        if (!endDate) nextErrors.endDate = "Select the lease end date."
+        if (startDate && endDate && new Date(startDate) >= new Date(endDate)) nextErrors.endDate = "End date must be after the start date."
+        if (!terms.trim()) nextErrors.terms = "Add the lease terms and conditions."
+        if (!reviewed) nextErrors.reviewed = "Confirm that you reviewed the agreement."
+        setErrors(nextErrors)
+        if (Object.keys(nextErrors).length > 0) {
+            window.scrollTo({ top: 0, behavior: "smooth" })
             return
         }
+
+        const operationalTerms = `PAYMENT AND RENEWAL DETAILS
+Rent is due on day ${rentDueDay} of each payment period. A grace period of ${gracePeriod} day(s) applies, after which a late fee of ${lateFeePercent}% may be charged.
+Renewal arrangement: ${renewalType === "fixed" ? "Fixed term; renewal requires a new written agreement." : renewalType === "automatic" ? "Automatic renewal unless valid notice is given." : "Converts to a month-to-month tenancy after the fixed term."}
+Termination or non-renewal requires ${noticePeriod} days' written notice, subject to applicable law.
+Utilities and services: ${utilities}
+
+${terms}`
 
         setSaving(true)
         try {
@@ -166,7 +216,7 @@ export default function LeaseBuilderPage() {
                     startDate,
                     endDate,
                     houseRules: rules,
-                    termsAndConditions: terms
+                    termsAndConditions: operationalTerms
                 })
             })
 
@@ -175,13 +225,26 @@ export default function LeaseBuilderPage() {
 
             toast({ title: "Lease Draft Created!", description: "Agreement saved as a draft. You can now send it to the tenant." })
             router.push("/dashboard/leases")
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error)
-            alert(error.message || "Failed to save lease agreement.")
+            alert(error instanceof Error ? error.message : "Failed to save lease agreement.")
         } finally {
             setSaving(false)
         }
     }
+
+    const formatCurrency = (value: string) =>
+        value ? new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 }).format(Number(value)) : "—"
+
+    const selectedPropertyDetails = properties.find((property) => property.id === selectedProperty)
+    const availableTenants = tenantAssignments
+        .filter((assignment) => assignment.propertyId === selectedProperty)
+        .map((assignment) => assignment.tenant)
+        .filter((tenant, index, tenants) => tenants.findIndex((item) => item.id === tenant.id) === index)
+    const selectedTenantDetails = availableTenants.find((tenant) => tenant.id === selectedTenant)
+    const leaseDuration = startDate && endDate
+        ? Math.max(0, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000))
+        : 0
 
     if (loading) {
         return (
@@ -216,6 +279,11 @@ export default function LeaseBuilderPage() {
                     </div>
 
                     <form onSubmit={handleCreateLease} className="space-y-6">
+                        {optionsError && (
+                            <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+                                {optionsError}
+                            </div>
+                        )}
                         
                         {/* Lease Config Card */}
                         <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-md rounded-2xl overflow-hidden">
@@ -227,7 +295,7 @@ export default function LeaseBuilderPage() {
                             <CardContent className="p-6 grid gap-4 sm:grid-cols-2">
                                 
                                 <div className="sm:col-span-2 space-y-1.5">
-                                    <Label htmlFor="title" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Lease Title</Label>
+                                    <Label htmlFor="title" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Lease Title <span className="text-red-500">*</span></Label>
                                     <Input
                                         id="title"
                                         placeholder="e.g. Residential Lease for Apartment 4B"
@@ -236,38 +304,66 @@ export default function LeaseBuilderPage() {
                                         className="h-11 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-xl"
                                         required
                                     />
+                                    {errors.title && <p className="text-xs font-semibold text-red-500">{errors.title}</p>}
                                 </div>
 
                                 <div className="space-y-1.5">
-                                    <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Select Property</Label>
-                                    <Select value={selectedProperty} onValueChange={setSelectedProperty} required>
+                                    <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Select Property <span className="text-red-500">*</span></Label>
+                                    <Select
+                                        value={selectedProperty}
+                                        onValueChange={(propertyId) => {
+                                            setSelectedProperty(propertyId)
+                                            setSelectedTenant("")
+                                            setErrors((current) => ({ ...current, property: "", tenant: "" }))
+                                        }}
+                                        required
+                                    >
                                         <SelectTrigger className="h-11 rounded-xl">
                                             <SelectValue placeholder="Choose property listing" />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {properties.map(p => (
                                                 <SelectItem key={p.id} value={p.id}>
-                                                    {p.title} ({p.address.substring(0, 20)}...)
+                                                    {p.title}{p.address ? ` (${p.address.length > 24 ? `${p.address.substring(0, 24)}…` : p.address})` : ""}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
+                                    {properties.length === 0 && (
+                                        <div className="flex items-center justify-between gap-3 rounded-lg bg-amber-50 p-2.5">
+                                            <p className="text-xs text-amber-700">No owned properties are available.</p>
+                                            <Button asChild type="button" variant="outline" size="sm" className="h-8 shrink-0 rounded-lg">
+                                                <Link href="/dashboard/landlord/properties/new">Add property</Link>
+                                            </Button>
+                                        </div>
+                                    )}
+                                    {errors.property && <p className="text-xs font-semibold text-red-500">{errors.property}</p>}
                                 </div>
 
                                 <div className="space-y-1.5">
-                                    <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Select Tenant</Label>
-                                    <Select value={selectedTenant} onValueChange={setSelectedTenant} required>
+                                    <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Select Tenant <span className="text-red-500">*</span></Label>
+                                    <Select value={selectedTenant} onValueChange={setSelectedTenant} disabled={!selectedProperty || availableTenants.length === 0} required>
                                         <SelectTrigger className="h-11 rounded-xl">
                                             <SelectValue placeholder="Assign tenant" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {tenants.map(t => (
+                                            {availableTenants.map(t => (
                                                 <SelectItem key={t.id} value={t.id}>
-                                                    {t.fullname || t.name} ({t.email})
+                                                    {t.full_name || t.name || "Tenant"}{t.email ? ` (${t.email})` : ""}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
+                                    {!selectedProperty && <p className="text-xs text-slate-500">Select a property to see its approved tenants.</p>}
+                                    {selectedProperty && availableTenants.length === 0 && (
+                                        <div className="flex items-center justify-between gap-3 rounded-lg bg-amber-50 p-2.5">
+                                            <p className="text-xs text-amber-700">No approved or active tenant is linked to this property.</p>
+                                            <Button asChild type="button" variant="outline" size="sm" className="h-8 shrink-0 rounded-lg">
+                                                <Link href="/applications">Review applications</Link>
+                                            </Button>
+                                        </div>
+                                    )}
+                                    {errors.tenant && <p className="text-xs font-semibold text-red-500">{errors.tenant}</p>}
                                 </div>
 
                                 <div className="space-y-1.5">
@@ -312,7 +408,7 @@ export default function LeaseBuilderPage() {
                             <CardContent className="p-6 grid gap-4 sm:grid-cols-2">
                                 
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="rentAmount" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Rent Price (₦)</Label>
+                                    <Label htmlFor="rentAmount" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Rent per payment period (₦) <span className="text-red-500">*</span></Label>
                                     <Input
                                         id="rentAmount"
                                         type="number"
@@ -322,6 +418,8 @@ export default function LeaseBuilderPage() {
                                         className="h-11 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-xl"
                                         required
                                     />
+                                    <p className="text-xs text-slate-500">{formatCurrency(rentAmount)} per {paymentFrequency.replace("ly", "")}</p>
+                                    {errors.rentAmount && <p className="text-xs font-semibold text-red-500">{errors.rentAmount}</p>}
                                 </div>
 
                                 <div className="space-y-1.5">
@@ -334,6 +432,7 @@ export default function LeaseBuilderPage() {
                                         onChange={(e) => setSecurityDeposit(e.target.value)}
                                         className="h-11 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-xl"
                                     />
+                                    {errors.securityDeposit && <p className="text-xs font-semibold text-red-500">{errors.securityDeposit}</p>}
                                 </div>
 
                                 <div className="space-y-1.5">
@@ -346,6 +445,7 @@ export default function LeaseBuilderPage() {
                                         className="h-11 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-xl"
                                         required
                                     />
+                                    {errors.startDate && <p className="text-xs font-semibold text-red-500">{errors.startDate}</p>}
                                 </div>
 
                                 <div className="space-y-1.5">
@@ -358,8 +458,54 @@ export default function LeaseBuilderPage() {
                                         className="h-11 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-xl"
                                         required
                                     />
+                                    {errors.endDate && <p className="text-xs font-semibold text-red-500">{errors.endDate}</p>}
                                 </div>
 
+                                <div className="sm:col-span-2 rounded-xl border border-blue-100 bg-blue-50/70 p-3 text-xs text-blue-800">
+                                    {leaseDuration > 0 ? `Lease duration: ${leaseDuration} days.` : "Select valid dates to calculate the lease duration."}
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-md rounded-2xl overflow-hidden">
+                            <CardHeader className="border-b">
+                                <CardTitle className="text-base font-extrabold flex items-center gap-2">
+                                    <Calendar className="h-4.5 w-4.5 text-blue-500" /> 3. Payment, Renewal & Responsibilities
+                                </CardTitle>
+                                <CardDescription>Define when rent is due and what happens at renewal or termination.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="p-6 grid gap-4 sm:grid-cols-3">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="rentDueDay" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Rent due day</Label>
+                                    <Input id="rentDueDay" type="number" min="1" max="31" value={rentDueDay} onChange={(e) => setRentDueDay(e.target.value)} className="h-11 rounded-xl" />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="gracePeriod" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Grace period (days)</Label>
+                                    <Input id="gracePeriod" type="number" min="0" value={gracePeriod} onChange={(e) => setGracePeriod(e.target.value)} className="h-11 rounded-xl" />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="lateFee" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Late fee (%)</Label>
+                                    <Input id="lateFee" type="number" min="0" max="100" value={lateFeePercent} onChange={(e) => setLateFeePercent(e.target.value)} className="h-11 rounded-xl" />
+                                </div>
+                                <div className="space-y-1.5 sm:col-span-2">
+                                    <Label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Renewal arrangement</Label>
+                                    <Select value={renewalType} onValueChange={setRenewalType}>
+                                        <SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="fixed">Fixed term — new agreement required</SelectItem>
+                                            <SelectItem value="automatic">Automatic renewal</SelectItem>
+                                            <SelectItem value="month-to-month">Continue month-to-month</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="noticePeriod" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Notice period (days)</Label>
+                                    <Input id="noticePeriod" type="number" min="0" value={noticePeriod} onChange={(e) => setNoticePeriod(e.target.value)} className="h-11 rounded-xl" />
+                                </div>
+                                <div className="space-y-1.5 sm:col-span-3">
+                                    <Label htmlFor="utilities" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Utilities and service responsibilities</Label>
+                                    <Textarea id="utilities" rows={3} value={utilities} onChange={(e) => setUtilities(e.target.value)} className="rounded-xl" />
+                                </div>
                             </CardContent>
                         </Card>
 
@@ -367,7 +513,7 @@ export default function LeaseBuilderPage() {
                         <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-md rounded-2xl overflow-hidden">
                             <CardHeader className="border-b">
                                 <CardTitle className="text-base font-extrabold flex items-center gap-2">
-                                    <Calendar className="h-4.5 w-4.5 text-blue-500" /> 3. House Rules Checklist
+                                    <Calendar className="h-4.5 w-4.5 text-blue-500" /> 4. House Rules Checklist
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="p-6 space-y-4">
@@ -414,7 +560,7 @@ export default function LeaseBuilderPage() {
                         <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-md rounded-2xl overflow-hidden">
                             <CardHeader className="border-b">
                                 <CardTitle className="text-base font-extrabold flex items-center gap-2">
-                                    <FileText className="h-4.5 w-4.5 text-blue-500" /> 4. Terms and Conditions
+                                    <FileText className="h-4.5 w-4.5 text-blue-500" /> 5. Terms and Conditions
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="p-6">
@@ -422,19 +568,52 @@ export default function LeaseBuilderPage() {
                                     rows={10}
                                     placeholder="Enter full contract terms and details..."
                                     value={terms}
-                                    onChange={(e) => setTerms(e.target.value)}
+                                    onChange={(e) => {
+                                        setTerms(e.target.value)
+                                        setTemplateEdited(true)
+                                    }}
                                     className="bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono leading-relaxed"
                                     required
                                 />
+                                <p className="mt-2 text-xs text-slate-500">Review this template for the property’s jurisdiction before sending it for signature.</p>
+                                {errors.terms && <p className="mt-1 text-xs font-semibold text-red-500">{errors.terms}</p>}
                             </CardContent>
                         </Card>
 
+                        <Card className="border border-blue-200 bg-blue-50/50 shadow-sm rounded-2xl">
+                            <CardHeader>
+                                <CardTitle className="text-base font-extrabold">Agreement Summary</CardTitle>
+                            </CardHeader>
+                            <CardContent className="grid gap-3 text-sm sm:grid-cols-2">
+                                <div><span className="text-slate-500">Property:</span> <strong>{selectedPropertyDetails?.title || "Not selected"}</strong></div>
+                                <div><span className="text-slate-500">Tenant:</span> <strong>{selectedTenantDetails?.full_name || selectedTenantDetails?.name || "Not selected"}</strong></div>
+                                <div><span className="text-slate-500">Rent:</span> <strong>{formatCurrency(rentAmount)} / {paymentFrequency}</strong></div>
+                                <div><span className="text-slate-500">Deposit:</span> <strong>{formatCurrency(securityDeposit)}</strong></div>
+                                <div><span className="text-slate-500">Period:</span> <strong>{startDate || "—"} to {endDate || "—"}</strong></div>
+                                <div><span className="text-slate-500">Renewal:</span> <strong>{renewalType.replaceAll("-", " ")}</strong></div>
+                            </CardContent>
+                        </Card>
+
+                        <div className="rounded-xl border border-slate-200 bg-white p-4">
+                            <div className="flex items-start gap-3">
+                                <Checkbox id="reviewed" checked={reviewed} onCheckedChange={(checked) => setReviewed(checked === true)} />
+                                <Label htmlFor="reviewed" className="text-sm leading-relaxed">
+                                    I confirm that I have reviewed the parties, property, financial terms, dates, rules, and conditions in this draft.
+                                </Label>
+                            </div>
+                            {errors.reviewed && <p className="mt-2 text-xs font-semibold text-red-500">{errors.reviewed}</p>}
+                        </div>
+
                         {/* Form submit */}
-                        <Button
-                            type="submit"
-                            disabled={saving}
-                            className="w-full h-12 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold text-sm tracking-wide shadow-lg shadow-green-600/10 flex items-center justify-center gap-2"
-                        >
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            <Button type="button" variant="outline" onClick={() => setPreviewOpen(true)} className="h-12 rounded-xl font-bold">
+                                <FileText className="h-4.5 w-4.5 mr-2" /> Preview Agreement
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={saving}
+                                className="h-12 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold text-sm tracking-wide shadow-lg shadow-green-600/10 flex items-center justify-center gap-2"
+                            >
                             {saving ? (
                                 <>
                                     <Loader2 className="h-5 w-5 animate-spin" />
@@ -446,10 +625,31 @@ export default function LeaseBuilderPage() {
                                     Save Lease Draft Agreement
                                 </>
                             )}
-                        </Button>
+                            </Button>
+                        </div>
 
                     </form>
                 </div>
+                <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+                    <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
+                        <DialogHeader>
+                            <DialogTitle>{title || "Untitled Lease Agreement"}</DialogTitle>
+                            <DialogDescription>Draft preview — review all information before saving or sending.</DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-5 text-sm">
+                            <div className="grid gap-3 rounded-xl bg-slate-50 p-4 sm:grid-cols-2">
+                                <p><strong>Property:</strong> {selectedPropertyDetails?.title || "Not selected"}<br />{selectedPropertyDetails?.address}</p>
+                                <p><strong>Tenant:</strong> {selectedTenantDetails?.full_name || selectedTenantDetails?.name || "Not selected"}<br />{selectedTenantDetails?.email}</p>
+                                <p><strong>Term:</strong> {startDate || "—"} to {endDate || "—"}</p>
+                                <p><strong>Rent:</strong> {formatCurrency(rentAmount)} / {paymentFrequency}<br /><strong>Deposit:</strong> {formatCurrency(securityDeposit)}</p>
+                            </div>
+                            <section><h3 className="mb-2 font-bold">Payment and renewal</h3><p>Rent due on day {rentDueDay}; {gracePeriod}-day grace period; {lateFeePercent}% late fee. {noticePeriod} days’ written notice. Renewal: {renewalType.replaceAll("-", " ")}.</p></section>
+                            <section><h3 className="mb-2 font-bold">Utilities</h3><p>{utilities}</p></section>
+                            <section><h3 className="mb-2 font-bold">House rules</h3><ol className="list-decimal space-y-1 pl-5">{rules.map((rule) => <li key={rule}>{rule}</li>)}</ol></section>
+                            <section><h3 className="mb-2 font-bold">Terms and conditions</h3><p className="whitespace-pre-wrap leading-relaxed">{terms}</p></section>
+                        </div>
+                    </DialogContent>
+                </Dialog>
             </div>
         </RoleGuard>
     )

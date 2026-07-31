@@ -6,8 +6,11 @@ import { supabase } from "@/lib/supabase"
 import { motion } from "motion/react"
 import { Users, Loader2, Building, CreditCard, Clock } from "lucide-react"
 import { EmptyState } from "@/components/ui/empty-state"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
 
 interface TenantData {
+    id: string
     tenant_id: string
     rent_amount: number
     status: string
@@ -21,7 +24,7 @@ interface TenantData {
     }[]
     tenant: {
         name: string
-        fullname?: string
+        full_name?: string
     }
 }
 
@@ -29,65 +32,73 @@ interface TenantMonitoringProps {
     landlordId: string
 }
 
+type RentalQueryRow = Omit<TenantData, 'payments'>
+
 export function TenantMonitoring({ landlordId }: TenantMonitoringProps) {
     const [tenants, setTenants] = useState<TenantData[]>([])
     const [loading, setLoading] = useState(true)
+    const [loadError, setLoadError] = useState<string | null>(null)
 
-    const fetchTenants = useCallback(async (signal?: AbortSignal) => {
+    const fetchTenants = useCallback(async () => {
         setLoading(true)
+        setLoadError(null)
 
         try {
-            let query = supabase
+            const [rentalsResult, paymentsResult] = await Promise.all([
+                supabase
                 .from('rentals')
                 .select(`
+                    id,
                     tenant_id,
                     rent_amount,
                     status,
-                    property:properties!inner (
-                        title,
-                        landlord_id
-                    ),
-                    bills (
-                        payments (amount, status, created_at)
-                    ),
+                    property:properties (title),
                     tenant:profiles!rentals_tenant_id_fkey (
                         name,
-                        fullname
+                        full_name
                     )
                 `)
-                .eq('properties.landlord_id', landlordId)
-                .eq('status', 'approved')
+                .eq('landlord_id', landlordId)
+                .in('status', ['approved', 'active']),
+                supabase
+                    .from('payments')
+                    .select('tenant_id, amount, status, created_at')
+                    .eq('landlord_id', landlordId)
+            ])
 
-            if (signal) {
-                query = query
+            if (rentalsResult.error) {
+                throw new Error(rentalsResult.error.message)
             }
 
-            const { data, error } = await query
-
-            if (error) {
-                if (!signal?.aborted) {
-                    console.error('Error fetching tenants:', error)
+            const paymentsByTenant = new Map<string, TenantData['payments']>()
+            if (!paymentsResult.error) {
+                for (const payment of paymentsResult.data || []) {
+                    if (!payment.tenant_id) continue
+                    const tenantPayments = paymentsByTenant.get(payment.tenant_id) || []
+                    tenantPayments.push({
+                        amount: Number(payment.amount),
+                        status: payment.status,
+                        created_at: payment.created_at
+                    })
+                    paymentsByTenant.set(payment.tenant_id, tenantPayments)
                 }
-            } else if (!signal?.aborted && data) {
-                const formattedData = data.map((rental: any) => ({
+            }
+
+            const rentalRows = (rentalsResult.data || []) as unknown as RentalQueryRow[]
+            const formattedData = rentalRows.map((rental) => ({
                     ...rental,
-                    payments: rental.bills?.flatMap((bill: any) => bill.payments || []) || []
-                }))
-                setTenants(formattedData as unknown as TenantData[])
-            }
-        } catch (error) {
-            if (!signal?.aborted) {
-                console.error('Error in fetchTenants:', error)
-            }
+                    payments: paymentsByTenant.get(rental.tenant_id) || []
+            }))
+            setTenants(formattedData)
+        } catch (error: unknown) {
+            setTenants([])
+            setLoadError(error instanceof Error ? error.message : 'Unable to load tenants.')
         } finally {
-            if (!signal?.aborted) {
-                setLoading(false)
-            }
+            setLoading(false)
         }
     }, [landlordId])
 
     useEffect(() => {
-        let mounted = true
         if (landlordId) {
             fetchTenants()
 
@@ -106,7 +117,6 @@ export function TenantMonitoring({ landlordId }: TenantMonitoringProps) {
                 .subscribe()
 
             return () => {
-                mounted = false
                 supabase.removeChannel(channel)
             }
         }
@@ -118,6 +128,16 @@ export function TenantMonitoring({ landlordId }: TenantMonitoringProps) {
                 <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-4" />
                 <p className="text-slate-500">Loading tenants...</p>
             </div>
+        )
+    }
+
+    if (loadError) {
+        return (
+            <EmptyState
+                icon={Users}
+                title="Unable to load tenants"
+                description={loadError}
+            />
         )
     }
 
@@ -135,7 +155,7 @@ export function TenantMonitoring({ landlordId }: TenantMonitoringProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {tenants.map((t, idx) => {
                 const totalPaid = t.payments?.reduce(
-                    (sum, p) => p.status === 'success' ? sum + p.amount : sum,
+                    (sum, p) => p.status === 'success' ? sum + Number(p.amount) : sum,
                     0
                 ) || 0;
 
@@ -143,7 +163,7 @@ export function TenantMonitoring({ landlordId }: TenantMonitoringProps) {
                     ? new Date(t.payments[t.payments.length - 1].created_at).toLocaleDateString()
                     : 'Never';
 
-                const tenantName = t.tenant?.fullname || t.tenant?.name || "Unknown Tenant";
+                const tenantName = t.tenant?.full_name || t.tenant?.name || "Unknown Tenant";
                 
                 return (
                     <motion.div
@@ -189,6 +209,9 @@ export function TenantMonitoring({ landlordId }: TenantMonitoringProps) {
                                 </p>
                             </div>
                         </div>
+                        <Button asChild className="mt-4 w-full rounded-xl">
+                            <Link href={`/tenants/${t.id}`}>Manage Tenant</Link>
+                        </Button>
                     </motion.div>
                 )
             })}

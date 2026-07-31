@@ -1,42 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { supabase } from "@/lib/supabase"
-import { ChatPanel } from "@/components/landlord/chat-panel"
-import { TenantChatPanel } from "@/components/tenant/tenant-chat-panel"
 import { ProviderChatPanel } from "@/components/provider/provider-chat-panel"
+import { LandlordTenantChatPanel } from "@/components/chat/landlord-tenant-chat-panel"
 import { PageHeader } from "@/components/page-header"
 import { Loader2, MessageSquare } from "lucide-react"
+import { useAuth } from "@/contexts/auth-context"
 
 export default function MessagesPage() {
-    const [user, setUser] = useState<{ id: string; role: string } | null>(null)
-    const [loading, setLoading] = useState(true)
-
-    useEffect(() => {
-        let mounted = true
-        const fetchUser = async () => {
-            try {
-                const { data: { user: authUser } } = await supabase.auth.getUser()
-                if (authUser && mounted) {
-                    const { data: profile } = await supabase
-                        .from('profiles')
-                        .select('role')
-                        .eq('id', authUser.id)
-                        .single()
-
-                    if (profile && mounted) {
-                        setUser({ id: authUser.id, role: profile.role })
-                    }
-                }
-            } catch (error) {
-                if (mounted) console.error("Error fetching user for messages:", error)
-            } finally {
-                if (mounted) setLoading(false)
-            }
-        }
-        fetchUser()
-        return () => { mounted = false }
-    }, [])
+    const { user, profile, loading } = useAuth()
 
     if (loading) {
         return (
@@ -69,12 +40,10 @@ export default function MessagesPage() {
             />
 
             <div className="rounded-xl border border-border bg-white p-2 shadow-sm">
-                {user.role === 'landlord' ? (
-                    <ChatPanel landlordId={user.id} />
-                ) : user.role === 'service_provider' ? (
+                {profile?.role === 'service_provider' ? (
                     <ProviderChatPanel providerId={user.id} />
                 ) : (
-                    <TenantChatPanel tenantId={user.id} />
+                    <LandlordTenantChatPanel currentUserId={user.id} />
                 )}
             </div>
         </div>

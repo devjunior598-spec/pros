@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { getCurrentUserWithRole } from '@/lib/supabase-server';
 
 export async function POST(req: Request) {
     try {
+        const currentUser = await getCurrentUserWithRole();
+        if (!currentUser) {
+            return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+        }
+
         const body = await req.json();
         const { id, action, notes, newDate, newTime, initiator } = body;
 
@@ -18,7 +24,18 @@ export async function POST(req: Request) {
             .single();
 
         if (fetchError || !booking) {
-            return NextResponse.json({ error: 'Booking not found' }, { status: 44 });
+            return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+        }
+
+        const isLandlord = booking.landlord_id === currentUser.user.id;
+        const isTenant = booking.tenant_id === currentUser.user.id;
+        const isAdmin = currentUser.role === 'admin';
+        if (!isLandlord && !isTenant && !isAdmin) {
+            return NextResponse.json({ error: 'You cannot manage this inspection' }, { status: 403 });
+        }
+
+        if (['approve', 'reject', 'complete'].includes(action) && !isLandlord && !isAdmin) {
+            return NextResponse.json({ error: 'Only the landlord can perform this inspection action' }, { status: 403 });
         }
 
         let updatedStatus = booking.status;

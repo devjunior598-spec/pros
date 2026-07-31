@@ -7,27 +7,51 @@ import { MessageWindow } from "./message-window";
 import { useChat } from "./chat-provider";
 import { CallModal } from "./call-modal";
 
+interface ConversationSummary {
+    id: string;
+    name: string;
+    lastMessage: string;
+    unread: number;
+    avatar: string;
+}
+
 export default function ChatPageLayout() {
     const { isConnected } = useChat();
     const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
     const [showChat, setShowChat] = useState(false);
-
-    // Dummy data for now, replace with Supabase fetch
-    const [conversations, setConversations] = useState([
-        { id: '1', name: 'John Landlord', lastMessage: 'See you tomorrow', unread: 2, avatar: '' },
-        { id: '2', name: 'Plumber Mike', lastMessage: 'Leak is fixed', unread: 0, avatar: '' },
-    ]);
-
+    const [conversations, setConversations] = useState<ConversationSummary[]>([]);
     const [currentUserId, setCurrentUserId] = useState<string>("");
+    const [loadingConversations, setLoadingConversations] = useState(true);
 
     useEffect(() => {
-        const fetchUser = async () => {
+        const fetchChatData = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
                 setCurrentUserId(user.id);
             }
+
+            try {
+                const response = await fetch("/api/messages/conversations");
+                const payload = await response.json();
+                if (!response.ok) {
+                    throw new Error(payload.error || "Failed to load conversations");
+                }
+
+                setConversations((payload.conversations || []).map((conversation: any) => ({
+                    id: conversation.id,
+                    name: conversation.otherUser?.name || "Conversation",
+                    lastMessage: conversation.lastMessage?.message || conversation.property?.title || "No messages yet",
+                    unread: conversation.unreadCount || 0,
+                    avatar: conversation.otherUser?.avatarUrl || "",
+                })));
+            } catch (error) {
+                console.error("Error loading conversations:", error);
+                setConversations([]);
+            } finally {
+                setLoadingConversations(false);
+            }
         };
-        fetchUser();
+        fetchChatData();
     }, []);
 
     return (
@@ -45,6 +69,11 @@ export default function ChatPageLayout() {
                     selectedId={selectedConversation}
                     onSelect={(id) => { setSelectedConversation(id); setShowChat(true); }}
                 />
+                {!loadingConversations && conversations.length === 0 && (
+                    <div className="p-6 text-center text-sm text-muted-foreground">
+                        No conversations yet.
+                    </div>
+                )}
             </div>
 
             {/* Main Chat Area */}

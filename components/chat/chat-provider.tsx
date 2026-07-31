@@ -6,6 +6,7 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 
 interface ChatContextType {
     isConnected: boolean;
+    unreadMessageCount: number;
     typingUsers: Record<string, string[]>;
     sendTyping: (conversationId: string, isTyping: boolean) => void;
     markMessageAsRead: (conversationId: string, messageId: string) => void;
@@ -14,6 +15,7 @@ interface ChatContextType {
 
 const ChatContext = createContext<ChatContextType>({
     isConnected: false,
+    unreadMessageCount: 0,
     typingUsers: {},
     sendTyping: () => { },
     markMessageAsRead: () => { },
@@ -26,6 +28,54 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     const [isConnected, setIsConnected] = useState(false);
     const [typingUsers, setTypingUsers] = useState<Record<string, string[]>>({});
     const [globalChannel, setGlobalChannel] = useState<RealtimeChannel | null>(null);
+    const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+
+    useEffect(() => {
+        let active = true;
+        let messageChannel: RealtimeChannel | null = null;
+
+        const initializeUnreadCount = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user || !active) {
+                setUnreadMessageCount(0);
+                return;
+            }
+
+            const refreshCount = async () => {
+                const { data: conversations } = await supabase
+                    .from('conversations')
+                    .select('id')
+                    .or(`tenant_id.eq.${user.id},landlord_id.eq.${user.id}`);
+                const conversationIds = (conversations || []).map(conversation => conversation.id);
+                if (conversationIds.length === 0) {
+                    if (active) setUnreadMessageCount(0);
+                    return;
+                }
+                const { count } = await supabase
+                    .from('messages')
+                    .select('id', { count: 'exact', head: true })
+                    .in('conversation_id', conversationIds)
+                    .neq('sender_id', user.id)
+                    .is('read_at', null);
+                if (active) setUnreadMessageCount(count || 0);
+            };
+
+            await refreshCount();
+            messageChannel = supabase
+                .channel(`unread-messages:${user.id}`)
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+                    if (payload.new.sender_id !== user.id) void refreshCount();
+                })
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, () => void refreshCount())
+                .subscribe();
+        };
+
+        void initializeUnreadCount();
+        return () => {
+            active = false;
+            if (messageChannel) supabase.removeChannel(messageChannel);
+        };
+    }, []);
 
     useEffect(() => {
         // Initialize Supabase realtime for presence/typing indicators
@@ -69,20 +119,21 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const markMessageAsRead = async (conversationId: string, messageId: string) => {
-        await supabase
-            .from('messages')
-            .update({ read_at: new Date().toISOString() })
-            .eq('id', messageId)
-            .is('read_at', null);
+        await fetch('/api/messages/read', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ conversationId, messageId })
+        });
     };
 
-    const callUser = (id: string) => {
+    const callUser = () => {
         alert("Video/Audio calling is temporarily disabled during real-time upgrade.");
     };
 
     return (
         <ChatContext.Provider value={{
             isConnected,
+            unreadMessageCount,
             typingUsers,
             sendTyping,
             markMessageAsRead,

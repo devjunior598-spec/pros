@@ -1,11 +1,17 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { getCurrentUserWithRole } from '@/lib/supabase-server';
 
 export async function GET(
     req: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const currentUser = await getCurrentUserWithRole();
+        if (!currentUser) {
+            return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+        }
+
         const { id } = await params;
 
         if (!id) {
@@ -18,8 +24,8 @@ export async function GET(
             .select(`
                 *, 
                 property:properties(*), 
-                tenant:profiles!tenant_id(id, name, email, phone, fullname), 
-                landlord:profiles!landlord_id(id, name, email, phone, fullname),
+                tenant:profiles!tenant_id(id, name, email, phone, full_name), 
+                landlord:profiles!landlord_id(id, name, email, phone, full_name),
                 signatures:lease_signatures(*)
             `)
             .eq('id', id)
@@ -30,7 +36,27 @@ export async function GET(
             return NextResponse.json({ error: 'Lease agreement not found' }, { status: 404 });
         }
 
-        return NextResponse.json({ success: true, lease });
+        const isParticipant = lease.landlord_id === currentUser.user.id || lease.tenant_id === currentUser.user.id;
+        if (!isParticipant && currentUser.role !== 'admin') {
+            return NextResponse.json({ error: 'You do not have access to this lease agreement' }, { status: 403 });
+        }
+
+        const { data: completedInspection, error: inspectionError } = await supabaseAdmin
+            .from('inspection_bookings')
+            .select('id')
+            .eq('property_id', lease.property_id)
+            .eq('tenant_id', lease.tenant_id)
+            .eq('status', 'completed')
+            .limit(1)
+            .maybeSingle();
+
+        if (inspectionError) throw inspectionError;
+
+        return NextResponse.json({
+            success: true,
+            lease,
+            inspectionCompleted: Boolean(completedInspection)
+        });
 
     } catch (error: any) {
         console.error('Fetch lease API error:', error);

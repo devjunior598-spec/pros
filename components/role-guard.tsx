@@ -1,9 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { supabase } from "@/lib/supabase"
 import { Loader2 } from "lucide-react"
+import { useAuth } from "@/contexts/auth-context"
 
 interface RoleGuardProps {
     children: React.ReactNode
@@ -12,42 +12,21 @@ interface RoleGuardProps {
 
 export function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
     const router = useRouter()
-    const [isLoading, setIsLoading] = useState(true)
-    const [isAuthorized, setIsAuthorized] = useState(false)
+    const { user, profile, loading } = useAuth()
+    const allowedRolesKey = allowedRoles.join(",")
+    const isAuthorized = Boolean(profile && allowedRoles.includes(profile.role))
 
     useEffect(() => {
-        const checkRole = async () => {
-            try {
-                const { data: { user } } = await supabase.auth.getUser()
+        if (loading) return
 
-                if (!user) {
-                    router.push("/login")
-                    return
-                }
-
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('role')
-                    .eq('id', user.id)
-                    .single()
-
-                if (profile && allowedRoles.includes(profile.role)) {
-                    setIsAuthorized(true)
-                } else {
-                    router.push("/dashboard") // Redirect to main dashboard if not authorized
-                }
-            } catch (error) {
-                console.error("Role check failed", error)
-                router.push("/dashboard")
-            } finally {
-                setIsLoading(false)
-            }
+        if (!user) {
+            router.replace("/login")
+        } else if (!isAuthorized) {
+            router.replace("/dashboard")
         }
+    }, [allowedRolesKey, isAuthorized, loading, router, user])
 
-        checkRole()
-    }, [router, allowedRoles])
-
-    if (isLoading) {
+    if (loading) {
         return (
             <div className="flex h-[400px] w-full items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -55,9 +34,7 @@ export function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
         )
     }
 
-    if (!isAuthorized) {
-        return null // Should be redirected by now
-    }
+    if (!user || !isAuthorized) return null
 
     return <>{children}</>
 }

@@ -47,7 +47,11 @@ export async function addBankAccount(formData: FormData) {
 
     const role = profile?.role
 
-    const accountData: any = {
+    if (role !== 'landlord') {
+        return { error: "Only landlords can manage withdrawal bank accounts." }
+    }
+
+    const accountData = {
         bank_name: bankName,
         bank_code: bankCode,
         account_number: accountNumber,
@@ -55,11 +59,7 @@ export async function addBankAccount(formData: FormData) {
         is_primary: false,
     }
 
-    if (role === 'service_provider') {
-        accountData.provider_id = user.id
-    } else {
-        accountData.landlord_id = user.id
-    }
+    accountData.landlord_id = user.id
 
     // Insert into database
     const { error } = await supabase.from("bank_accounts").insert(accountData)
@@ -102,12 +102,14 @@ export async function getBankAccounts() {
         .single()
 
     const role = profile?.role
-    const idField = role === 'service_provider' ? 'provider_id' : 'landlord_id'
+    if (role !== 'landlord') {
+        return { error: "Only landlords can view withdrawal bank accounts." }
+    }
 
     const { data, error } = await supabase
         .from("bank_accounts")
         .select("*")
-        .eq(idField, user.id)
+        .eq('landlord_id', user.id)
         .order("created_at", { ascending: false })
 
     if (error) {
@@ -148,13 +150,15 @@ export async function deleteBankAccount(id: string) {
         .single()
 
     const role = profile?.role
-    const idField = role === 'service_provider' ? 'provider_id' : 'landlord_id'
+    if (role !== 'landlord') {
+        return { error: "Only landlords can delete withdrawal bank accounts." }
+    }
 
     const { error } = await supabase
         .from("bank_accounts")
         .delete()
         .eq("id", id)
-        .eq(idField, user.id)
+        .eq('landlord_id', user.id)
 
     if (error) {
         console.error("Error deleting bank account:", error)
@@ -189,7 +193,7 @@ export async function getProfile() {
 
     const { data, error } = await supabase
         .from("profiles")
-        .select("fullname")
+        .select("full_name, name")
         .eq("id", user.id)
         .single()
 
@@ -198,14 +202,14 @@ export async function getProfile() {
         return null
     }
 
-    return data
+    return { fullname: data.full_name || data.name }
 }
 
 export async function requestWithdrawal(amount: number, bankAccountId: string) {
     const cookieStore = await cookies()
 
-    if (amount <= 0) {
-        return { error: "Withdrawal amount must be greater than 0." }
+    if (!Number.isFinite(amount) || amount < 5000) {
+        return { error: "The minimum withdrawal amount is ₦5,000." }
     }
 
     const supabase = createServerClient(
@@ -236,40 +240,38 @@ export async function requestWithdrawal(amount: number, bankAccountId: string) {
 
     const role = profile?.role
 
-    // Check balance
-    let hasSufficientBalance = false
+    if (role !== 'landlord') {
+        return { error: "Only landlords can request withdrawals." }
+    }
 
-    if (role === 'service_provider') {
-        const { data: wallet } = await supabase
-            .from('provider_wallets')
-            .select('balance')
-            .eq('provider_id', user.id)
-            .single()
-        hasSufficientBalance = wallet ? Number(wallet.balance) >= amount : false
-    } else {
-        const { data: wallet } = await supabase
+    const [{ data: wallet }, { data: bankAccount }] = await Promise.all([
+        supabase
             .from('landlord_wallets')
             .select('balance')
             .eq('landlord_id', user.id)
-            .single()
-        hasSufficientBalance = wallet ? Number(wallet.balance) >= amount : false
+            .maybeSingle(),
+        supabase
+            .from('bank_accounts')
+            .select('id')
+            .eq('id', bankAccountId)
+            .eq('landlord_id', user.id)
+            .maybeSingle(),
+    ])
+
+    if (!bankAccount) {
+        return { error: "Select a bank account registered to your landlord account." }
     }
 
-    if (!hasSufficientBalance) {
+    if (!wallet || Number(wallet.balance) < amount) {
         return { error: "Insufficient wallet balance." }
     }
 
-    const withdrawalData: any = {
+    const withdrawalData = {
         amount: amount,
         bank_account_id: bankAccountId,
         status: 'pending',
-        reference: `WD-${Math.random().toString(36).substring(2, 9).toUpperCase()}`
-    }
-
-    if (role === 'service_provider') {
-        withdrawalData.provider_id = user.id
-    } else {
-        withdrawalData.landlord_id = user.id
+        reference: `WD-${crypto.randomUUID()}`,
+        landlord_id: user.id,
     }
 
     const { error } = await supabase
@@ -315,21 +317,17 @@ export async function getBalance() {
 
     const role = profile?.role
 
-    if (role === 'service_provider') {
-        const { data: wallet } = await supabase
-            .from('provider_wallets')
-            .select('balance')
-            .eq('provider_id', user.id)
-            .single()
-        return { balance: wallet ? Number(wallet.balance) : 0 }
-    } else {
-        const { data: wallet } = await supabase
-            .from('landlord_wallets')
-            .select('balance')
-            .eq('landlord_id', user.id)
-            .single()
-        return { balance: wallet ? Number(wallet.balance) : 0 }
+    if (role !== 'landlord') {
+        return { balance: 0 }
     }
+
+    const { data: wallet } = await supabase
+        .from('landlord_wallets')
+        .select('balance')
+        .eq('landlord_id', user.id)
+        .maybeSingle()
+
+    return { balance: wallet ? Number(wallet.balance) : 0 }
 }
 
 export async function getWithdrawals() {
@@ -362,12 +360,14 @@ export async function getWithdrawals() {
         .single()
 
     const role = profile?.role
-    const idField = role === 'service_provider' ? 'provider_id' : 'landlord_id'
+    if (role !== 'landlord') {
+        return { data: [] }
+    }
 
     const { data, error } = await supabase
         .from('withdrawals')
         .select(`*, bank_account:bank_accounts(bank_name)`)
-        .eq(idField, user.id)
+        .eq('landlord_id', user.id)
         .order('created_at', { ascending: false })
 
     if (error) {

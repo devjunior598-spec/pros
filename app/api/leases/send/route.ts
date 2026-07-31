@@ -1,8 +1,17 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { getCurrentUserWithRole } from '@/lib/supabase-server';
 
 export async function POST(req: Request) {
     try {
+        const currentUser = await getCurrentUserWithRole();
+        if (!currentUser) {
+            return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+        }
+        if (currentUser.role !== 'landlord') {
+            return NextResponse.json({ error: 'Only landlords can send lease agreements' }, { status: 403 });
+        }
+
         const body = await req.json();
         const { leaseId } = body;
 
@@ -15,6 +24,7 @@ export async function POST(req: Request) {
             .from('lease_agreements')
             .select('*, property:properties(title)')
             .eq('id', leaseId)
+            .eq('landlord_id', currentUser.user.id)
             .maybeSingle();
 
         if (fetchError || !lease) {

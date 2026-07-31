@@ -33,7 +33,7 @@ interface NotifCtx {
     setPanelOpen: (v: boolean) => void
     markAllRead: () => void
     markRead: (id: string) => void
-    addPanelNotif: (title: string, description: string, type: PersistentNotification['type']) => void
+    addPanelNotif: (title: string, description: string, type: PersistentNotification['type'], link?: string) => void
     addToast: (notif: Omit<ToastNotification, 'id'>) => void
     removeToast: (id: string) => void
 }
@@ -172,7 +172,10 @@ function NotificationCentre({
                             {groups[group].map(notif => (
                                 <button
                                     key={notif.id}
-                                    onClick={() => onMarkRead(notif.id)}
+                                    onClick={() => {
+                                        onMarkRead(notif.id)
+                                        if (notif.link) window.location.href = notif.link
+                                    }}
                                     className={cn(
                                         "w-full flex items-start gap-3 px-4 py-3 text-left transition-colors border-b border-slate-800/40",
                                         notif.read
@@ -316,7 +319,8 @@ export function NotificationManager({ children }: { children?: React.ReactNode }
     const addPanelNotif = useCallback((
         title: string,
         description: string,
-        type: PersistentNotification['type']
+        type: PersistentNotification['type'],
+        link?: string
     ) => {
         const notif: PersistentNotification = {
             id: Math.random().toString(36).substring(7),
@@ -325,9 +329,10 @@ export function NotificationManager({ children }: { children?: React.ReactNode }
             type,
             createdAt: new Date(),
             read: false,
+            link,
         }
         setPanelNotifs(prev => [notif, ...prev])
-        addToast({ title, description, type: type === 'payment' ? 'system' : type as ToastNotification['type'] })
+        addToast({ title, description, type: type === 'payment' ? 'system' : type as ToastNotification['type'], link })
         if (!isTabFocused.current) sendBrowserNotification(title, description)
     }, [addToast])
 
@@ -368,7 +373,7 @@ export function NotificationManager({ children }: { children?: React.ReactNode }
                             .eq('id', payload.new.conversation_id)
                             .single()
                         if (conv && (conv.tenant_id === user.id || conv.landlord_id === user.id)) {
-                            addPanelNotif("New Message", payload.new.message, 'message')
+                            addPanelNotif("New Message", payload.new.message, 'message', `/messages?convId=${payload.new.conversation_id}`)
                         }
                     }
                 )

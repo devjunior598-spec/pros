@@ -1,18 +1,35 @@
-import { createClient } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
+import { supabaseAdmin } from "@/lib/supabase-admin"
+import { getCurrentUserWithRole } from "@/lib/supabase-server"
 
 export async function POST(req: Request) {
     try {
-        const body = await req.json()
-        const { requestId, landlordId } = body
+        const currentUser = await getCurrentUserWithRole()
+        if (!currentUser) {
+            return NextResponse.json({ error: "Authentication required" }, { status: 401 })
+        }
+        if (currentUser.role !== "landlord") {
+            return NextResponse.json({ error: "Only landlords can pay for maintenance work" }, { status: 403 })
+        }
 
-        if (!requestId || !landlordId) {
+        const body = await req.json()
+        const { requestId } = body
+
+        if (!requestId) {
             return NextResponse.json({ error: "Missing required parameters" }, { status: 400 })
+        }
+
+        const { data: request, error: requestError } = await supabaseAdmin
+            .from('maintenance_requests')
+            .select('rental:rentals!inner(landlord_id)')
+            .eq('id', requestId)
+            .maybeSingle()
+
+        if (requestError || !request) {
+            return NextResponse.json({ error: "Maintenance request not found." }, { status: 404 })
+        }
+        if (request.rental?.landlord_id !== currentUser.user.id) {
+            return NextResponse.json({ error: "You can only pay for maintenance at your own properties." }, { status: 403 })
         }
 
         // 1. Fetch Request & Assignment
@@ -33,7 +50,7 @@ export async function POST(req: Request) {
         const { data: wallet, error: walletError } = await supabaseAdmin
             .from('landlord_wallets')
             .select('*')
-            .eq('landlord_id', landlordId)
+            .eq('landlord_id', currentUser.user.id)
             .single()
 
         if (walletError || !wallet) {
@@ -135,7 +152,7 @@ export async function POST(req: Request) {
 
         // Optional: Create a transaction log
         await supabaseAdmin.from('transactions').insert({
-            landlord_id: landlordId,
+            landlord_id: currentUser.user.id,
             type: 'debit',
             amount: cost,
             reference: `maint-${requestId.substring(0, 8)}-${Date.now()}`,

@@ -37,6 +37,8 @@ export interface AuthProfile {
     email?: string
     phone?: string
     avatar_url?: string
+    // Profile columns are expanded by migrations and consumed across dashboards.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any
 }
 
@@ -127,11 +129,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 setSession(s)
                 setUser(s?.user ?? null)
                 if (s?.user) await loadProfile(s.user.id)
-            } catch (err: any) {
+            } catch (err: unknown) {
                 // Network failure ("Failed to fetch") — Supabase unreachable
                 // Don't throw; just resolve as unauthenticated
                 if (mounted.current) {
-                    console.warn('[AuthProvider] Network error during session init — offline?', err?.message)
+                    const message = err instanceof Error ? err.message : String(err)
+                    console.warn('[AuthProvider] Network error during session init — offline?', message)
                 }
             } finally {
                 if (mounted.current) setLoading(false)
@@ -148,7 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // ── Step 2: Subscribe to auth state changes ───────────────────────────
         // onAuthStateChange is event-driven — it does NOT hold the lock.
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            async (event, newSession) => {
+            (event, newSession) => {
                 if (!mounted.current) return
 
                 // TOKEN_REFRESH_FAILED = Supabase couldn't silently refresh the token.
@@ -167,7 +170,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 setUser(newSession?.user ?? null)
 
                 if (newSession?.user) {
-                    await loadProfile(newSession.user.id)
+                    // Auth callbacks run while Supabase holds its auth lock.
+                    // Defer database work until the callback returns so sign-in
+                    // can resolve without waiting on (or deadlocking with) it.
+                    const userId = newSession.user.id
+                    setTimeout(() => {
+                        if (mounted.current) void loadProfile(userId)
+                    }, 0)
                 } else {
                     setProfile(null)
                     setProviderStatus(null)

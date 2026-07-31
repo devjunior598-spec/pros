@@ -23,6 +23,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
+import { ActivityFeed, type ActivityItem } from "@/components/landlord/activity-feed"
 
 // Refined MyRentals component to show real data
 function MyRentals({ rentals, loading }: { rentals: any[], loading: boolean }) {
@@ -138,6 +139,7 @@ function TenantDashboardContent({ userId }: TenantDashboardProps) {
     const [rentals, setRentals] = useState<any[]>([])
     const [recentPayments, setRecentPayments] = useState<any[]>([])
     const [profile, setProfile] = useState<any>(null)
+    const [activities, setActivities] = useState<ActivityItem[]>([])
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
@@ -195,6 +197,18 @@ function TenantDashboardContent({ userId }: TenantDashboardProps) {
 
                 setRecentPayments(paymentsData || [])
 
+                const { data: notificationData } = await supabase.from('notifications')
+                    .select('id, type, title, message, created_at, read_at')
+                    .eq('user_id', userId).order('created_at', { ascending: false }).limit(8)
+                setActivities((notificationData || []).map(notification => ({
+                    id: notification.id,
+                    type: notification.type.includes('payment') || notification.type.includes('bill') ? 'payment' : notification.type.includes('maintenance') || notification.type.includes('inspection') ? 'maintenance' : notification.type.includes('application') || notification.type.includes('rental') ? 'application' : notification.type.includes('message') ? 'message' : 'system',
+                    title: notification.title,
+                    description: notification.message,
+                    timestamp: notification.created_at,
+                    read: Boolean(notification.read_at)
+                })))
+
                 setStats({
                     rentDue: totalDue,
                     activeLeases: activeCount,
@@ -235,7 +249,7 @@ function TenantDashboardContent({ userId }: TenantDashboardProps) {
                                 <p className="text-orange-700 dark:text-orange-400/80 text-sm mb-4">
                                     Please complete your identity verification (KYC) to unlock full wallet features and pay bills.
                                 </p>
-                                <Link href="/kyc">
+                                <Link href="/settings?tab=identity">
                                     <Button variant="default" className="bg-orange-600 hover:bg-orange-700 text-white border-none shadow-md">
                                         Verify Identity Now
                                     </Button>
@@ -297,6 +311,8 @@ function TenantDashboardContent({ userId }: TenantDashboardProps) {
                     </CardContent>
                 </Card>
             </div>
+
+            <ActivityFeed activities={activities} />
 
             <div className="grid gap-8 md:grid-cols-7">
                 {/* Left Column: Quick Actions & Property Summary */}
@@ -427,7 +443,7 @@ function TenantDashboardContent({ userId }: TenantDashboardProps) {
                                                 </div>
                                             </div>
                                             <div className="text-sm font-bold text-gray-900 dark:text-white">
-                                                + ₦{payment.amount?.toLocaleString()}
+                                                − ₦{payment.amount?.toLocaleString()}
                                             </div>
                                         </div>
                                     ))

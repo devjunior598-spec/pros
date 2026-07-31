@@ -25,7 +25,7 @@ export async function POST(req: Request) {
 
         // 2. Handle successful charge (This includes Dedicated Virtual Account transfers)
         if (event.event === 'charge.success') {
-            const { amount, customer, reference, channel, metadata } = event.data;
+            const { amount, customer, reference, channel, metadata, authorization } = event.data;
             let tenantId = metadata?.tenant_id;
 
             // 3. Find the wallet associated with this tenant
@@ -91,7 +91,10 @@ export async function POST(req: Request) {
                 .from('wallets')
                 .update({
                     balance: newBalance,
-                    paystack_customer_id: customer.customer_code
+                    paystack_customer_id: customer.customer_code,
+                    paystack_authorization_code: authorization?.reusable ? authorization.authorization_code : undefined,
+                    payment_card_last4: authorization?.reusable ? authorization.last4 : undefined,
+                    payment_card_brand: authorization?.reusable ? authorization.brand : undefined
                 })
                 .eq('id', wallet.id);
 

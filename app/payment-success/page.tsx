@@ -11,6 +11,7 @@ function PaymentVerification() {
     const searchParams = useSearchParams()
     const router = useRouter()
     const reference = searchParams.get('reference')
+    const gateway = searchParams.get('gateway')
 
     const [status, setStatus] = useState<'verifying' | 'success' | 'failed'>('verifying')
     const [message, setMessage] = useState('Verifying your payment...')
@@ -24,21 +25,22 @@ function PaymentVerification() {
 
         const verifyPayment = async () => {
             try {
-                const res = await fetch('/api/verify-payment', {
+                const isRentPayment = gateway === 'paystack' || gateway === 'flutterwave'
+                const res = await fetch(isRentPayment ? '/api/payments/verify' : '/api/verify-payment', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ reference })
+                    body: JSON.stringify(isRentPayment ? { reference, gateway } : { reference })
                 })
 
                 const data = await res.json()
 
                 if (res.ok && data.success) {
                     setStatus('success')
-                    setMessage('Your payment was successful and your wallet has been credited.')
+                    setMessage(isRentPayment ? 'Your rent payment was successful and your bill has been updated.' : 'Your payment was successful and your wallet has been credited.')
 
                     // Automatically redirect back to wallet after 3 seconds
                     setTimeout(() => {
-                        router.push('/dashboard?tab=Wallet')
+                        router.push(isRentPayment ? '/dashboard/rent-payments' : '/wallet')
                     }, 3000)
                 } else {
                     setStatus('failed')
@@ -51,7 +53,7 @@ function PaymentVerification() {
         }
 
         verifyPayment()
-    }, [reference, router])
+    }, [gateway, reference, router])
 
     return (
         <Card className="w-full max-w-md mx-auto mt-20 shadow-xl border-none">
@@ -82,7 +84,7 @@ function PaymentVerification() {
                     variant={status === 'success' ? "default" : "outline"}
                     asChild
                 >
-                    <Link href="/dashboard?tab=Wallet">
+                    <Link href={gateway ? "/dashboard/rent-payments" : "/wallet"}>
                         {status === 'success' ? 'Go to Wallet Now' : (
                             <><ArrowLeft className="mr-2 h-4 w-4" /> Return to Dashboard</>
                         )}

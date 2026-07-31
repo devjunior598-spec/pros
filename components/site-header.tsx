@@ -1,14 +1,13 @@
 "use client"
 
 import Link from "next/link"
-import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
 import { Search, User, ShieldCheck } from "lucide-react"
 
 import { MobileNav } from "@/components/mobile-nav"
 import { Logo } from "@/components/logo"
 import { NotificationBell } from "@/components/notification-manager"
-import { supabase } from "@/lib/supabase"
+import { useAuth } from "@/contexts/auth-context"
 import { cn } from "@/lib/utils"
 
 interface SiteHeaderProps {
@@ -34,50 +33,7 @@ export function SiteHeader({ hideNav = false }: SiteHeaderProps) {
         pathname.startsWith('/withdrawals') ||
         pathname.startsWith('/admin')
 
-    const [profile, setProfile] = useState<any>(null)
-
-    useEffect(() => {
-        let mounted = true
-
-        const fetchProfile = async () => {
-            try {
-                const { data: { user }, error: authError } = await supabase.auth.getUser()
-                if (authError) throw authError
-
-                if (user) {
-                    const { data, error: profileError } = await supabase
-                        .from('profiles')
-                        .select('*')
-                        .eq('id', user.id)
-                        .maybeSingle()
-
-                    if (profileError) throw profileError
-                    if (mounted) {
-                        setProfile(data)
-                    }
-                }
-            } catch (error: any) {
-                if (!mounted) return
-                if (error.name === 'AuthSessionMissingError') return
-                console.error("Error fetching profile:", JSON.stringify(error, null, 2))
-            }
-        }
-        fetchProfile()
-
-        const channel = supabase
-            .channel('profile_updates')
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
-                if (profile && payload.new.id === profile.id) {
-                    setProfile(payload.new)
-                }
-            })
-            .subscribe()
-
-        return () => {
-            mounted = false
-            supabase.removeChannel(channel)
-        }
-    }, [profile?.id])
+    const { profile } = useAuth()
 
     return (
         <header className={cn(
