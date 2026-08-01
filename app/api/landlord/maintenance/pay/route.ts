@@ -28,7 +28,11 @@ export async function POST(req: Request) {
         if (requestError || !request) {
             return NextResponse.json({ error: "Maintenance request not found." }, { status: 404 })
         }
-        if (request.rental?.landlord_id !== currentUser.user.id) {
+
+        const rentalData = request.rental as any
+        const rental = Array.isArray(rentalData) ? rentalData[0] : rentalData
+
+        if (!rental || rental.landlord_id !== currentUser.user.id) {
             return NextResponse.json({ error: "You can only pay for maintenance at your own properties." }, { status: 403 })
         }
 

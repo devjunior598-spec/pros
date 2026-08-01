@@ -59,7 +59,7 @@ export default function SettingsPage() {
                 </TabsContent>
 
                 <TabsContent value="account" className="mt-6">
-                    <AccountSettings userId={user.id} email={user.email} />
+                    <AccountSettings userId={user.id} email={user.email || ""} />
                 </TabsContent>
 
                 <TabsContent value="notifications" className="mt-6">

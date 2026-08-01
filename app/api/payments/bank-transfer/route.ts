@@ -26,7 +26,14 @@ export async function POST(req: Request) {
             .eq('id', billId)
             .maybeSingle();
 
-        if (!bill || bill.rental?.tenant_id !== currentUser.user.id) {
+        if (!bill) {
+            return NextResponse.json({ error: 'You can only submit payments for your own bills' }, { status: 403 });
+        }
+
+        const rentalData = bill.rental as any;
+        const rental = Array.isArray(rentalData) ? rentalData[0] : rentalData;
+
+        if (!rental || rental.tenant_id !== currentUser.user.id) {
             return NextResponse.json({ error: 'You can only submit payments for your own bills' }, { status: 403 });
         }
 
@@ -51,8 +58,8 @@ export async function POST(req: Request) {
             .from('rent_payments')
             .insert({
                 tenant_id: currentUser.user.id,
-                landlord_id: bill.rental.landlord_id,
-                property_id: bill.rental.property_id,
+                landlord_id: rental.landlord_id,
+                property_id: rental.property_id,
                 bill_id: bill.id,
                 amount: paymentAmount,
                 payment_method: 'Bank Transfer Reference',
@@ -77,11 +84,11 @@ export async function POST(req: Request) {
         const { data: propertyData } = await supabaseAdmin
             .from('properties')
             .select('title')
-            .eq('id', bill.rental.property_id)
+            .eq('id', rental.property_id)
             .maybeSingle();
 
         await supabaseAdmin.rpc('create_notification', {
-            p_user_id: bill.rental.landlord_id,
+            p_user_id: rental.landlord_id,
             p_type: 'bank_transfer_submitted',
             p_title: 'Bank Transfer Submitted',
             p_message: `Tenant submitted a bank transfer of ₦${paymentAmount.toLocaleString()} for "${propertyData?.title || 'Property'}" with ref: ${reference}.`,

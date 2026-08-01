@@ -26,7 +26,14 @@ export async function POST(req: Request) {
             .eq('id', billId)
             .maybeSingle();
 
-        if (!bill || bill.rental?.tenant_id !== currentUser.user.id) {
+        if (!bill) {
+            return NextResponse.json({ error: 'You can only pay bills assigned to your account' }, { status: 403 });
+        }
+
+        const rentalData = bill.rental as any;
+        const rental = Array.isArray(rentalData) ? rentalData[0] : rentalData;
+
+        if (!rental || rental.tenant_id !== currentUser.user.id) {
             return NextResponse.json({ error: 'You can only pay bills assigned to your account' }, { status: 403 });
         }
 
@@ -42,8 +49,8 @@ export async function POST(req: Request) {
         const paymentMetadata = {
             bill_id: bill.id,
             tenant_id: currentUser.user.id,
-            landlord_id: bill.rental.landlord_id,
-            property_id: bill.rental.property_id,
+            landlord_id: rental.landlord_id,
+            property_id: rental.property_id,
             due_date: metadata?.due_date || null,
         };
         const email = currentUser.user.email;

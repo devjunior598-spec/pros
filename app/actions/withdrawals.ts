@@ -52,14 +52,13 @@ export async function addBankAccount(formData: FormData) {
     }
 
     const accountData = {
+        landlord_id: user.id,
         bank_name: bankName,
         bank_code: bankCode,
         account_number: accountNumber,
         account_name: accountName,
         is_primary: false,
     }
-
-    accountData.landlord_id = user.id
 
     // Insert into database
     const { error } = await supabase.from("bank_accounts").insert(accountData)
