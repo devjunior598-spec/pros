@@ -240,30 +240,21 @@ export default function PublicPropertyDetailsPage() {
     }
 
     const getOrCreateConversation = async (tenantId: string, landlordId: string) => {
-        // Check for existing conversation
-        const { data: existingConv } = await supabase
-            .from('conversations')
-            .select('id')
-            .eq('tenant_id', tenantId)
-            .eq('landlord_id', landlordId)
-            .maybeSingle()
+        const res = await fetch("/api/messages/conversations", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                landlordId,
+                propertyId: property?.id
+            })
+        })
 
-        if (existingConv) {
-            return existingConv.id
+        const data = await res.json()
+        if (!res.ok || data.error) {
+            throw new Error(data.error || "Failed to create conversation")
         }
 
-        // Create new conversation
-        const { data: newConv, error } = await supabase
-            .from('conversations')
-            .insert({
-                tenant_id: tenantId,
-                landlord_id: landlordId
-            })
-            .select()
-            .single()
-
-        if (error) throw error
-        return newConv.id
+        return data.conversationId
     }
 
     const handleMessageLandlord = async () => {
@@ -278,8 +269,9 @@ export default function PublicPropertyDetailsPage() {
             const convId = await getOrCreateConversation(user.id, property.landlord_id)
             router.push(`/messages?convId=${convId}`)
         } catch (error) {
-            console.error("Error creating chat:", error)
-            alert("Failed to contact landlord. Please try again.")
+            const errorMessage = error instanceof Error ? error.message : (error as any)?.message || String(error)
+            console.error("Error creating chat:", errorMessage)
+            alert(`Failed to contact landlord: ${errorMessage}`)
         }
     }
 
