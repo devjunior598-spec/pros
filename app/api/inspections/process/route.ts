@@ -19,7 +19,7 @@ export async function POST(req: Request) {
         // 1. Fetch the existing booking
         const { data: booking, error: fetchError } = await supabaseAdmin
             .from('inspection_bookings')
-            .select(`*, property:properties (title)`)
+            .select(`*, property:properties (title, landlord_id)`)
             .eq('id', id)
             .single();
 
@@ -27,7 +27,8 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
         }
 
-        const isLandlord = booking.landlord_id === currentUser.user.id;
+        const propertyLandlordId = booking.property?.landlord_id || booking.landlord_id;
+        const isLandlord = propertyLandlordId === currentUser.user.id;
         const isTenant = booking.tenant_id === currentUser.user.id;
         const isAdmin = currentUser.role === 'admin';
         if (!isLandlord && !isTenant && !isAdmin) {
@@ -39,7 +40,9 @@ export async function POST(req: Request) {
         }
 
         let updatedStatus = booking.status;
-        let updatePayload: any = {};
+        let updatePayload: Record<string, unknown> = {
+            ...(booking.landlord_id === propertyLandlordId ? {} : { landlord_id: propertyLandlordId }),
+        };
 
         if (action === 'approve') {
             updatedStatus = 'approved';
@@ -102,7 +105,7 @@ export async function POST(req: Request) {
             const { data: conflicts } = await supabaseAdmin
                 .from('inspection_bookings')
                 .select('id')
-                .eq('landlord_id', booking.landlord_id)
+                .eq('landlord_id', propertyLandlordId)
                 .eq('inspection_date', newDate)
                 .eq('inspection_time', newTime)
                 .neq('id', id)
@@ -133,7 +136,7 @@ export async function POST(req: Request) {
                 }
             } else {
                 await supabaseAdmin.rpc('create_notification', {
-                    p_user_id: booking.landlord_id,
+                    p_user_id: propertyLandlordId,
                     p_type: 'inspection_rescheduled',
                     p_title: 'Viewing Reschedule Request',
                     p_message: `Tenant requested to reschedule the viewing for "${booking.property?.title}" to ${newDate} at ${newTime.substring(0,5)}.`,
@@ -155,8 +158,8 @@ export async function POST(req: Request) {
         }
 
         return NextResponse.json({ success: true, booking: updatedBooking, message: `Booking successfully processed` });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error processing booking status:', error);
-        return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal Server Error' }, { status: 500 });
     }
 }

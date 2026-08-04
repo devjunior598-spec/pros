@@ -76,67 +76,13 @@ export function LandlordApplicationsList({ landlordId }: LandlordApplicationsLis
     const fetchApplications = useCallback(async (signal?: AbortSignal) => {
         setLoading(true)
         try {
-            // 1. Fetch rentals for properties owned by this landlord
-            const { data: rentalsData, error } = await supabase
-                .from('rentals')
-                .select(`
-                    *,
-                    property:properties!property_id (
-                        id,
-                        title,
-                        address,
-                        landlord_id
-                    ),
-                    tenant:profiles!rentals_tenant_id_fkey (
-                        id,
-                        name,
-                        full_name,
-                        email,
-                        phone
-                    )
-                `)
-                .eq('landlord_id', landlordId)
-                .eq('status', 'pending')
-                .order('created_at', { ascending: false })
-
-            if (error) {
-                if (!signal?.aborted) {
-                    console.error("Error fetching applications for landlord:", error)
-                }
-            } else if (!signal?.aborted && rentalsData) {
-                // 2. Fetch associated inspection bookings for these applicants
-                const tenantIds = rentalsData.map(r => r.tenant_id).filter(Boolean)
-                const propertyIds = rentalsData.map(r => r.property_id).filter(Boolean)
-
-                const inspectionsMap: Record<string, InspectionRecord> = {}
-                if (tenantIds.length > 0 && propertyIds.length > 0) {
-                    const { data: inspData } = await supabase
-                        .from('inspection_bookings')
-                        .select('*')
-                        .in('property_id', propertyIds)
-                        .in('tenant_id', tenantIds)
-                        .order('inspection_date', { ascending: false })
-
-                    if (inspData) {
-                        inspData.forEach((insp: InspectionRecord) => {
-                            const key = `${insp.property_id}_${insp.tenant_id}`
-                            if (!inspectionsMap[key]) {
-                                inspectionsMap[key] = insp
-                            }
-                        })
-                    }
-                }
-
-                const enrichedApps: ApplicationRecord[] = rentalsData.map(r => {
-                    const key = `${r.property_id}_${r.tenant_id}`
-                    return {
-                        ...r,
-                        inspection: inspectionsMap[key] || null
-                    }
-                })
-
-                setApplications(enrichedApps)
-            }
+            const response = await fetch("/api/landlord/applications", {
+                cache: "no-store",
+                signal,
+            })
+            const result = await response.json()
+            if (!response.ok) throw new Error(result.error || "Failed to load applications")
+            if (!signal?.aborted) setApplications((result.applications as ApplicationRecord[]) || [])
         } catch (error: unknown) {
             if (!signal?.aborted) {
                 console.error("Error in fetchApplications:", error)

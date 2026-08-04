@@ -85,25 +85,17 @@ export default function InspectionsPage() {
 
             // 2. Fetch Bookings
             if (prof.role === "landlord") {
-                const { data: bookData } = await supabase
-                    .from("inspection_bookings")
-                    .select("*, property:properties(title, city, state)")
-                    .eq("landlord_id", user.id)
-                    .order("inspection_date", { ascending: true })
-                    .order("inspection_time", { ascending: true })
-                setBookings(bookData || [])
+                const response = await fetch("/api/landlord/inspections", { cache: "no-store" })
+                const result = await response.json()
+                if (!response.ok) throw new Error(result.error || "Failed to load inspections")
+                setBookings(result.bookings || [])
 
-                // Fetch Availability Settings
-                const { data: avail } = await supabase
-                    .from("landlord_availabilities")
-                    .select("*")
-                    .eq("landlord_id", user.id)
-                    .maybeSingle()
+                const avail = result.availability
                 if (avail) {
                     setAvailability({
                         ...avail,
-                        start_time: avail.start_time.substring(0, 5),
-                        end_time: avail.end_time.substring(0, 5)
+                        start_time: String(avail.start_time).substring(0, 5),
+                        end_time: String(avail.end_time).substring(0, 5)
                     })
                 }
             } else if (prof.role === "tenant") {
