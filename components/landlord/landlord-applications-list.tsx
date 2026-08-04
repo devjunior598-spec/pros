@@ -14,14 +14,11 @@ import {
     Mail,
     Home,
     Calendar,
-    Activity,
     FileText,
     Download,
     Eye,
     CalendarCheck,
     Clock,
-    MessageSquare,
-    ExternalLink
 } from "lucide-react"
 import { RentalStatus } from "@/types"
 import Link from "next/link"
@@ -98,7 +95,7 @@ export function LandlordApplicationsList({ landlordId }: LandlordApplicationsLis
                         phone
                     )
                 `)
-                .or(`landlord_id.eq.${landlordId},property.landlord_id.eq.${landlordId}`)
+                .eq('landlord_id', landlordId)
                 .eq('status', 'pending')
                 .order('created_at', { ascending: false })
 
@@ -111,7 +108,7 @@ export function LandlordApplicationsList({ landlordId }: LandlordApplicationsLis
                 const tenantIds = rentalsData.map(r => r.tenant_id).filter(Boolean)
                 const propertyIds = rentalsData.map(r => r.property_id).filter(Boolean)
 
-                let inspectionsMap: Record<string, InspectionRecord> = {}
+                const inspectionsMap: Record<string, InspectionRecord> = {}
                 if (tenantIds.length > 0 && propertyIds.length > 0) {
                     const { data: inspData } = await supabase
                         .from('inspection_bookings')
@@ -152,11 +149,9 @@ export function LandlordApplicationsList({ landlordId }: LandlordApplicationsLis
     }, [landlordId])
 
     useEffect(() => {
-        let mounted = true
         if (landlordId) {
             fetchApplications()
         }
-        return () => { mounted = false }
     }, [fetchApplications, landlordId])
 
     const handleAction = async (requestId: string, propertyId: string, status: RentalStatus) => {

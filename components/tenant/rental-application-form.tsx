@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,7 +15,7 @@ interface RentalApplicationFormProps {
     onSuccess: () => void
 }
 
-export function RentalApplicationForm({ propertyId, tenantId, rentAmount, onSuccess }: RentalApplicationFormProps) {
+export function RentalApplicationForm({ propertyId, rentAmount, onSuccess }: RentalApplicationFormProps) {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [moveInDate, setMoveInDate] = useState("")
@@ -28,34 +27,17 @@ export function RentalApplicationForm({ propertyId, tenantId, rentAmount, onSucc
         setError(null)
 
         try {
-            // Check if user already has a pending or active rental for this property
-            const { data: existing, error: fetchError } = await supabase
-                .from('rentals')
-                .select('id')
-                .eq('property_id', propertyId)
-                .eq('tenant_id', tenantId)
-                .in('status', ['pending', 'approved', 'active'])
-
-            if (fetchError) throw fetchError
-
-            if (existing && existing.length > 0) {
-                throw new Error("You already have an active or pending application for this property.")
-            }
-
-            // Insert new rental record as 'pending'
-            const { error: insertError } = await supabase
-                .from('rentals')
-                .insert({
-                    property_id: propertyId,
-                    tenant_id: tenantId,
-                    status: 'pending',
-                    rent_amount: rentAmount,
-                    rent_start_date: moveInDate || null,
-                    notes: applicationLetter.trim() || null,
-                    application_letter: applicationLetter.trim() || null,
-                })
-
-            if (insertError) throw insertError
+            const response = await fetch('/api/rentals/apply', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    propertyId,
+                    applicationLetter: applicationLetter.trim(),
+                    rentStartDate: moveInDate || null,
+                }),
+            })
+            const result = await response.json()
+            if (!response.ok) throw new Error(result.error || 'Failed to submit application')
 
             onSuccess()
         } catch (err: unknown) {
@@ -124,4 +106,3 @@ export function RentalApplicationForm({ propertyId, tenantId, rentAmount, onSucc
         </form>
     )
 }
-

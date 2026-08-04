@@ -7,7 +7,6 @@ export async function POST(req: Request) {
         const {
             propertyId,
             tenantId,
-            landlordId,
             name,
             email,
             phone,
@@ -17,7 +16,21 @@ export async function POST(req: Request) {
             notes
         } = body;
 
-        if (!propertyId || !landlordId || !name || !email || !phone || !date || !time || !type) {
+        if (!propertyId || !name || !email || !phone || !date || !time || !type) {
+            return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+        }
+
+        const { data: property, error: propertyError } = await supabaseAdmin
+            .from('properties')
+            .select('landlord_id')
+            .eq('id', propertyId)
+            .maybeSingle();
+
+        if (propertyError) throw propertyError;
+
+        const targetLandlordId = property?.landlord_id;
+
+        if (!targetLandlordId) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
@@ -26,7 +39,7 @@ export async function POST(req: Request) {
         const { data: existingBookings, error: checkError } = await supabaseAdmin
             .from('inspection_bookings')
             .select('id')
-            .eq('landlord_id', landlordId)
+            .eq('landlord_id', targetLandlordId)
             .eq('inspection_date', date)
             .eq('inspection_time', time)
             .in('status', ['pending', 'approved']);
@@ -47,7 +60,7 @@ export async function POST(req: Request) {
             .insert({
                 property_id: propertyId,
                 tenant_id: tenantId || null,
-                landlord_id: landlordId,
+                landlord_id: targetLandlordId,
                 name,
                 email,
                 phone,
@@ -65,17 +78,36 @@ export async function POST(req: Request) {
         }
 
         // 3. Notify the landlord
-        await supabaseAdmin.rpc('create_notification', {
-            p_user_id: landlordId,
-            p_type: 'inspection_booked',
-            p_title: 'New Inspection Requested',
-            p_message: `${name} requested a ${type} on ${date} at ${time}.`,
-            p_link: '/dashboard/inspections'
-        });
+        try {
+            const { error: notificationError } = await supabaseAdmin.from('notifications').insert({
+                user_id: targetLandlordId,
+                type: 'inspection_booked',
+                title: 'New Inspection Requested',
+                message: `${name} requested a ${type} on ${date} at ${time}.`,
+                link: '/dashboard/inspections'
+            });
+            if (notificationError) throw notificationError;
+        } catch (notifErr) {
+            console.error('Notification insertion error:', notifErr);
+            // Fallback RPC
+            try {
+                await supabaseAdmin.rpc('create_notification', {
+                    p_user_id: targetLandlordId,
+                    p_type: 'inspection_booked',
+                    p_title: 'New Inspection Requested',
+                    p_message: `${name} requested a ${type} on ${date} at ${time}.`,
+                    p_link: '/dashboard/inspections'
+                });
+            } catch (rpcErr) {
+                console.error('Notification RPC error:', rpcErr);
+            }
+        }
 
         return NextResponse.json({ success: true, booking });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Inspection booking error:', error);
-        return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({
+            error: error instanceof Error ? error.message : 'Internal Server Error'
+        }, { status: 500 });
     }
 }

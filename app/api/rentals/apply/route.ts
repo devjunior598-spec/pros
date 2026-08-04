@@ -12,6 +12,12 @@ type ApplicationBody = {
     rentStartDate?: string | null
 }
 
+type TenantProfile = {
+    name?: string | null
+    fullname?: string | null
+    full_name?: string | null
+}
+
 export async function POST(request: Request) {
     try {
         const currentUser = await getCurrentUserWithRole()
@@ -29,7 +35,7 @@ export async function POST(request: Request) {
 
         const { data: property, error: propertyError } = await supabaseAdmin
             .from("properties")
-            .select("id, title, landlord_id, status")
+            .select("id, title, landlord_id, price, status")
             .eq("id", body.propertyId)
             .maybeSingle()
 
@@ -64,6 +70,7 @@ export async function POST(request: Request) {
                 property_id: property.id,
                 tenant_id: tenantId,
                 landlord_id: property.landlord_id,
+                rent_amount: property.price,
                 employment: body.employment?.trim() || null,
                 income: body.income?.trim() || null,
                 notes: body.notes?.trim() || appLetter,
@@ -83,7 +90,8 @@ export async function POST(request: Request) {
             .eq("id", tenantId)
             .maybeSingle()
 
-        const applicantName = (tenantProfile as any)?.fullname || (tenantProfile as any)?.full_name || (tenantProfile as any)?.name || "A tenant"
+        const profile = tenantProfile as TenantProfile | null
+        const applicantName = profile?.fullname || profile?.full_name || profile?.name || "A tenant"
         const { error: notificationError } = await supabaseAdmin
             .from("notifications")
             .insert({
