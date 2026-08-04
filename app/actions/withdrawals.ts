@@ -1,6 +1,6 @@
 'use server'
 
-import { createServerClient, type CookieOptions } from "@supabase/ssr"
+import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 
 export async function addBankAccount(formData: FormData) {
@@ -243,17 +243,24 @@ export async function requestWithdrawal(amount: number, bankAccountId: string) {
         return { error: "Only landlords can request withdrawals." }
     }
 
-    const [{ data: wallet }, { data: bankAccount }] = await Promise.all([
+    const [{ data: wallet }, { data: bankAccount }, { data: pendingWithdrawal }] = await Promise.all([
         supabase
-            .from('landlord_wallets')
+            .from('wallets')
             .select('balance')
-            .eq('landlord_id', user.id)
+            .eq('tenant_id', user.id)
             .maybeSingle(),
         supabase
             .from('bank_accounts')
-            .select('id')
+            .select('id, bank_name, account_number, account_name')
             .eq('id', bankAccountId)
             .eq('landlord_id', user.id)
+            .maybeSingle(),
+        supabase
+            .from('withdrawals')
+            .select('id')
+            .eq('landlord_id', user.id)
+            .in('status', ['pending', 'processing'])
+            .limit(1)
             .maybeSingle(),
     ])
 
@@ -265,12 +272,17 @@ export async function requestWithdrawal(amount: number, bankAccountId: string) {
         return { error: "Insufficient wallet balance." }
     }
 
+    if (pendingWithdrawal) {
+        return { error: "You already have a withdrawal being processed." }
+    }
+
     const withdrawalData = {
         amount: amount,
-        bank_account_id: bankAccountId,
         status: 'pending',
-        reference: `WD-${crypto.randomUUID()}`,
         landlord_id: user.id,
+        bank_name: bankAccount.bank_name,
+        account_number: bankAccount.account_number,
+        account_name: bankAccount.account_name,
     }
 
     const { error } = await supabase
@@ -283,6 +295,62 @@ export async function requestWithdrawal(amount: number, bankAccountId: string) {
     }
 
     return { success: true }
+}
+
+export async function getAutoWithdrawalSettings() {
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { cookies: { get(name: string) { return cookieStore.get(name)?.value } } }
+    )
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { enabled: false, threshold: 100000, bankAccountId: null }
+
+    const { data } = await supabase
+        .from("profiles")
+        .select("auto_withdrawal_enabled, auto_withdrawal_threshold, auto_withdrawal_bank_account_id")
+        .eq("id", user.id)
+        .maybeSingle()
+
+    return {
+        enabled: data?.auto_withdrawal_enabled ?? false,
+        threshold: Number(data?.auto_withdrawal_threshold ?? 100000),
+        bankAccountId: data?.auto_withdrawal_bank_account_id ?? null,
+    }
+}
+
+export async function updateAutoWithdrawalSettings(enabled: boolean, bankAccountId: string | null) {
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { cookies: { get(name: string) { return cookieStore.get(name)?.value } } }
+    )
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: "You must be logged in." }
+    if (enabled && !bankAccountId) return { error: "Add and select a bank account first." }
+
+    if (bankAccountId) {
+        const { data: account } = await supabase
+            .from("bank_accounts")
+            .select("id")
+            .eq("id", bankAccountId)
+            .eq("landlord_id", user.id)
+            .maybeSingle()
+        if (!account) return { error: "Select a bank account registered to your account." }
+    }
+
+    const { error } = await supabase
+        .from("profiles")
+        .update({
+            auto_withdrawal_enabled: enabled,
+            auto_withdrawal_threshold: 100000,
+            auto_withdrawal_bank_account_id: enabled ? bankAccountId : null,
+        })
+        .eq("id", user.id)
+
+    return error ? { error: error.message } : { success: true }
 }
 
 export async function getBalance() {
@@ -321,9 +389,9 @@ export async function getBalance() {
     }
 
     const { data: wallet } = await supabase
-        .from('landlord_wallets')
+        .from('wallets')
         .select('balance')
-        .eq('landlord_id', user.id)
+        .eq('tenant_id', user.id)
         .maybeSingle()
 
     return { balance: wallet ? Number(wallet.balance) : 0 }
@@ -365,7 +433,7 @@ export async function getWithdrawals() {
 
     const { data, error } = await supabase
         .from('withdrawals')
-        .select(`*, bank_account:bank_accounts(bank_name)`)
+        .select('*')
         .eq('landlord_id', user.id)
         .order('created_at', { ascending: false })
 

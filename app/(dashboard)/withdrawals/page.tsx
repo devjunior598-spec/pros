@@ -1,10 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Loader2, Wallet, ArrowUpRight, Landmark, Clock, Plus, Info, Trash2 } from "lucide-react"
+import { Loader2, Wallet, Landmark, Info, Trash2 } from "lucide-react"
 import {
     Table,
     TableBody,
@@ -15,18 +14,31 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { AddBankAccountModal } from "@/components/withdrawals/add-bank-account-modal"
-import { getBankAccounts, deleteBankAccount, getProfile, requestWithdrawal, getBalance, getWithdrawals } from "@/app/actions/withdrawals"
+import { getAutoWithdrawalSettings, getBankAccounts, deleteBankAccount, getProfile, requestWithdrawal, getBalance, getWithdrawals, updateAutoWithdrawalSettings } from "@/app/actions/withdrawals"
 import { useToast } from "@/hooks/use-toast"
+import { Switch } from "@/components/ui/switch"
+
+type BankAccount = { id: string; bank_name: string; account_number: string }
+type Withdrawal = {
+    id: string
+    amount: number
+    status: string
+    reference?: string
+    created_at: string
+    bank_name?: string | null
+}
 
 export default function WithdrawalsPage() {
-    const [withdrawals, setWithdrawals] = useState<any[]>([])
-    const [bankAccounts, setBankAccounts] = useState<any[]>([])
+    const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([])
+    const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([])
     const [loading, setLoading] = useState(true)
     const [balance, setBalance] = useState(0)
     const [landlordName, setLandlordName] = useState<string>("")
     const [amount, setAmount] = useState<string>("")
     const [selectedAccount, setSelectedAccount] = useState<string>("")
     const [withdrawing, setWithdrawing] = useState(false)
+    const [autoWithdrawalEnabled, setAutoWithdrawalEnabled] = useState(false)
+    const [updatingAutoWithdrawal, setUpdatingAutoWithdrawal] = useState(false)
     const { toast } = useToast()
 
     const fetchData = async () => {
@@ -52,11 +64,45 @@ export default function WithdrawalsPage() {
             if (withdrawalsData) {
                 setWithdrawals(withdrawalsData)
             }
+
+            const settings = await getAutoWithdrawalSettings()
+            setAutoWithdrawalEnabled(settings.enabled)
+            if (settings.bankAccountId && accounts?.some((account) => account.id === settings.bankAccountId)) {
+                setSelectedAccount(settings.bankAccountId)
+            }
         } catch (error) {
             console.error("Error fetching data:", error)
         } finally {
             setLoading(false)
         }
+    }
+
+    const handleAutoWithdrawalChange = async (enabled: boolean) => {
+        if (enabled && !selectedAccount) {
+            toast({ title: "Bank account required", description: "Add and select a bank account before enabling auto-withdrawal.", variant: "destructive" })
+            return
+        }
+
+        setUpdatingAutoWithdrawal(true)
+        const result = await updateAutoWithdrawalSettings(enabled, enabled ? selectedAccount : null)
+        setUpdatingAutoWithdrawal(false)
+
+        if (result.error) {
+            toast({ title: "Could not update status", description: result.error, variant: "destructive" })
+            return
+        }
+
+        setAutoWithdrawalEnabled(enabled)
+        if (enabled && balance >= 100000 && selectedAccount) {
+            const automaticRequest = await requestWithdrawal(balance, selectedAccount)
+            if (automaticRequest.success) await fetchData()
+        }
+        toast({
+            title: enabled ? "Auto-withdrawal enabled" : "Auto-withdrawal disabled",
+            description: enabled
+                ? "Your balance will be sent to the selected account when it reaches ₦100,000."
+                : "Your funds will remain in your wallet until you withdraw them manually.",
+        })
     }
 
     useEffect(() => {
@@ -109,7 +155,7 @@ export default function WithdrawalsPage() {
                 setAmount("")
                 fetchData() // Refresh withdrawal list and balance
             }
-        } catch (error) {
+        } catch {
             toast({
                 variant: "destructive",
                 title: "Error",
@@ -273,12 +319,35 @@ export default function WithdrawalsPage() {
                     </Card>
 
                     <Card className="border-none shadow-sm bg-white dark:bg-gray-950">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium">Auto-Withdrawal</CardTitle>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <div>
+                                <CardTitle className="text-sm font-medium">Auto-Withdrawal</CardTitle>
+                                <Badge variant={autoWithdrawalEnabled ? "default" : "secondary"} className="mt-2">
+                                    {autoWithdrawalEnabled ? "Enabled" : "Disabled"}
+                                </Badge>
+                            </div>
+                            {updatingAutoWithdrawal ? (
+                                <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                            ) : (
+                                <Switch
+                                    checked={autoWithdrawalEnabled}
+                                    onCheckedChange={handleAutoWithdrawalChange}
+                                    disabled={bankAccounts.length === 0}
+                                    aria-label="Enable auto-withdrawal"
+                                />
+                            )}
                         </CardHeader>
                         <CardContent>
                             <p className="text-xs text-muted-foreground mb-4">Automatically withdraw funds when balance reaches ₦100,000.</p>
-                            <Button variant="outline" size="sm" className="w-full">Enable Status</Button>
+                            <Button
+                                variant={autoWithdrawalEnabled ? "outline" : "default"}
+                                size="sm"
+                                className="w-full"
+                                disabled={updatingAutoWithdrawal || bankAccounts.length === 0}
+                                onClick={() => handleAutoWithdrawalChange(!autoWithdrawalEnabled)}
+                            >
+                                {autoWithdrawalEnabled ? "Disable auto-withdrawal" : "Enable auto-withdrawal"}
+                            </Button>
                         </CardContent>
                     </Card>
                 </div>
@@ -295,7 +364,7 @@ export default function WithdrawalsPage() {
                         {withdrawals.length === 0 ? (
                             <p className="text-center py-8 text-muted-foreground">No withdrawal history found.</p>
                         ) : (
-                            withdrawals.map((wd: any) => (
+                            withdrawals.map((wd) => (
                                 <div key={wd.id} className="p-4 rounded-xl border bg-card space-y-2">
                                     <div className="flex items-center justify-between">
                                         <span className="font-bold text-sm">₦{Number(wd.amount).toLocaleString()}</span>
@@ -308,10 +377,10 @@ export default function WithdrawalsPage() {
                                         </Badge>
                                     </div>
                                     <div className="text-sm text-muted-foreground">
-                                        {wd.bank_account?.bank_name || 'Removed Bank'}
+                                        {wd.bank_name || 'Removed Bank'}
                                     </div>
                                     <div className="flex items-center justify-between">
-                                        <span className="font-mono text-xs text-muted-foreground">{wd.reference}</span>
+                                        <span className="font-mono text-xs text-muted-foreground">{wd.reference || `WD-${wd.id.slice(0, 8)}`}</span>
                                         <span className="text-xs text-muted-foreground">{new Date(wd.created_at).toLocaleDateString()}</span>
                                     </div>
                                 </div>
@@ -331,12 +400,12 @@ export default function WithdrawalsPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {withdrawals.length > 0 ? withdrawals.map((wd: any) => (
+                                {withdrawals.length > 0 ? withdrawals.map((wd) => (
                                     <TableRow key={wd.id}>
-                                        <TableCell className="font-mono text-xs">{wd.reference}</TableCell>
+                                        <TableCell className="font-mono text-xs">{wd.reference || `WD-${wd.id.slice(0, 8)}`}</TableCell>
                                         <TableCell className="font-bold">₦{Number(wd.amount).toLocaleString()}</TableCell>
                                         <TableCell>{new Date(wd.created_at).toLocaleDateString()}</TableCell>
-                                        <TableCell>{wd.bank_account?.bank_name || 'Removed Bank'}</TableCell>
+                                        <TableCell>{wd.bank_name || 'Removed Bank'}</TableCell>
                                         <TableCell>
                                             <Badge className={
                                                 wd.status === 'completed' ? "bg-green-100 text-green-700 hover:bg-green-200 border-none" :
