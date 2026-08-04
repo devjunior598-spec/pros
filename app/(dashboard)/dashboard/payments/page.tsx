@@ -8,13 +8,10 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import { generateRentReceipt } from "@/lib/rent-receipt-generator"
 import {
-    BarChart,
-    Bar,
     XAxis,
     YAxis,
     CartesianGrid,
@@ -24,27 +21,36 @@ import {
     Area
 } from "recharts"
 import {
-    CreditCard,
     DollarSign,
     Calendar,
     ArrowLeft,
     Download,
     Loader2,
-    CheckCircle,
-    XCircle,
     Building2,
     AlertCircle,
-    Clock,
     History,
     FileCheck,
-    HelpCircle,
     Banknote,
-    TrendingUp,
-    Users
+    TrendingUp
 } from "lucide-react"
 
+type Person = { id?: string; name?: string | null; full_name?: string | null; email?: string | null }
+type RentalProperty = { id?: string; title?: string | null; address?: string | null; landlord_id?: string }
+type PaymentRecord = {
+    id: string; amount: number; payment_status: string; payment_method: string; transaction_reference: string;
+    payment_date?: string | null; receipt_number?: string | null; created_at: string;
+    tenant?: Person | null; property?: RentalProperty | null;
+}
+type BillRecord = {
+    id: string; amount: number; amount_paid?: number; due_date: string; status: string;
+    rental?: { tenant?: Person | null; property?: RentalProperty | null } | null;
+}
+type BankAccountRecord = { id: string; bank_name: string; account_number: string; account_name: string }
+type ProfileRecord = { id: string; name?: string | null; full_name?: string | null }
+type ChartPoint = { month: string; monthIdx: number; yearIdx: number; revenue: number }
+
 // Custom premium dark tooltip for chart
-function CustomTooltip({ active, payload, label }: any) {
+function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value?: number | string }>; label?: string }) {
     if (!active || !payload?.length) return null
     return (
         <div className="bg-slate-950 dark:bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-2xl">
@@ -60,10 +66,10 @@ export default function LandlordPaymentsPage() {
     const router = useRouter()
     const { toast } = useToast()
     const [loading, setLoading] = useState(true)
-    const [profile, setProfile] = useState<any>(null)
-    const [payments, setPayments] = useState<any[]>([])
-    const [outstandingBills, setOutstandingBills] = useState<any[]>([])
-    const [bankAccount, setBankAccount] = useState<any>(null)
+    const [profile, setProfile] = useState<ProfileRecord | null>(null)
+    const [payments, setPayments] = useState<PaymentRecord[]>([])
+    const [outstandingBills, setOutstandingBills] = useState<BillRecord[]>([])
+    const [bankAccount, setBankAccount] = useState<BankAccountRecord | null>(null)
     
     // Stats states
     const [stats, setStats] = useState({
@@ -74,7 +80,7 @@ export default function LandlordPaymentsPage() {
     })
 
     // Chart Data
-    const [chartData, setChartData] = useState<any[]>([])
+    const [chartData, setChartData] = useState<ChartPoint[]>([])
 
     // Bank Account Modal Form
     const [isBankModalOpen, setIsBankModalOpen] = useState(false)
@@ -84,16 +90,18 @@ export default function LandlordPaymentsPage() {
         account_name: ""
     })
     const [savingBank, setSavingBank] = useState(false)
+    const [loadError, setLoadError] = useState<string | null>(null)
 
     // Verification Modal Form
     const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false)
-    const [selectedPayment, setSelectedPayment] = useState<any>(null)
+    const [selectedPayment, setSelectedPayment] = useState<PaymentRecord | null>(null)
     const [approvalAction, setApprovalAction] = useState<"approve" | "reject">("approve")
     const [rejectionReason, setRejectionReason] = useState("")
     const [submittingAction, setSubmittingAction] = useState(false)
 
     const fetchPageData = useCallback(async () => {
         setLoading(true)
+        setLoadError(null)
         try {
             // The middleware has already validated the cookie-backed session for
             // this protected route. Reading it locally avoids blocking the page on
@@ -111,14 +119,16 @@ export default function LandlordPaymentsPage() {
                 .select("*")
                 .eq("id", user.id)
                 .single()
-            setProfile(prof)
+            setProfile(prof as ProfileRecord | null)
 
-            // 2. Fetch payments from the deployed transaction ledger. Some
-            // environments do not yet have the newer rent_payments migration, so
-            // normalize the established payments schema for this page.
+            // 2. Fetch the canonical rent-payment ledger scoped to this landlord.
             const { data: payLogs, error: payError } = await supabase
-                .from("payments")
-                .select("*")
+                .from("rent_payments")
+                .select(`
+                    *,
+                    tenant:profiles!rent_payments_tenant_id_fkey(id, name, full_name, email),
+                    property:properties!rent_payments_property_id_fkey(id, title, address)
+                `)
                 .eq("landlord_id", user.id)
                 .order("created_at", { ascending: false })
 
@@ -127,24 +137,14 @@ export default function LandlordPaymentsPage() {
                     cause: payError
                 })
             }
-            const activePayments = (payLogs || []).map(payment => ({
-                ...payment,
-                payment_status:
-                    payment.status === "success" ? "Paid" :
-                    payment.status === "failed" ? "Failed" :
-                    payment.status === "refunded" ? "Refunded" : "Pending",
-                transaction_reference: payment.reference,
-                payment_date: payment.created_at,
-                property: null,
-                tenant: null
-            }))
+            const activePayments = (payLogs || []) as unknown as PaymentRecord[]
             setPayments(activePayments)
 
             // 3. Fetch Outstanding invoices (bills) for properties owned by this landlord
             const { data: bills, error: billsError } = await supabase
                 .from("bills")
-                .select("*, rental:rentals!inner(tenant:profiles(name, email), property:properties(title, landlord_id))")
-                .eq("rental.property.landlord_id", user.id)
+                .select("*, rental:rentals!bills_rental_id_fkey!inner(tenant:profiles!rentals_tenant_id_fkey(name, full_name, email), property:properties!rentals_property_id_fkey(title, landlord_id))")
+                .eq("rental.landlord_id", user.id)
                 .neq("status", "paid")
                 .neq("status", "processing")
                 .order("due_date", { ascending: true })
@@ -152,7 +152,7 @@ export default function LandlordPaymentsPage() {
             if (billsError) {
                 console.error("Bills fetch error:", billsError)
             }
-            const activeBills = bills || []
+            const activeBills = (bills || []) as unknown as BillRecord[]
             setOutstandingBills(activeBills)
 
             // 4. Fetch Landlord Bank account details
@@ -163,7 +163,7 @@ export default function LandlordPaymentsPage() {
                 .maybeSingle()
 
             if (bank && !bankErr) {
-                setBankAccount(bank)
+                setBankAccount(bank as BankAccountRecord)
                 setBankForm({
                     bank_name: bank.bank_name || "",
                     account_number: bank.account_number || "",
@@ -177,7 +177,7 @@ export default function LandlordPaymentsPage() {
                 .reduce((sum, p) => sum + Number(p.amount), 0)
 
             const outstandingBal = activeBills
-                .reduce((sum, b) => sum + (Number(b.amount) - Number(b.amount_paid || 0)), 0)
+                .reduce((sum, b) => sum + Math.max(0, Number(b.amount) - Number(b.amount_paid || 0)), 0)
 
             const todayStr = new Date().toISOString().split("T")[0]
             const overdueC = activeBills
@@ -194,7 +194,7 @@ export default function LandlordPaymentsPage() {
             })
 
             // Aggregate Monthly Revenue for last 6 months
-            const last6Months: any[] = []
+            const last6Months: ChartPoint[] = []
             for (let i = 5; i >= 0; i--) {
                 const date = new Date()
                 date.setMonth(date.getMonth() - i)
@@ -210,7 +210,7 @@ export default function LandlordPaymentsPage() {
             activePayments
                 .filter(p => p.payment_status === "Paid" && p.payment_date)
                 .forEach(p => {
-                    const payDate = new Date(p.payment_date)
+                    const payDate = new Date(p.payment_date!)
                     const mIdx = payDate.getMonth()
                     const yIdx = payDate.getFullYear()
                     const match = last6Months.find(m => m.monthIdx === mIdx && m.yearIdx === yIdx)
@@ -223,6 +223,7 @@ export default function LandlordPaymentsPage() {
 
         } catch (error) {
             console.error("Error fetching landlord payments data:", error)
+            setLoadError(error instanceof Error ? error.message : "Financial data could not be loaded.")
         } finally {
             setLoading(false)
         }
@@ -244,31 +245,31 @@ export default function LandlordPaymentsPage() {
 
         setSavingBank(true)
         try {
-            const { error } = await supabase
-                .from("bank_accounts")
-                .upsert({
+            const bankPayload = {
                     landlord_id: profile.id,
                     bank_name: bankForm.bank_name,
                     account_number: bankForm.account_number,
-                    account_name: bankForm.account_name,
-                    updated_at: new Date().toISOString()
-                }, { onConflict: "landlord_id" })
+                    account_name: bankForm.account_name
+            }
+            const { error } = bankAccount
+                ? await supabase.from("bank_accounts").update(bankPayload).eq("id", bankAccount.id)
+                : await supabase.from("bank_accounts").insert(bankPayload)
 
             if (error) throw error
 
             toast({ title: "Bank account updated!", description: "Landlord bank details saved successfully." })
             setIsBankModalOpen(false)
             fetchPageData()
-        } catch (error: any) {
+        } catch (error) {
             console.error(error)
-            alert(error.message || "Failed to save bank account details.")
+            toast({ title: "Bank details not saved", description: error instanceof Error ? error.message : "Failed to save bank account details.", variant: "destructive" })
         } finally {
             setSavingBank(false)
         }
     }
 
     // Open approval dialog
-    const handleOpenApprovalModal = (payment: any, action: "approve" | "reject") => {
+    const handleOpenApprovalModal = (payment: PaymentRecord, action: "approve" | "reject") => {
         setSelectedPayment(payment)
         setApprovalAction(action)
         setRejectionReason("")
@@ -300,15 +301,15 @@ export default function LandlordPaymentsPage() {
             })
             setIsApprovalModalOpen(false)
             fetchPageData()
-        } catch (error: any) {
+        } catch (error) {
             console.error(error)
-            alert(error.message || "Error processing transfer action.")
+            toast({ title: "Transfer not processed", description: error instanceof Error ? error.message : "Error processing transfer action.", variant: "destructive" })
         } finally {
             setSubmittingAction(false)
         }
     }
 
-    const handleDownloadReceipt = (payment: any) => {
+    const handleDownloadReceipt = (payment: PaymentRecord) => {
         try {
             const doc = generateRentReceipt({
                 receiptNumber: payment.receipt_number || "N/A",
@@ -370,6 +371,12 @@ export default function LandlordPaymentsPage() {
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 pb-20">
             <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8 p-4 sm:p-6 md:p-8">
+                {loadError && (
+                    <div role="alert" className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200">
+                        <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+                        <div><p className="font-semibold">Financial data could not be loaded</p><p className="mt-1 text-xs opacity-80">{loadError}</p></div>
+                    </div>
+                )}
                 
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
