@@ -5,8 +5,9 @@ import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2 } from "lucide-react"
+import { Loader2, FileText } from "lucide-react"
 
 interface RentalApplicationFormProps {
     propertyId: string
@@ -19,6 +20,7 @@ export function RentalApplicationForm({ propertyId, tenantId, rentAmount, onSucc
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [moveInDate, setMoveInDate] = useState("")
+    const [applicationLetter, setApplicationLetter] = useState("")
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -49,6 +51,8 @@ export function RentalApplicationForm({ propertyId, tenantId, rentAmount, onSucc
                     status: 'pending',
                     rent_amount: rentAmount,
                     rent_start_date: moveInDate || null,
+                    notes: applicationLetter.trim() || null,
+                    application_letter: applicationLetter.trim() || null,
                 })
 
             if (insertError) throw insertError
@@ -90,8 +94,21 @@ export function RentalApplicationForm({ propertyId, tenantId, rentAmount, onSucc
                 />
             </div>
 
-            <p className="text-sm text-muted-foreground">
-                By clicking &quot;Submit Application&quot;, you agree to share your profile details with the landlord for review.
+            <div className="space-y-2">
+                <Label htmlFor="letter" className="flex items-center gap-1 font-semibold">
+                    <FileText className="w-4 h-4 text-primary" /> Application Letter to Landlord
+                </Label>
+                <Textarea
+                    id="letter"
+                    placeholder="Introduce yourself and explain why you'd like to rent this property..."
+                    value={applicationLetter}
+                    onChange={(e) => setApplicationLetter(e.target.value)}
+                    rows={4}
+                />
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+                By clicking &quot;Confirm Application&quot;, you agree to share your application letter and profile details with the landlord.
             </p>
 
             <Button type="submit" className="w-full" disabled={loading}>
@@ -107,3 +124,4 @@ export function RentalApplicationForm({ propertyId, tenantId, rentAmount, onSucc
         </form>
     )
 }
+

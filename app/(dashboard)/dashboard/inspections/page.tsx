@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -316,30 +317,37 @@ export default function InspectionsPage() {
                                                     </div>
                                                 )}
 
-                                                <div className="flex justify-end gap-2 pt-2 border-t text-xs">
-                                                    {b.status === 'pending' && (
-                                                        <>
-                                                            <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => { setSelectedBooking(b); setShowRejectModal(true); }}>
-                                                                Decline
-                                                            </Button>
-                                                            <Button size="sm" variant="outline" className="border-slate-200 dark:border-slate-800" onClick={() => { setSelectedBooking(b); setRescheduleDate(b.inspection_date); setRescheduleTime(b.inspection_time.substring(0,5)); setShowRescheduleModal(true); }}>
-                                                                Reschedule
-                                                            </Button>
-                                                            <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white font-bold" onClick={() => handleAction(b.id, 'approve')} disabled={processingId === b.id}>
-                                                                Approve
-                                                            </Button>
-                                                        </>
-                                                    )}
-                                                    {b.status === 'approved' && (
-                                                        <>
-                                                            <Button size="sm" variant="outline" className="border-slate-200 dark:border-slate-800" onClick={() => { setSelectedBooking(b); setRescheduleDate(b.inspection_date); setRescheduleTime(b.inspection_time.substring(0,5)); setShowRescheduleModal(true); }}>
-                                                                Reschedule
-                                                            </Button>
-                                                            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-bold" onClick={() => handleAction(b.id, 'complete')} disabled={processingId === b.id}>
-                                                                Mark Completed
-                                                            </Button>
-                                                        </>
-                                                    )}
+                                                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t text-xs">
+                                                    <Link href="/applications">
+                                                        <Button size="sm" variant="ghost" className="text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 p-1.5 h-auto text-[11px]">
+                                                            <FileText className="h-3.5 w-3.5 mr-1" /> View Application Letter
+                                                        </Button>
+                                                    </Link>
+                                                    <div className="flex gap-2">
+                                                        {b.status === 'pending' && (
+                                                            <>
+                                                                <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => { setSelectedBooking(b); setShowRejectModal(true); }}>
+                                                                    Decline
+                                                                </Button>
+                                                                <Button size="sm" variant="outline" className="border-slate-200 dark:border-slate-800" onClick={() => { setSelectedBooking(b); setRescheduleDate(b.inspection_date); setRescheduleTime(b.inspection_time.substring(0,5)); setShowRescheduleModal(true); }}>
+                                                                    Reschedule
+                                                                </Button>
+                                                                <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white font-bold" onClick={() => handleAction(b.id, 'approve')} disabled={processingId === b.id}>
+                                                                    Approve
+                                                                </Button>
+                                                            </>
+                                                        )}
+                                                        {b.status === 'approved' && (
+                                                            <>
+                                                                <Button size="sm" variant="outline" className="border-slate-200 dark:border-slate-800" onClick={() => { setSelectedBooking(b); setRescheduleDate(b.inspection_date); setRescheduleTime(b.inspection_time.substring(0,5)); setShowRescheduleModal(true); }}>
+                                                                    Reschedule
+                                                                </Button>
+                                                                <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-bold" onClick={() => handleAction(b.id, 'complete')} disabled={processingId === b.id}>
+                                                                    Mark Completed
+                                                                </Button>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))

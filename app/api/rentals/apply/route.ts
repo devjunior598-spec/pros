@@ -7,6 +7,8 @@ type ApplicationBody = {
     employment?: string
     income?: string
     notes?: string
+    applicationLetter?: string
+    applicationLetterUrl?: string
     rentStartDate?: string | null
 }
 
@@ -53,6 +55,9 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "You already have an active application for this property" }, { status: 409 })
         }
 
+        const appLetter = body.applicationLetter?.trim() || body.notes?.trim() || null
+        const appLetterUrl = body.applicationLetterUrl?.trim() || null
+
         const { data: application, error: applicationError } = await supabaseAdmin
             .from("rentals")
             .insert({
@@ -61,7 +66,9 @@ export async function POST(request: Request) {
                 landlord_id: property.landlord_id,
                 employment: body.employment?.trim() || null,
                 income: body.income?.trim() || null,
-                notes: body.notes?.trim() || null,
+                notes: body.notes?.trim() || appLetter,
+                application_letter: appLetter,
+                application_letter_url: appLetterUrl,
                 rent_start_date: body.rentStartDate || null,
                 status: "pending",
             })
@@ -72,18 +79,18 @@ export async function POST(request: Request) {
 
         const { data: tenantProfile } = await supabaseAdmin
             .from("profiles")
-            .select("name, fullname")
+            .select("name, fullname, full_name")
             .eq("id", tenantId)
             .maybeSingle()
 
-        const applicantName = tenantProfile?.fullname || tenantProfile?.name || "A tenant"
+        const applicantName = (tenantProfile as any)?.fullname || (tenantProfile as any)?.full_name || (tenantProfile as any)?.name || "A tenant"
         const { error: notificationError } = await supabaseAdmin
             .from("notifications")
             .insert({
                 user_id: property.landlord_id,
                 type: "rental_application",
-                title: "New Rental Application",
-                message: `${applicantName} applied for ${property.title}.`,
+                title: "New Rental Application & Letter",
+                message: `${applicantName} submitted a rental application and letter for ${property.title}.`,
                 link: "/applications",
             })
 

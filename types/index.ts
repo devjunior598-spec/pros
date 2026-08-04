@@ -117,6 +117,11 @@ export interface Rental {
     landlord_id: string;
     rent_start_date?: string;
     rent_amount: number;
+    employment?: string;
+    income?: string;
+    notes?: string;
+    application_letter?: string;
+    application_letter_url?: string;
     status: RentalStatus;
     created_at: string;
 }
