@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { supabase } from "@/lib/supabase"
 import { RoleGuard } from "@/components/role-guard"
-import { PropertyTable } from "@/components/landlord/property-table"
+import { MultiUnitPortfolio } from "@/components/landlord/multi-unit-portfolio"
 import { PageHeader } from "@/components/page-header"
 import { Plus, Building2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -59,7 +59,7 @@ export default function PropertiesPage() {
                     </Link>
                 </PageHeader>
 
-                <PropertyTable landlordId={landlordId} />
+                <MultiUnitPortfolio landlordId={landlordId} />
             </div>
         </RoleGuard>
     )

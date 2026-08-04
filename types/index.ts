@@ -1,4 +1,4 @@
-export type UserRole = 'tenant' | 'landlord';
+export type UserRole = 'tenant' | 'landlord' | 'admin' | 'provider';
 
 export interface Profile {
     id: string;
@@ -37,6 +37,63 @@ export interface Property {
     status: PropertyStatus;
     current_tenant_id?: string;
     created_at: string;
+    is_multi_unit?: boolean;
+    shared_amenities?: string[];
+    shared_images?: string[];
+    latitude?: number;
+    longitude?: number;
+    property_manager_id?: string;
+}
+
+export type UnitAvailability = 'available' | 'occupied' | 'reserved' | 'maintenance' | 'inactive';
+export type PaymentFrequency = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'biannually' | 'yearly';
+
+export interface PropertyUnit {
+    id: string;
+    property_id: string;
+    landlord_id: string;
+    name: string;
+    description?: string;
+    bedrooms: number;
+    bathrooms: number;
+    toilets: number;
+    floor?: string;
+    size?: number;
+    rent: number;
+    payment_frequency: PaymentFrequency;
+    amenities: string[];
+    images: string[];
+    availability: UnitAvailability;
+    created_at: string;
+    updated_at: string;
+    unit_tenants?: UnitTenant[];
+    leases?: UnitLease[];
+}
+
+export interface UnitTenant {
+    id: string;
+    unit_id: string;
+    tenant_id: string;
+    landlord_id: string;
+    occupation?: string;
+    move_in_date: string;
+    move_out_date?: string;
+    rent_due_date?: string;
+    status: 'pending' | 'active' | 'notice' | 'moved_out';
+    tenant?: Pick<Profile, 'id' | 'name' | 'email' | 'phone'>;
+}
+
+export interface UnitLease {
+    id: string;
+    unit_id: string;
+    landlord_id: string;
+    tenant_id: string;
+    start_date: string;
+    end_date: string;
+    rent_amount: number;
+    payment_frequency: PaymentFrequency;
+    status: 'draft' | 'sent' | 'active' | 'expired' | 'terminated' | 'renewed';
+    document_url?: string;
 }
 
 export type RentalStatus = 'pending' | 'approved' | 'rejected';
