@@ -19,6 +19,16 @@ interface Message {
     read?: boolean;
 }
 
+interface DatabaseMessage {
+    id: string;
+    sender_id: string;
+    message: string;
+    created_at: string;
+    type?: string;
+    file_url?: string;
+    read_at?: string | null;
+}
+
 interface MessageWindowProps {
     conversationId: string;
     currentUserId: string;
@@ -66,7 +76,7 @@ export function MessageWindow({ conversationId, currentUserId, otherUserId, othe
 
             if (error) console.error("Error fetching messages:", error);
             if (data) {
-                const formattedMessages = data.map((msg: any) => ({
+                const formattedMessages = (data as DatabaseMessage[]).map((msg) => ({
                     id: msg.id,
                     senderId: msg.sender_id,
                     content: msg.message,
@@ -93,7 +103,7 @@ export function MessageWindow({ conversationId, currentUserId, otherUserId, othe
                 'postgres_changes',
                 { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` },
                 (payload) => {
-                    const newMsg = payload.new as any;
+                    const newMsg = payload.new as DatabaseMessage;
                     setMessages((prev) => {
                         if (prev.some(m => m.id === newMsg.id)) return prev;
                         return [...prev, {
@@ -117,7 +127,7 @@ export function MessageWindow({ conversationId, currentUserId, otherUserId, othe
                 'postgres_changes',
                 { event: 'UPDATE', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` },
                 (payload) => {
-                    const updatedMsg = payload.new as any;
+                    const updatedMsg = payload.new as DatabaseMessage;
                     setMessages(prev => prev.map(m =>
                         m.id === updatedMsg.id
                             ? { ...m, read: !!updatedMsg.read_at }
@@ -130,7 +140,7 @@ export function MessageWindow({ conversationId, currentUserId, otherUserId, othe
         return () => {
             supabase.removeChannel(messageSubscription);
         };
-    }, [conversationId, currentUserId]);
+    }, [conversationId, currentUserId, markMessageAsRead]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
@@ -241,10 +251,10 @@ export function MessageWindow({ conversationId, currentUserId, otherUserId, othe
                     </h3>
                 </div>
                 <div className="flex gap-2">
-                    <Button onClick={() => otherUserId && callUser(otherUserId)} variant="ghost" size="icon" disabled={!otherUserId}>
+                    <Button onClick={() => otherUserId && void callUser(otherUserId, "audio", conversationId)} variant="ghost" size="icon" disabled={!otherUserId} aria-label="Start audio call">
                         <Phone className="h-5 w-5" />
                     </Button>
-                    <Button variant="ghost" size="icon" disabled={true}>
+                    <Button onClick={() => otherUserId && void callUser(otherUserId, "video", conversationId)} variant="ghost" size="icon" disabled={!otherUserId} aria-label="Start video call">
                         <Video className="h-5 w-5" />
                     </Button>
                 </div>

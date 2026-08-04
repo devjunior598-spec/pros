@@ -5,7 +5,6 @@ import { supabase } from "@/lib/supabase";
 import { ConversationList } from "./conversation-list";
 import { MessageWindow } from "./message-window";
 import { useChat } from "./chat-provider";
-import { CallModal } from "./call-modal";
 
 interface ConversationSummary {
     id: string;
@@ -13,6 +12,15 @@ interface ConversationSummary {
     lastMessage: string;
     unread: number;
     avatar: string;
+    otherUserId?: string;
+}
+
+interface ConversationPayload {
+    id: string;
+    otherUser?: { id?: string; name?: string; avatarUrl?: string };
+    lastMessage?: { message?: string };
+    property?: { title?: string };
+    unreadCount?: number;
 }
 
 export default function ChatPageLayout() {
@@ -37,12 +45,13 @@ export default function ChatPageLayout() {
                     throw new Error(payload.error || "Failed to load conversations");
                 }
 
-                setConversations((payload.conversations || []).map((conversation: any) => ({
+                setConversations(((payload.conversations || []) as ConversationPayload[]).map((conversation) => ({
                     id: conversation.id,
                     name: conversation.otherUser?.name || "Conversation",
                     lastMessage: conversation.lastMessage?.message || conversation.property?.title || "No messages yet",
                     unread: conversation.unreadCount || 0,
                     avatar: conversation.otherUser?.avatarUrl || "",
+                    otherUserId: conversation.otherUser?.id,
                 })));
             } catch (error) {
                 console.error("Error loading conversations:", error);
@@ -79,7 +88,7 @@ export default function ChatPageLayout() {
             {/* Main Chat Area */}
             <div className={`${!showChat ? 'hidden md:flex' : 'flex'} flex-1 flex-col`}>
                 {selectedConversation && currentUserId ? (
-                    <MessageWindow conversationId={selectedConversation} currentUserId={currentUserId} onBack={() => setShowChat(false)} />
+                    <MessageWindow conversationId={selectedConversation} currentUserId={currentUserId} otherUserId={conversations.find(item => item.id === selectedConversation)?.otherUserId} otherUserName={conversations.find(item => item.id === selectedConversation)?.name} onBack={() => setShowChat(false)} />
                 ) : (
                     <div className="flex-1 flex items-center justify-center text-muted-foreground">
                         Select a conversation to start chatting
@@ -87,8 +96,6 @@ export default function ChatPageLayout() {
                 )}
             </div>
 
-            {/* Call Modal (Global) */}
-            <CallModal />
         </div>
     );
 }
