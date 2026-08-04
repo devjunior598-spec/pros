@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
+import { supabaseAdmin } from "@/lib/supabase-admin"
 
 export async function getCurrentUserWithRole() {
     const cookieStore = await cookies()
@@ -22,7 +23,7 @@ export async function getCurrentUserWithRole() {
 
     if (!user) return null
 
-    const { data: profile } = await supabase
+    const { data: profile } = await supabaseAdmin
         .from("profiles")
         .select("role")
         .eq("id", user.id)
