@@ -13,8 +13,10 @@ import {
 } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { useToast } from "@/hooks/use-toast"
 import PayBillButton from "@/components/pay-bill-button"
-import { CreditCard } from "lucide-react"
+import { BellRing, CreditCard, Loader2 } from "lucide-react"
 
 interface BillWithRental {
     id: string
@@ -40,6 +42,34 @@ interface BillsTableProps {
 export function BillsTable({ landlordId }: BillsTableProps) {
     const [bills, setBills] = useState<BillWithRental[]>([])
     const [loading, setLoading] = useState(true)
+    const [sendingReminderId, setSendingReminderId] = useState<string | null>(null)
+    const { toast } = useToast()
+
+    const sendReminder = async (bill: BillWithRental) => {
+        setSendingReminderId(bill.id)
+        try {
+            const response = await fetch("/api/bills/remind", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ billId: bill.id }),
+            })
+            const result = await response.json()
+            if (!response.ok) throw new Error(result.error || "Unable to send reminder")
+
+            toast({
+                title: "Reminder sent",
+                description: `${bill.rental?.tenant?.full_name || bill.rental?.tenant?.name || "The tenant"} has been notified about this bill.`,
+            })
+        } catch (error: unknown) {
+            toast({
+                title: "Reminder not sent",
+                description: error instanceof Error ? error.message : "Please try again.",
+                variant: "destructive",
+            })
+        } finally {
+            setSendingReminderId(null)
+        }
+    }
 
     const fetchBills = useCallback(async (signal?: AbortSignal) => {
         setLoading(true)
@@ -153,7 +183,7 @@ export function BillsTable({ landlordId }: BillsTableProps) {
                     <TableBody>
                         {bills.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                                <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                                     <div className="flex flex-col items-center gap-2 opacity-40">
                                         <CreditCard className="h-10 w-10" />
                                         <p>No billing records found.</p>
@@ -185,12 +215,27 @@ export function BillsTable({ landlordId }: BillsTableProps) {
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <PayBillButton bill={{
-                                            id: bill.id,
-                                            amount: bill.amount,
-                                            tenant_email: bill.rental?.tenant?.email || "",
-                                            status: bill.status
-                                        }} />
+                                        <div className="flex justify-end gap-2">
+                                            {bill.status !== "paid" && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => sendReminder(bill)}
+                                                    disabled={sendingReminderId === bill.id}
+                                                >
+                                                    {sendingReminderId === bill.id
+                                                        ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                        : <BellRing className="mr-2 h-4 w-4" />}
+                                                    Remind tenant
+                                                </Button>
+                                            )}
+                                            <PayBillButton bill={{
+                                                id: bill.id,
+                                                amount: bill.amount,
+                                                tenant_email: bill.rental?.tenant?.email || "",
+                                                status: bill.status
+                                            }} />
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))
