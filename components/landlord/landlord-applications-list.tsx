@@ -266,8 +266,14 @@ export function LandlordApplicationsList({ landlordId }: LandlordApplicationsLis
             ) : (
                 <div className="grid gap-6">
                     {filteredApplications.map((app) => {
-                        const applicantName = app.tenant?.full_name || app.tenant?.name || "Applicant"
-                        const letterText = app.application_letter || app.notes || "No formal cover letter submitted."
+                        const applicantName = app.tenant?.full_name || app.tenant?.name || "Prospective Tenant"
+                        const moveInStr = app.rent_start_date ? new Date(app.rent_start_date).toLocaleDateString() : "Immediate / Earliest Available"
+                        const empStr = app.employment || "Employed Professional"
+                        const incStr = app.income ? `₦${app.income}` : "Specified in profile"
+
+                        const fallbackCoverLetter = `Dear Property Owner / Landlord,\n\nI am writing to formally present my rental application for ${app.property?.title || "your rental property"}.\n\nApplicant Information & Overview:\n• Full Name: ${applicantName}\n• Employment Status: ${empStr}\n• Monthly Income: ${incStr}\n• Preferred Move-in Date: ${moveInStr}\n\nI am seeking a comfortable, well-maintained residence and am committed to maintaining a clean, responsible tenancy and ensuring prompt monthly rent payments.\n\nThank you for reviewing my application details. I look forward to your positive response.\n\nSincerely,\n${applicantName}\nContact: ${app.tenant?.email || "N/A"}`
+
+                        const letterText = app.application_letter?.trim() || app.notes?.trim() || fallbackCoverLetter
                         const hasLetterDoc = Boolean(app.application_letter_url)
                         const insp = app.inspection
 

@@ -61,7 +61,24 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "You already have an active application for this property" }, { status: 409 })
         }
 
-        const appLetter = body.applicationLetter?.trim() || body.notes?.trim() || null
+        const { data: tenantProfile } = await supabaseAdmin
+            .from("profiles")
+            .select("name, fullname, full_name, email, phone")
+            .eq("id", tenantId)
+            .maybeSingle()
+
+        const profile = tenantProfile as TenantProfile & { email?: string; phone?: string } | null
+        const applicantName = profile?.fullname || profile?.full_name || profile?.name || currentUser.user.email || "Prospective Tenant"
+
+        let appLetter = body.applicationLetter?.trim() || body.notes?.trim() || null
+        if (!appLetter) {
+            const empStr = body.employment?.trim() || "Employed Professional"
+            const incStr = body.income?.trim() ? `₦${body.income.trim()}` : "Specified in profile"
+            const moveInStr = body.rentStartDate ? new Date(body.rentStartDate).toLocaleDateString() : "Immediate"
+
+            appLetter = `Dear Property Owner / Landlord,\n\nI am writing to formally submit my rental application for ${property.title}.\n\nAbout Me:\nMy name is ${applicantName}. I am interested in renting your property located at ${property.title}.\n\nRental Application Overview:\n- Applicant: ${applicantName}\n- Employment: ${empStr}\n- Monthly Income: ${incStr}\n- Preferred Move-in Date: ${moveInStr}\n\nI maintain a responsible lifestyle and ensure timely rent payments. Please review my attached application details and let me know if you require further information.\n\nSincerely,\n${applicantName}\nEmail: ${profile?.email || currentUser.user.email || ""}`
+        }
+
         const appLetterUrl = body.applicationLetterUrl?.trim() || null
 
         const { data: application, error: applicationError } = await supabaseAdmin
@@ -84,14 +101,6 @@ export async function POST(request: Request) {
 
         if (applicationError) throw applicationError
 
-        const { data: tenantProfile } = await supabaseAdmin
-            .from("profiles")
-            .select("name, fullname, full_name")
-            .eq("id", tenantId)
-            .maybeSingle()
-
-        const profile = tenantProfile as TenantProfile | null
-        const applicantName = profile?.fullname || profile?.full_name || profile?.name || "A tenant"
         const { error: notificationError } = await supabaseAdmin
             .from("notifications")
             .insert({
