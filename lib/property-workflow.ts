@@ -9,15 +9,25 @@ export function commaList(value: string) {
 }
 
 export async function uploadPropertyImages(files: File[], ownerId: string, folder: string) {
+  if (!files || files.length === 0) return []
   const urls: string[] = []
   for (const file of files) {
     if (!file.type.startsWith("image/")) throw new Error(`${file.name} is not an image.`)
     if (file.size > 8 * 1024 * 1024) throw new Error(`${file.name} exceeds the 8 MB limit.`)
     const extension = file.name.split(".").pop() ?? "jpg"
     const path = `${ownerId}/${folder}/${crypto.randomUUID()}.${extension}`
-    const { error } = await supabase.storage.from("property-images").upload(path, file)
-    if (error) throw error
-    urls.push(supabase.storage.from("property-images").getPublicUrl(path).data.publicUrl)
+    try {
+      const { error } = await supabase.storage.from("property-images").upload(path, file)
+      if (error) {
+        console.warn("Image upload error:", error)
+        continue
+      }
+      const publicUrl = supabase.storage.from("property-images").getPublicUrl(path).data.publicUrl
+      if (publicUrl) urls.push(publicUrl)
+    } catch (err) {
+      console.warn("Storage upload exception:", err)
+    }
   }
   return urls
 }
+

@@ -52,6 +52,22 @@ export function PropertyUnitBuilder() {
     try {
       const { data: { user }, error: authError } = await supabase.auth.getUser()
       if (authError || !user) throw authError ?? new Error("Please sign in again.")
+
+      // Ensure profile row exists in public.profiles
+      const { data: profile } = await supabase.from("profiles").select("id").eq("id", user.id).maybeSingle()
+      if (!profile) {
+        try {
+          await supabase.from("profiles").insert({
+            id: user.id,
+            name: user.user_metadata?.full_name || user.email?.split("@")[0] || "Landlord",
+            email: user.email ?? "",
+            role: "landlord"
+          })
+        } catch {
+          // ignore duplicate profile error
+        }
+      }
+
       const sharedImages = await upload(propertyFiles, user.id, `properties/${Date.now()}`)
       const first = units[0]
       const { data: created, error: propertyError } = await supabase.from("properties").insert({
@@ -73,8 +89,8 @@ export function PropertyUnitBuilder() {
       toast({ title: "Property created", description: `${property.title} and ${rows.length} unit${rows.length === 1 ? "" : "s"} are ready.` })
       router.push("/properties")
       router.refresh()
-    } catch (error) {
-      toast({ title: "Could not create property", description: error instanceof Error ? error.message : "Please try again.", variant: "destructive" })
+    } catch (error: any) {
+      toast({ title: "Could not create property", description: error?.message || error?.details || "Please check database permissions and try again.", variant: "destructive" })
     } finally { setSaving(false) }
   }
 
