@@ -224,5 +224,58 @@ html {
 }
 
 @utility prms-card-hover {
-  @apply rounded-xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md;
+  @apply rounded-xl border border-border bg-card shadow-sm transition-[box-shadow,transform] duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md;
+}
+
+@keyframes prms-fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes prms-scale-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes prms-nav-indicator {
+  from { opacity: 0; transform: scaleY(0.35); }
+  to { opacity: 1; transform: scaleY(1); }
+}
+
+@keyframes prms-shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+@utility animate-fade-up {
+  animation: prms-fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@utility animate-scale-in {
+  animation: prms-scale-in 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@utility animate-nav-indicator {
+  animation: prms-nav-indicator 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@utility skeleton-shimmer {
+  background-image: linear-gradient(90deg, transparent, hsl(var(--foreground) / 0.06), transparent);
+  background-size: 200% 100%;
+  animation: prms-shimmer 1.6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:focus-within {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

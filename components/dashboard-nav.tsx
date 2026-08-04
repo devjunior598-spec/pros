@@ -169,14 +169,17 @@ export function DashboardNav({ className, userRole, isVerified, ...props }: Dash
                 return (
                     <Link key={item.href} href={item.href} onClick={props.onClick}>
                         <span className={cn(
-                            "group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors mb-0.5",
+                            "group relative flex items-center overflow-hidden rounded-lg px-3 py-2.5 text-sm font-medium transition-[color,background-color,transform] duration-200 ease-out mb-0.5 active:scale-[0.98]",
                             isActive
                                 ? "bg-primary/10 text-primary"
                                 : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                         )}>
+                            {isActive && (
+                                <span aria-hidden="true" className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-primary animate-nav-indicator" />
+                            )}
                             <span className="relative mr-3 flex-shrink-0">
                                 <item.icon className={cn(
-                                    "h-5 w-5",
+                                    "h-5 w-5 transition-transform duration-200 ease-out group-hover:scale-110 group-hover:-rotate-3",
                                     isActive ? "text-primary" : "text-muted-foreground"
                                 )} />
                                 {showBadge && (
@@ -198,9 +201,9 @@ export function DashboardNav({ className, userRole, isVerified, ...props }: Dash
             })}
             <button
                 onClick={handleLogout}
-                className="group flex w-full items-center rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 mt-4 transition-colors"
+                className="group flex w-full items-center rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 mt-4 transition-[color,background-color,transform] duration-200 active:scale-[0.98]"
             >
-                <LogOut className="mr-3 h-5 w-5" />
+                <LogOut className="mr-3 h-5 w-5 transition-transform duration-200 group-hover:translate-x-0.5" />
                 <span>Logout</span>
             </button>
         </nav>
