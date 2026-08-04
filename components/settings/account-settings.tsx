@@ -1,23 +1,52 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, Key, Globe, Clock, AlertTriangle } from "lucide-react"
+import { Loader2, Key, Globe, AlertTriangle, ShieldCheck, LockKeyhole } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { useToast } from "@/hooks/use-toast"
 
 interface AccountSettingsProps {
     userId: string
     email: string
 }
 
-export function AccountSettings({ userId, email }: AccountSettingsProps) {
+export function AccountSettings({ email }: AccountSettingsProps) {
     const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
     const [password, setPassword] = useState("")
     const [confirmPassword, setConfirmPassword] = useState("")
+    const [currentPassword, setCurrentPassword] = useState("")
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+    const [verificationPassword, setVerificationPassword] = useState("")
+    const [verifying, setVerifying] = useState(false)
+    const [verifiedUntil, setVerifiedUntil] = useState<number | null>(null)
+    const { toast } = useToast()
+
+    const isRecentlyVerified = Boolean(verifiedUntil && verifiedUntil > Date.now())
+
+    useEffect(() => {
+        const recognizeRecentLogin = async () => {
+            const { data: { user } } = await supabase.auth.getUser()
+            const lastSignIn = user?.last_sign_in_at ? new Date(user.last_sign_in_at).getTime() : 0
+            const tenMinutes = 10 * 60 * 1000
+            if (lastSignIn && Date.now() - lastSignIn < tenMinutes) setVerifiedUntil(lastSignIn + tenMinutes)
+        }
+        void recognizeRecentLogin()
+    }, [])
+
+    const verifyPassword = async (candidate: string) => {
+        if (!candidate) throw new Error("Enter your current password.")
+        const { error } = await supabase.auth.signInWithPassword({ email, password: candidate })
+        if (error) throw new Error("The current password is incorrect.")
+        const expiresAt = Date.now() + 10 * 60 * 1000
+        setVerifiedUntil(expiresAt)
+        return expiresAt
+    }
 
     const handlePasswordUpdate = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -34,15 +63,36 @@ export function AccountSettings({ userId, email }: AccountSettingsProps) {
         setMessage(null)
 
         try {
+            await verifyPassword(currentPassword)
             const { error } = await supabase.auth.updateUser({ password })
             if (error) throw error
             setMessage({ type: 'success', text: "Password updated successfully!" })
             setPassword("")
             setConfirmPassword("")
-        } catch (error: any) {
-            setMessage({ type: 'error', text: error.message || "Failed to update password." })
+            setCurrentPassword("")
+        } catch (error) {
+            setMessage({ type: 'error', text: error instanceof Error ? error.message : "Failed to update password." })
         } finally {
             setLoading(false)
+        }
+    }
+
+    const handleSensitiveActionVerification = async () => {
+        if (isRecentlyVerified) {
+            setDeleteDialogOpen(false)
+            toast({ title: "Identity already confirmed", description: "Your recent verification remains valid for this sensitive action." })
+            return
+        }
+        setVerifying(true)
+        try {
+            await verifyPassword(verificationPassword)
+            setVerificationPassword("")
+            setDeleteDialogOpen(false)
+            toast({ title: "Identity confirmed", description: "Verification is valid for 10 minutes. No account data has been deleted." })
+        } catch (error) {
+            toast({ title: "Verification failed", description: error instanceof Error ? error.message : "Please try again.", variant: "destructive" })
+        } finally {
+            setVerifying(false)
         }
     }
 
@@ -65,10 +115,23 @@ export function AccountSettings({ userId, email }: AccountSettingsProps) {
                             <Input id="current-email" value={email} disabled className="bg-muted/50" />
                         </div>
                         <div className="space-y-2">
+                            <Label htmlFor="current-password">Current Password</Label>
+                            <Input
+                                id="current-password"
+                                type="password"
+                                autoComplete="current-password"
+                                value={currentPassword}
+                                onChange={(e) => setCurrentPassword(e.target.value)}
+                                placeholder="Confirm your current password"
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
                             <Label htmlFor="new-password">New Password</Label>
                             <Input
                                 id="new-password"
                                 type="password"
+                                autoComplete="new-password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 placeholder="Enter new password"
@@ -80,6 +143,7 @@ export function AccountSettings({ userId, email }: AccountSettingsProps) {
                             <Input
                                 id="confirm-password"
                                 type="password"
+                                autoComplete="new-password"
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                 placeholder="Confirm new password"
@@ -152,11 +216,57 @@ export function AccountSettings({ userId, email }: AccountSettingsProps) {
                 </CardHeader>
                 <CardContent>
                     <p className="text-sm text-muted-foreground mb-4">
-                        Once you delete your account, there is no going back. Please be certain.
+                        Confirm your identity before reviewing account deletion. Verification expires after 10 minutes.
                     </p>
-                    <Button variant="destructive">Delete Account</Button>
+                    {isRecentlyVerified && (
+                        <div className="mb-4 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+                            <ShieldCheck className="h-4 w-4" /> Identity recently verified
+                        </div>
+                    )}
+                    <Button variant="destructive" onClick={() => setDeleteDialogOpen(true)}>
+                        <LockKeyhole className="mr-2 h-4 w-4" />
+                        {isRecentlyVerified ? "Continue to Deletion Review" : "Verify Identity"}
+                    </Button>
                 </CardContent>
             </Card>
+
+            <Dialog open={deleteDialogOpen} onOpenChange={(open) => { setDeleteDialogOpen(open); if (!open) setVerificationPassword("") }}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Confirm your identity</DialogTitle>
+                        <DialogDescription>
+                            {isRecentlyVerified
+                                ? "Your recent login is still valid. Continue without entering your password again."
+                                : "Enter your current password before continuing to the account-deletion review."}
+                        </DialogDescription>
+                    </DialogHeader>
+                    {!isRecentlyVerified && (
+                        <div className="space-y-2 py-2">
+                            <Label htmlFor="verification-password">Current Password</Label>
+                            <Input
+                                id="verification-password"
+                                type="password"
+                                autoComplete="current-password"
+                                value={verificationPassword}
+                                onChange={(event) => setVerificationPassword(event.target.value)}
+                                onKeyDown={(event) => { if (event.key === "Enter") void handleSensitiveActionVerification() }}
+                                placeholder="Enter your password"
+                                autoFocus
+                            />
+                        </div>
+                    )}
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                        This step only verifies your identity. It does not delete your account or any associated records.
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={verifying}>Cancel</Button>
+                        <Button variant="destructive" onClick={() => void handleSensitiveActionVerification()} disabled={verifying || (!isRecentlyVerified && !verificationPassword)}>
+                            {verifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {isRecentlyVerified ? "Continue" : "Verify Password"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

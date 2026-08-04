@@ -6,17 +6,28 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, Save, User, Phone, Mail, Shield, Camera, X } from "lucide-react"
+import { Loader2, Save, User, Phone, Mail, Shield, Camera } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 
 interface ProfileSettingsProps {
     userId: string
 }
 
+interface ProfileRecord {
+    email?: string | null
+    role?: string | null
+    full_name?: string | null
+    name?: string | null
+    phone?: string | null
+    bio?: string | null
+    address?: string | null
+    profile_image_url?: string | null
+}
+
 export function ProfileSettings({ userId }: ProfileSettingsProps) {
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
-    const [profile, setProfile] = useState<any>(null)
+    const [profile, setProfile] = useState<ProfileRecord | null>(null)
     const [name, setName] = useState("")
     const [phone, setPhone] = useState("")
     const [bio, setBio] = useState("")
@@ -106,9 +117,9 @@ export function ProfileSettings({ userId }: ProfileSettingsProps) {
 
             if (error) throw error
             setMessage({ type: 'success', text: 'Profile updated successfully!' })
-        } catch (error: any) {
+        } catch (error) {
             console.error("Error updating profile:", error)
-            setMessage({ type: 'error', text: error.message || 'Failed to update profile' })
+            setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Failed to update profile' })
         } finally {
             setSaving(false)
         }
@@ -251,17 +262,6 @@ export function ProfileSettings({ userId }: ProfileSettingsProps) {
                 </CardContent>
             </Card>
 
-            <Card className="border-destructive/20 bg-destructive/5">
-                <CardHeader>
-                    <CardTitle className="text-destructive text-lg">Danger Zone</CardTitle>
-                    <CardDescription>Actions that cannot be undone.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive hover:text-white">
-                        Delete Account
-                    </Button>
-                </CardContent>
-            </Card>
         </div>
     )
 }
