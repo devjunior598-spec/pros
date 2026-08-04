@@ -1,7 +1,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { motion } from "motion/react"
-import { Plus, Users, CalendarCheck, Wrench, CreditCard, FileText } from "lucide-react"
+import { Plus, Users, CalendarCheck, Wrench, CreditCard, FileText, ClipboardList } from "lucide-react"
 
 export function QuickActions() {
   const actions = [
@@ -12,6 +12,14 @@ export function QuickActions() {
       color: "bg-blue-500",
       lightBg: "bg-blue-50 dark:bg-blue-500/10",
       textColor: "text-blue-600 dark:text-blue-400"
+    },
+    {
+      title: "Review Letters",
+      icon: ClipboardList,
+      href: "/applications",
+      color: "bg-amber-500",
+      lightBg: "bg-amber-50 dark:bg-amber-500/10",
+      textColor: "text-amber-600 dark:text-amber-400"
     },
     {
       title: "Manage Tenants",
@@ -36,14 +44,6 @@ export function QuickActions() {
       color: "bg-orange-500",
       lightBg: "bg-orange-50 dark:bg-orange-500/10",
       textColor: "text-orange-600 dark:text-orange-400"
-    },
-    {
-      title: "View Payments",
-      icon: CreditCard,
-      href: "/dashboard/payments",
-      color: "bg-emerald-500",
-      lightBg: "bg-emerald-50 dark:bg-emerald-500/10",
-      textColor: "text-emerald-600 dark:text-emerald-400"
     },
     {
       title: "Create Lease",

@@ -19,7 +19,7 @@ const rentalSelect = `
     )
 `
 
-export async function GET() {
+export async function GET(request: Request) {
     try {
         const currentUser = await getCurrentUserWithRole()
         if (!currentUser) {
@@ -28,6 +28,9 @@ export async function GET() {
         if (currentUser.role !== "landlord") {
             return NextResponse.json({ error: "Only landlords can view applications" }, { status: 403 })
         }
+
+        const { searchParams } = new URL(request.url)
+        const statusFilter = searchParams.get("status")
 
         const landlordId = currentUser.user.id
         const { data: ownedProperties, error: propertiesError } = await supabaseAdmin
@@ -38,20 +41,28 @@ export async function GET() {
         if (propertiesError) throw propertiesError
 
         const propertyIds = (ownedProperties || []).map((property) => property.id)
-        const landlordQuery = supabaseAdmin
+
+        let landlordQuery = supabaseAdmin
             .from("rentals")
             .select(rentalSelect)
             .eq("landlord_id", landlordId)
-            .eq("status", "pending")
             .order("created_at", { ascending: false })
-        const propertyQuery = propertyIds.length > 0
+
+        if (statusFilter && statusFilter !== "all") {
+            landlordQuery = landlordQuery.eq("status", statusFilter)
+        }
+
+        let propertyQuery = propertyIds.length > 0
             ? supabaseAdmin
                 .from("rentals")
                 .select(rentalSelect)
                 .in("property_id", propertyIds)
-                .eq("status", "pending")
                 .order("created_at", { ascending: false })
             : null
+
+        if (propertyQuery && statusFilter && statusFilter !== "all") {
+            propertyQuery = propertyQuery.eq("status", statusFilter)
+        }
 
         const [landlordResult, propertyResult] = await Promise.all([
             landlordQuery,

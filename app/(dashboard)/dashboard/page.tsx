@@ -212,12 +212,13 @@ function DashboardContent() {
                     <StatCard
                         title="Pending Applications"
                         value={metrics.newApplications.toString()}
-                        description="Requires review"
+                        description="Click to review tenant letters"
                         icon={ActivityIcon}
                         iconClassName="text-orange-600 dark:text-orange-400"
                         trend={metrics.newApplications > 0 ? "up" : "neutral"}
                         trendValue={metrics.newApplications > 0 ? `${metrics.newApplications} new` : ""}
                         delay={0.3}
+                        href="/applications"
                     />
                     <StatCard
                         title="Occupancy Rate"

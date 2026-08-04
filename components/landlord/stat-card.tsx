@@ -1,4 +1,5 @@
 import * as React from "react"
+import Link from "next/link"
 import { LucideIcon, TrendingUp, TrendingDown } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
@@ -13,6 +14,7 @@ interface StatCardProps {
   trendValue?: string
   className?: string
   delay?: number
+  href?: string
 }
 
 export function StatCard({
@@ -25,10 +27,12 @@ export function StatCard({
   trendValue,
   className,
   delay: _delay,
+  href,
 }: StatCardProps) {
-  return (
+  const content = (
     <Card className={cn(
-      "border border-border bg-white shadow-sm hover:shadow-md transition-shadow",
+      "border border-border bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer",
+      href && "hover:border-primary/50 transition-all",
       className
     )}>
       <CardContent className="p-5">
@@ -54,4 +58,10 @@ export function StatCard({
       </CardContent>
     </Card>
   )
+
+  if (href) {
+    return <Link href={href}>{content}</Link>
+  }
+
+  return content
 }
