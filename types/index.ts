@@ -43,6 +43,13 @@ export interface Property {
     latitude?: number;
     longitude?: number;
     property_manager_id?: string;
+    country?: string;
+    building_rules?: string[];
+    parking_details?: string;
+    security_details?: string;
+    manager_name?: string;
+    manager_phone?: string;
+    publication_status?: 'draft' | 'published' | 'archived';
 }
 
 export type UnitAvailability = 'available' | 'occupied' | 'reserved' | 'maintenance' | 'inactive';
@@ -66,6 +73,11 @@ export interface PropertyUnit {
     availability: UnitAvailability;
     created_at: string;
     updated_at: string;
+    deposit?: number;
+    meter_number?: string;
+    parking_slot?: string;
+    balcony?: boolean;
+    published?: boolean;
     unit_tenants?: UnitTenant[];
     leases?: UnitLease[];
 }

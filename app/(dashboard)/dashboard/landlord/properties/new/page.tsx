@@ -1,5 +1,5 @@
-import { PropertyUnitBuilder } from "@/components/landlord/property-unit-builder"
+import { PropertyTypeSelection } from "@/components/landlord/property-type-selection"
 
-export default function NewPropertyPage() {
-  return <PropertyUnitBuilder />
+export default function AddPropertySelectionPage() {
+  return <PropertyTypeSelection />
 }
