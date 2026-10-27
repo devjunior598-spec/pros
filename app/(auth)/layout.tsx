@@ -8,7 +8,7 @@ export default function AuthLayout({
     children: React.ReactNode
 }) {
     return (
-        <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background p-4 md:p-8">
+        <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background px-3 py-6 sm:px-4 md:px-6 md:py-8">
             <div
                 className="pointer-events-none absolute inset-0 opacity-40"
                 style={{
@@ -29,7 +29,7 @@ export default function AuthLayout({
                 </Link>
             </header>
 
-            <div className="relative z-10 w-full max-w-md space-y-6">
+            <div className="relative z-10 w-full max-w-lg space-y-6">
                 <div className="flex flex-col items-center gap-3 text-center">
                     <Logo size="lg" href="/" />
                     <span className="text-xs font-medium uppercase tracking-wider text-prms-slate">
