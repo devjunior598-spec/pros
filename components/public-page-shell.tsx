@@ -25,7 +25,7 @@ export function PublicPageShell({
       <MarketingNavbar />
 
       {showBanner && pageTitle && (
-        <div className="relative overflow-hidden border-b border-border bg-prms-navy">
+        <div className="relative isolate overflow-hidden border-b border-border bg-prms-navy">
           <div
             className="absolute inset-0 opacity-20"
             style={{
@@ -34,14 +34,16 @@ export function PublicPageShell({
               backgroundPosition: "center",
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-prms-navy via-prms-navy/95 to-prms-navy/80" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#080d1b] via-prms-navy/95 to-prms-navy/75" />
+          <div className="absolute -right-16 top-0 h-56 w-56 rounded-full bg-prms-blue/25 blur-3xl" />
+          <div className="absolute inset-0 opacity-20 prms-dot-grid" />
 
-          <div className="relative z-10 mx-auto max-w-4xl px-4 py-14 text-center sm:px-6 md:py-20">
+          <div className="relative z-10 mx-auto max-w-4xl px-4 py-16 text-center sm:px-6 md:py-24">
             {badge && (
               <motion.span
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mb-4 inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-white/90"
+                className="mb-5 inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-xs font-semibold text-white/90 shadow-lg shadow-black/10 backdrop-blur"
               >
                 {badge}
               </motion.span>
@@ -50,7 +52,7 @@ export function PublicPageShell({
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 }}
-              className="text-3xl font-semibold tracking-tight text-white sm:text-4xl md:text-5xl"
+              className="text-3xl font-semibold tracking-[-0.04em] text-white sm:text-4xl md:text-5xl"
             >
               {pageTitle}
             </motion.h1>

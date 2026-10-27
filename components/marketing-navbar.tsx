@@ -21,7 +21,7 @@ export function MarketingNavbar() {
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 12)
-    window.addEventListener("scroll", handleScroll)
+    window.addEventListener("scroll", handleScroll, { passive: true })
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
@@ -32,13 +32,13 @@ export function MarketingNavbar() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 transition-all duration-200",
+        "sticky top-0 z-50 border-b transition-all duration-300",
         scrolled
-          ? "border-b border-border bg-white/95 shadow-sm backdrop-blur-md"
-          : "bg-white/80 backdrop-blur-sm"
+          ? "border-border bg-white/95 shadow-[0_12px_30px_-24px_rgba(15,23,42,0.45)] backdrop-blur-md"
+          : "border-white/60 bg-white/85 backdrop-blur-md"
       )}
     >
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-[4.5rem] max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Logo href="/" />
 
         <nav className="hidden items-center gap-8 md:flex">
@@ -47,10 +47,10 @@ export function MarketingNavbar() {
               key={link.label}
               href={link.href}
               className={cn(
-                "text-sm font-medium transition-colors",
+                "relative py-2 text-sm font-medium transition-colors after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:origin-left after:rounded-full after:bg-prms-blue after:transition-transform",
                 pathname === link.href
-                  ? "text-prms-navy"
-                  : "text-prms-slate hover:text-prms-navy"
+                  ? "text-prms-navy after:scale-x-100"
+                  : "text-prms-slate after:scale-x-0 hover:text-prms-navy hover:after:scale-x-100"
               )}
             >
               {link.label}
@@ -61,13 +61,13 @@ export function MarketingNavbar() {
         <div className="hidden items-center gap-3 md:flex">
           <Link
             href="/login"
-            className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-prms-navy transition hover:bg-secondary"
+            className="rounded-xl border border-border px-4 py-2 text-sm font-medium text-prms-navy transition hover:bg-secondary"
           >
             Login
           </Link>
           <Link
             href="/signup"
-            className="rounded-lg bg-prms-blue px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+            className="rounded-xl bg-prms-blue px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:-translate-y-0.5 hover:bg-blue-700"
           >
             Get Started
           </Link>

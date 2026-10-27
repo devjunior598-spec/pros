@@ -31,18 +31,18 @@ export function StatCard({
 }: StatCardProps) {
   const content = (
     <Card className={cn(
-      "border border-border bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer",
-      href && "hover:border-primary/50 transition-all",
+      "group overflow-hidden rounded-3xl border border-border bg-white shadow-[0_12px_30px_-24px_rgba(15,23,42,0.45)] transition duration-300 hover:-translate-y-1 hover:shadow-lg",
+      href && "cursor-pointer hover:border-primary/40",
       className
     )}>
-      <CardContent className="p-5">
+      <CardContent className="p-5 sm:p-6">
         <div className="flex items-center justify-between pb-3">
           <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
-          <div className={cn("p-2 rounded-lg bg-primary/10 text-primary", iconClassName)}>
+          <div className={cn("rounded-2xl bg-primary/10 p-2.5 text-primary transition group-hover:scale-105 group-hover:bg-primary group-hover:text-white", iconClassName)}>
             <Icon className="h-4 w-4" />
           </div>
         </div>
-        <div className="text-2xl font-semibold tracking-tight text-foreground">{value}</div>
+        <div className="text-3xl font-semibold tracking-[-0.035em] text-foreground">{value}</div>
         <div className="flex items-center text-xs mt-1">
           {trend && trend !== "neutral" && (
             <span className={cn(

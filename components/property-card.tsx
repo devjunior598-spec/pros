@@ -50,15 +50,15 @@ export function PropertyCard({ property }: PropertyCardProps) {
     }
 
     return (
-        <Card className="overflow-hidden group flex flex-col h-full bg-white border border-border shadow-sm hover:shadow-md transition-shadow rounded-xl">
-            <div className="aspect-[4/3] w-full bg-secondary relative overflow-hidden">
+        <Card className="group flex h-full flex-col overflow-hidden rounded-[1.5rem] border border-border bg-white shadow-[0_14px_34px_-26px_rgba(15,23,42,0.5)] transition duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-[0_24px_50px_-25px_rgba(15,23,42,0.42)]">
+            <div className="relative aspect-[4/3] w-full overflow-hidden bg-secondary">
                 {imageUrl ? (
                     <Image
                         src={imageUrl}
                         alt={property.title}
                         fill
                         loading="lazy"
-                        className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                        className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         onError={() => setImgError(true)}
                     />
@@ -68,14 +68,16 @@ export function PropertyCard({ property }: PropertyCardProps) {
                     </div>
                 )}
 
-                <div className="absolute top-3 left-3 flex flex-wrap gap-2">
-                    <Badge variant="secondary" className="bg-white/95 border-border font-medium text-[10px] uppercase tracking-wide text-foreground px-2 py-0.5 rounded-md">
+                <div className="absolute inset-0 bg-gradient-to-t from-prms-navy/30 via-transparent to-transparent pointer-events-none" />
+
+                <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+                    <Badge variant="secondary" className="rounded-full border-white/30 bg-white/95 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-foreground shadow-sm backdrop-blur">
                         {property.type}
                     </Badge>
                 </div>
 
-                <div className="absolute top-3 right-3 flex items-center gap-1.5">
-                    <Badge className={`uppercase text-[9px] font-semibold px-2 py-0.5 rounded-md border ${
+                <div className="absolute right-4 top-4 flex items-center gap-1.5">
+                    <Badge className={`rounded-full border px-2.5 py-1 text-[9px] font-semibold uppercase ${
                         property.status === 'available'
                             ? 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200 text-emerald-700'
                             : 'bg-amber-50 border-amber-200 text-amber-700'
@@ -85,7 +87,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
 
                     <button
                         onClick={toggleSave}
-                        className={`h-8 w-8 rounded-lg flex items-center justify-center border transition-all ${
+                        className={`flex h-9 w-9 items-center justify-center rounded-full border shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
                             isSaved
                                 ? "bg-red-500 border-red-400 text-white"
                                 : "bg-black/40 hover:bg-black/60 border-white/20 text-white"
@@ -97,15 +99,15 @@ export function PropertyCard({ property }: PropertyCardProps) {
                 </div>
             </div>
 
-            <CardHeader className="p-4 pb-2 space-y-1.5 flex-1">
+            <CardHeader className="flex-1 space-y-2 p-5 pb-2">
                 {property.verification_status === 'approved' && (
-                    <div className="flex items-center text-emerald-700 text-[10px] uppercase font-semibold tracking-wide">
+                    <div className="flex items-center text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
                         <ShieldCheck className="mr-1 h-3.5 w-3.5" />
                         Verified Property
                     </div>
                 )}
 
-                <h3 className="font-semibold text-base text-foreground leading-snug line-clamp-1 group-hover:text-primary transition-colors">
+                <h3 className="line-clamp-1 text-lg font-semibold leading-snug tracking-tight text-foreground transition-colors group-hover:text-primary">
                     {property.title}
                 </h3>
 
@@ -115,15 +117,15 @@ export function PropertyCard({ property }: PropertyCardProps) {
                 </div>
             </CardHeader>
 
-            <CardContent className="p-4 pt-0">
-                <div className="flex items-baseline gap-1 mt-1 border-b border-border pb-3">
-                    <span className="text-xl font-semibold text-foreground">${property.price.toLocaleString()}</span>
-                    <span className="text-[10px] font-medium text-muted-foreground uppercase">
+            <CardContent className="p-5 pt-0">
+                <div className="mt-1 flex items-baseline gap-1 border-b border-border pb-4">
+                    <span className="text-2xl font-semibold tracking-tight text-foreground">${property.price.toLocaleString()}</span>
+                    <span className="text-[10px] font-semibold uppercase text-muted-foreground">
                         / {property.frequency ? (property.frequency.toLowerCase() === 'monthly' ? 'month' : 'year') : 'year'}
                     </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 mt-3 text-xs text-muted-foreground">
+                <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                     <div className="flex items-center gap-1.5">
                         <Bed className="h-4 w-4" />
                         <span>{property.bedrooms ?? '-'} Beds</span>
@@ -135,14 +137,14 @@ export function PropertyCard({ property }: PropertyCardProps) {
                 </div>
             </CardContent>
 
-            <CardFooter className="p-4 pt-0 mt-auto flex gap-2">
+            <CardFooter className="mt-auto flex gap-2 p-5 pt-0">
                 <Link href={`/listings/${property.id}`} className="flex-1">
-                    <Button className="w-full h-10 text-xs rounded-lg" variant="outline">
+                    <Button className="h-10 w-full rounded-xl text-xs" variant="outline">
                         View Details
                     </Button>
                 </Link>
                 <Link href={`/listings/${property.id}`} className="flex-shrink-0">
-                    <Button size="icon" className="h-10 w-10 rounded-lg bg-primary/10 hover:bg-primary text-primary hover:text-white transition-all" variant="ghost">
+                    <Button size="icon" className="h-10 w-10 rounded-xl bg-primary/10 text-primary transition-all hover:bg-primary hover:text-white" variant="ghost">
                         <MessageSquare className="h-4 w-4" />
                     </Button>
                 </Link>

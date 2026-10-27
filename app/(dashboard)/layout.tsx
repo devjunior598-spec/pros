@@ -26,10 +26,10 @@ export default function DashboardLayout({
         <ChatProvider>
             <DashboardGuard>
                 <NotificationManager>
-                <div className="flex min-h-screen bg-background">
+                <div className="flex min-h-screen bg-[#f7f9fc]">
                     <CallModal />
                     {/* Desktop Sidebar */}
-                    <aside className="fixed inset-y-0 left-0 z-50 hidden w-64 border-r border-border bg-white md:block shadow-sm">
+                    <aside className="fixed inset-y-0 left-0 z-50 hidden w-64 border-r border-border bg-white/95 shadow-[10px_0_32px_-28px_rgba(15,23,42,0.45)] backdrop-blur-xl md:block">
                         <div className="flex h-16 items-center border-b border-border px-5">
                             <Logo />
                         </div>
@@ -46,7 +46,8 @@ export default function DashboardLayout({
                     {/* Main Content Area */}
                     <div className="flex flex-1 flex-col md:pl-64">
                         <SiteHeader />
-                        <main className="flex-1 px-3 py-4 md:p-8 pb-24 md:pb-12 max-w-7xl mx-auto w-full">
+                        <main className="relative flex-1 px-3 py-4 pb-24 md:mx-auto md:w-full md:max-w-7xl md:p-8 md:pb-12">
+                            <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-56 bg-gradient-to-b from-blue-50/70 to-transparent" />
                             {userRole === 'service_provider' && providerStatus === 'pending' ? (
                                 <div className="flex flex-col items-center justify-center min-h-[60vh] text-center max-w-2xl mx-auto space-y-6">
                                     <div className="h-24 w-24 rounded-full bg-blue-50 flex items-center justify-center animate-pulse">
