@@ -1,40 +1,12 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useRef, useState } from "react"
 import Link from "next/link"
-import Script from "next/script"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+import { getAuthErrorMessage as getErrorMessage } from "@/lib/auth-verification"
+import { AuthTurnstile, type AuthTurnstileHandle, turnstileEnabled } from "@/components/auth/auth-turnstile"
 import { Mail, Lock, Eye, EyeOff, Loader2, ArrowRight, CheckCircle2 } from "lucide-react"
-
-type TurnstileApi = {
-    render: (container: HTMLElement, options: {
-        sitekey: string
-        theme: "light"
-        callback: (token: string) => void
-        "expired-callback": () => void
-        "error-callback": () => void
-    }) => string
-    reset: (widgetId?: string) => void
-    remove: (widgetId: string) => void
-}
-
-declare global {
-    interface Window {
-        turnstile?: TurnstileApi
-    }
-}
-
-const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
-
-const getErrorMessage = (error: unknown): string => {
-    if (error instanceof Error) return error.message
-    if (typeof error === "object" && error && "message" in error) {
-        const message = (error as { message?: unknown }).message
-        if (typeof message === "string") return message
-    }
-    return "An unexpected error occurred."
-}
 
 export default function LoginPage() {
     const router = useRouter()
@@ -46,44 +18,13 @@ export default function LoginPage() {
     const [resendSent, setResendSent] = useState(false)
     const [formData, setFormData] = useState({ email: "", password: "" })
     const [captchaToken, setCaptchaToken] = useState("")
-    const [turnstileReady, setTurnstileReady] = useState(false)
     const [securityError, setSecurityError] = useState<string | null>(null)
-    const turnstileContainerRef = useRef<HTMLDivElement>(null)
-    const turnstileWidgetIdRef = useRef<string | null>(null)
-
-    useEffect(() => {
-        if (!turnstileSiteKey || !turnstileReady || !window.turnstile || !turnstileContainerRef.current || turnstileWidgetIdRef.current) return
-
-        turnstileWidgetIdRef.current = window.turnstile.render(turnstileContainerRef.current, {
-            sitekey: turnstileSiteKey,
-            theme: "light",
-            callback: (token) => {
-                setCaptchaToken(token)
-                setSecurityError(null)
-            },
-            "expired-callback": () => {
-                setCaptchaToken("")
-                setSecurityError("Security verification expired. Please check the box again.")
-            },
-            "error-callback": () => {
-                setCaptchaToken("")
-                setSecurityError("Security verification could not load. Please refresh and try again.")
-            },
-        })
-
-        return () => {
-            if (turnstileWidgetIdRef.current && window.turnstile) {
-                window.turnstile.remove(turnstileWidgetIdRef.current)
-                turnstileWidgetIdRef.current = null
-            }
-        }
-    }, [turnstileReady])
+    const turnstileRef = useRef<AuthTurnstileHandle>(null)
 
     const resetSecurityCheck = () => {
         setCaptchaToken("")
-        if (turnstileWidgetIdRef.current && window.turnstile) {
-            window.turnstile.reset(turnstileWidgetIdRef.current)
-        }
+        setSecurityError(null)
+        turnstileRef.current?.reset()
     }
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -92,7 +33,8 @@ export default function LoginPage() {
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (turnstileSiteKey && !captchaToken) {
+        const verificationToken = turnstileEnabled ? turnstileRef.current?.consumeToken() : undefined
+        if (turnstileEnabled && !verificationToken) {
             setSecurityError("Please complete the security verification before signing in.")
             return
         }
@@ -103,7 +45,7 @@ export default function LoginPage() {
             const { data: signInData, error } = await supabase.auth.signInWithPassword({
                 email: formData.email,
                 password: formData.password,
-                options: captchaToken ? { captchaToken } : undefined,
+                options: verificationToken ? { captchaToken: verificationToken } : undefined,
             })
             if (error) {
                 // Detect unconfirmed email specifically
@@ -266,25 +208,13 @@ export default function LoginPage() {
                     </div>
                 </div>
 
-                {turnstileSiteKey && (
-                    <div className="space-y-2">
-                        <Script
-                            src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
-                            strategy="afterInteractive"
-                            onReady={() => setTurnstileReady(true)}
-                            onError={() => setSecurityError("Security verification could not load. Please refresh and try again.")}
-                        />
-                        <div className="flex min-h-[70px] items-center justify-center rounded-lg border border-border bg-secondary/20 p-2">
-                            <div ref={turnstileContainerRef} />
-                        </div>
-                        {securityError && <p className="text-xs font-medium text-red-600">{securityError}</p>}
-                    </div>
-                )}
+                <AuthTurnstile ref={turnstileRef} onTokenChange={setCaptchaToken} onErrorChange={setSecurityError} />
+                {securityError && <span className="sr-only">{securityError}</span>}
 
                 {/* Submit */}
                 <button
                     type="submit"
-                    disabled={isLoading || Boolean(turnstileSiteKey && !captchaToken)}
+                    disabled={isLoading || Boolean(turnstileEnabled && !captchaToken)}
                     className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-prms-blue font-semibold text-white transition-all hover:bg-blue-700 disabled:opacity-60"
                 >
                     {isLoading ? (
