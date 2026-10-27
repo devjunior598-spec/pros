@@ -50,7 +50,14 @@ export interface Property {
     manager_name?: string;
     manager_phone?: string;
     publication_status?: 'draft' | 'published' | 'archived';
+    electricity_meter_number?: string;
+    electricity_payment_method?: UtilityPaymentMethod;
+    water_payment_method?: UtilityPaymentMethod;
+    waste_payment_method?: UtilityPaymentMethod;
+    utility_notes?: string;
 }
+
+export type UtilityPaymentMethod = 'landlord_bill' | 'tenant_direct' | 'prepaid_meter' | 'included_in_rent';
 
 export type UnitAvailability = 'available' | 'occupied' | 'reserved' | 'maintenance' | 'inactive';
 export type PaymentFrequency = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'biannually' | 'yearly';

@@ -19,12 +19,6 @@ type TurnstileApi = {
     remove: (widgetId: string) => void
 }
 
-declare global {
-    interface Window {
-        turnstile?: TurnstileApi
-    }
-}
-
 export type AuthTurnstileHandle = {
     consumeToken: () => string
     reset: () => void
@@ -54,9 +48,10 @@ export const AuthTurnstile = forwardRef<AuthTurnstileHandle, AuthTurnstileProps>
     }
 
     useEffect(() => {
-        if (!turnstileSiteKey || !ready || !window.turnstile || !containerRef.current || widgetIdRef.current) return
+        const turnstile = (window as unknown as { turnstile?: TurnstileApi }).turnstile
+        if (!turnstileSiteKey || !ready || !turnstile || !containerRef.current || widgetIdRef.current) return
 
-        widgetIdRef.current = window.turnstile.render(containerRef.current, {
+        widgetIdRef.current = turnstile.render(containerRef.current, {
             sitekey: turnstileSiteKey,
             theme: "light",
             "refresh-expired": "auto",
@@ -86,8 +81,8 @@ export const AuthTurnstile = forwardRef<AuthTurnstileHandle, AuthTurnstileProps>
         return () => {
             tokenStore.current.clear()
             onTokenChange("")
-            if (widgetIdRef.current && window.turnstile) {
-                window.turnstile.remove(widgetIdRef.current)
+            if (widgetIdRef.current && turnstile) {
+                turnstile.remove(widgetIdRef.current)
                 widgetIdRef.current = null
             }
         }
@@ -97,7 +92,8 @@ export const AuthTurnstile = forwardRef<AuthTurnstileHandle, AuthTurnstileProps>
         tokenStore.current.clear()
         onTokenChange("")
         setSecurityError(null)
-        if (widgetIdRef.current && window.turnstile) window.turnstile.reset(widgetIdRef.current)
+        const turnstile = (window as unknown as { turnstile?: TurnstileApi }).turnstile
+        if (widgetIdRef.current && turnstile) turnstile.reset(widgetIdRef.current)
     }
 
     useImperativeHandle(ref, () => ({
