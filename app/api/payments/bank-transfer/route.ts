@@ -91,7 +91,7 @@ export async function POST(req: Request) {
             p_user_id: rental.landlord_id,
             p_type: 'bank_transfer_submitted',
             p_title: 'Bank Transfer Submitted',
-            p_message: `Tenant submitted a bank transfer of ₦${paymentAmount.toLocaleString()} for "${propertyData?.title || 'Property'}" with ref: ${reference}.`,
+            p_message: `Tenant submitted a bank transfer of $${paymentAmount.toLocaleString()} for "${propertyData?.title || 'Property'}" with ref: ${reference}.`,
             p_link: '/dashboard/payments'
         });
 

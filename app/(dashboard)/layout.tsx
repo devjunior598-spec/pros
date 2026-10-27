@@ -78,7 +78,7 @@ export default function DashboardLayout({
                                         </ul>
                                     </div>
                                     <p className="text-sm text-gray-500">
-                                        Need help? Contact support at <span className="font-medium text-blue-600">partners@prms.ng</span>
+                                        Need help? Open a support ticket from your account.
                                     </p>
                                 </div>
                             ) : (

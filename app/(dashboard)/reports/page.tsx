@@ -64,7 +64,7 @@ export default function ReportsPage() {
                         <CardTitle className="text-xs uppercase text-muted-foreground font-bold tracking-wider">Maintenance Cost</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl sm:text-3xl font-bold">₦124,000</div>
+                        <div className="text-2xl sm:text-3xl font-bold">$124,000</div>
                         <p className="text-red-600 text-xs mt-1 flex items-center">
                             <ArrowUpRight className="h-3 w-3 mr-1" />
                             +5% this month

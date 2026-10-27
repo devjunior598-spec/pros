@@ -156,7 +156,7 @@ export default function AssignedJobsPage() {
                                         </div>
                                         <div className="text-right shrink-0">
                                             <p className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                                                ₦{job.agreed_price?.toLocaleString() || 'Quote Pending'}
+                                                ${job.agreed_price?.toLocaleString() || 'Quote Pending'}
                                             </p>
                                             <p className="text-xs text-muted-foreground">Assigned {new Date(job.created_at).toLocaleDateString()}</p>
                                         </div>

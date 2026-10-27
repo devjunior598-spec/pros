@@ -64,7 +64,7 @@ export function RentalApplicationForm({ propertyId, tenantId, rentAmount, onSucc
     const autoFillTemplate = () => {
         const moveIn = moveInDate ? new Date(moveInDate).toLocaleDateString() : "the earliest available date"
         const emp = employment || "Employed Professional"
-        const inc = income ? `₦${income}` : "As specified in profile"
+        const inc = income ? `$${income}` : "As specified in profile"
 
         const letter = `Dear Property Owner / Landlord,\n\nI am writing to formally submit my rental application for this property.\n\nAbout Me:\nI work as ${emp}. I am seeking a quality, well-managed home and believe this residence matches my living requirements.\n\nKey Application Summary:\n- Employment: ${emp}\n- Monthly Income: ${inc}\n- Preferred Move-in Date: ${moveIn}\n\nI take pride in maintaining a quiet, clean, and respectful home environment while ensuring rent is paid reliably on time.\n\nThank you for reviewing my application letter.\n\nSincerely,\nApplicant`
         setApplicationLetter(letter)
@@ -113,7 +113,7 @@ export function RentalApplicationForm({ propertyId, tenantId, rentAmount, onSucc
                 <Label htmlFor="rent">Monthly Rent</Label>
                 <Input
                     id="rent"
-                    value={`₦${rentAmount.toLocaleString()}/mo`}
+                    value={`$${rentAmount.toLocaleString()}/mo`}
                     disabled
                 />
             </div>

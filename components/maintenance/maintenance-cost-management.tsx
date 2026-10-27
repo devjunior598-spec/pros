@@ -58,14 +58,14 @@ export function MaintenanceCostManagement({
                     <div className="flex justify-between">
                         <span>Estimated Cost:</span>
                         <span className="font-medium">
-                            {initialEstimatedCost ? `₦${initialEstimatedCost.toLocaleString()}` : 'Pending'}
+                            {initialEstimatedCost ? `$${initialEstimatedCost.toLocaleString()}` : 'Pending'}
                         </span>
                     </div>
                     {initialFinalCost && (
                         <div className="flex justify-between border-t pt-2 mt-2">
                             <span className="font-bold">Final Cost:</span>
                             <span className="font-bold text-green-600">
-                                ₦{initialFinalCost.toLocaleString()}
+                                ${initialFinalCost.toLocaleString()}
                             </span>
                         </div>
                     )}
@@ -81,7 +81,7 @@ export function MaintenanceCostManagement({
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="space-y-2">
-                    <Label htmlFor="estimated-cost">Estimated Cost (₦)</Label>
+                    <Label htmlFor="estimated-cost">Estimated Cost ($)</Label>
                     <div className="flex gap-2">
                         <Input
                             id="estimated-cost"
@@ -101,7 +101,7 @@ export function MaintenanceCostManagement({
                 </div>
 
                 <div className="space-y-2">
-                    <Label htmlFor="final-cost">Final Cost (₦)</Label>
+                    <Label htmlFor="final-cost">Final Cost ($)</Label>
                     <div className="flex gap-2">
                         <Input
                             id="final-cost"

@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -58,5 +59,7 @@ node_modules
 ._*
 **/._*
 
-# Next.js corrupt backup folder
+# Next.js generated and backup folders
 .next.corrupt-backup/
+.next.repair-backup-20260804/
+.next_old_cache/

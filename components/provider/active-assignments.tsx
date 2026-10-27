@@ -121,7 +121,7 @@ export function ActiveAssignments({ providerId }: ActiveAssignmentsProps) {
                                 {assignment.request?.description}
                             </p>
                             <p className="font-bold text-lg text-blue-700 mt-2">
-                                Agreed Price: ₦{assignment.agreed_price?.toLocaleString() || 'N/A'}
+                                Agreed Price: ${assignment.agreed_price?.toLocaleString() || 'N/A'}
                             </p>
                         </div>
 

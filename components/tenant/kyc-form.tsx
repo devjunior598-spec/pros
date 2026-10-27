@@ -21,7 +21,7 @@ export function KYCForm({ userId, currentProfile }: KYCFormProps) {
     const [phone, setPhone] = useState(currentProfile?.phone || "")
     const [dob, setDob] = useState("")
     const [address, setAddress] = useState("")
-    const [idType, setIdType] = useState("NIN")
+    const [idType, setIdType] = useState("Driver’s License")
     const [idNumber, setIdNumber] = useState("")
     const [idImage, setIdImage] = useState<File | null>(null)
     const [selfieImage, setSelfieImage] = useState<File | null>(null)
@@ -86,7 +86,7 @@ export function KYCForm({ userId, currentProfile }: KYCFormProps) {
             <CardHeader>
                 <CardTitle>Identity Verification (KYC)</CardTitle>
                 <CardDescription>
-                    Please provide your legal documents to unlock wallet features and secure your account.
+                    Provide identification only when requested for a specific property or account process. Do not submit a Social Security number here.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -127,7 +127,8 @@ export function KYCForm({ userId, currentProfile }: KYCFormProps) {
                                     <SelectValue placeholder="Select ID Type" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="NIN">NIN</SelectItem>
+                                    <SelectItem value="Driver’s License">Driver’s License</SelectItem>
+                                    <SelectItem value="State ID">State ID</SelectItem>
                                     <SelectItem value="Driver's License">Driver's License</SelectItem>
                                     <SelectItem value="Passport">International Passport</SelectItem>
                                     <SelectItem value="Voter's Card">Voter's Card</SelectItem>

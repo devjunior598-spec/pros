@@ -74,7 +74,7 @@ export function MaintenanceSummaryCards({ requests }: MaintenanceSummaryCardsPro
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">₦{monthlyCost.toLocaleString()}</div>
+                    <div className="text-2xl font-bold">${monthlyCost.toLocaleString()}</div>
                     <p className="text-xs text-muted-foreground">
                         Spent this month
                     </p>

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { createNotification } from '@/lib/notifications';
 
 export async function POST(req: Request) {
     try {
@@ -24,6 +25,7 @@ export async function POST(req: Request) {
             .from('properties')
             .select('landlord_id')
             .eq('id', propertyId)
+            .eq('country', 'United States')
             .maybeSingle();
 
         if (propertyError) throw propertyError;
@@ -79,28 +81,15 @@ export async function POST(req: Request) {
 
         // 3. Notify the landlord
         try {
-            const { error: notificationError } = await supabaseAdmin.from('notifications').insert({
-                user_id: targetLandlordId,
+            await createNotification({
+                userId: targetLandlordId,
                 type: 'inspection_booked',
                 title: 'New Inspection Requested',
                 message: `${name} requested a ${type} on ${date} at ${time}.`,
                 link: '/dashboard/inspections'
-            });
-            if (notificationError) throw notificationError;
+            })
         } catch (notifErr) {
-            console.error('Notification insertion error:', notifErr);
-            // Fallback RPC
-            try {
-                await supabaseAdmin.rpc('create_notification', {
-                    p_user_id: targetLandlordId,
-                    p_type: 'inspection_booked',
-                    p_title: 'New Inspection Requested',
-                    p_message: `${name} requested a ${type} on ${date} at ${time}.`,
-                    p_link: '/dashboard/inspections'
-                });
-            } catch (rpcErr) {
-                console.error('Notification RPC error:', rpcErr);
-            }
+            console.error('Inspection booking notification error:', notifErr);
         }
 
         return NextResponse.json({ success: true, booking });

@@ -184,7 +184,7 @@ export function AccountSettings({ email }: AccountSettingsProps) {
                             defaultValue="en"
                         >
                             <option value="en">English (US)</option>
-                            <option value="en-gb">English (UK)</option>
+                            <option value="en-us">English (United States)</option>
                             <option value="fr">French</option>
                         </select>
                     </div>

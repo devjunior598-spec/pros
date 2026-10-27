@@ -249,7 +249,7 @@ export default function LeasesHubPage() {
                                                     {lease.property?.title || "Property"} - {lease.property?.address}
                                                 </p>
                                                 <div className="flex items-center gap-3 text-[10px] text-slate-400 font-bold flex-wrap">
-                                                    <span>Rent: ₦{Number(lease.rent_amount).toLocaleString()} / {lease.payment_frequency}</span>
+                                                    <span>Rent: ${Number(lease.rent_amount).toLocaleString()} / {lease.payment_frequency}</span>
                                                     <span>•</span>
                                                     <span>Term: {new Date(lease.start_date).toLocaleDateString()} to {new Date(lease.end_date).toLocaleDateString()}</span>
                                                     <span>•</span>

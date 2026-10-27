@@ -312,14 +312,14 @@ export default function PropertyDetailsPage() {
                         <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wide">Pricing</h2>
 
                         <div className="flex items-end gap-1">
-                            <span className="text-3xl font-extrabold text-slate-100">₦{Number(property.price).toLocaleString()}</span>
+                            <span className="text-3xl font-extrabold text-slate-100">${Number(property.price).toLocaleString()}</span>
                             <span className="text-slate-500 mb-1 text-sm">/month</span>
                         </div>
 
                         <div className="space-y-2 border-t border-slate-700/40 pt-4 text-sm">
                             {[
                                 { icon: Tag,          label: "Property Type", value: property.type || "N/A" },
-                                { icon: CalendarDays, label: "Listed",        value: new Date(property.created_at).toLocaleDateString("en-NG", { year: "numeric", month: "short", day: "numeric" }) },
+                                { icon: CalendarDays, label: "Listed",        value: new Date(property.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) },
                             ].map(({ icon: Icon, label, value }) => (
                                 <div key={label} className="flex items-center justify-between gap-2">
                                     <div className="flex items-center gap-2 text-slate-400">

@@ -20,7 +20,9 @@ import {
     Star,
     Search,
     Calendar,
-    FileText
+    FileText,
+    Boxes,
+    HelpCircle
 } from "lucide-react"
 
 interface DashboardNavProps extends React.HTMLAttributes<HTMLElement> {
@@ -41,7 +43,27 @@ export function DashboardNav({ className, userRole, isVerified, ...props }: Dash
     }
 
     const items = [
-        // Shared
+        // CEO Specific
+        {
+            title: "CEO Executive",
+            href: "/dashboard/ceo",
+            icon: LayoutDashboard,
+            roles: ["ceo"],
+        },
+        {
+            title: "Platform Finance",
+            href: "/dashboard/admin/finance",
+            icon: CreditCard,
+            roles: ["ceo", "admin"],
+        },
+        // Property Manager Specific
+        {
+            title: "Manager Hub",
+            href: "/dashboard/manager",
+            icon: LayoutDashboard,
+            roles: ["property_manager", "manager"],
+        },
+        // Shared Core Dashboards
         {
             title: "Dashboard",
             href: "/dashboard",
@@ -52,7 +74,7 @@ export function DashboardNav({ className, userRole, isVerified, ...props }: Dash
             title: "Inspections",
             href: "/dashboard/inspections",
             icon: Calendar,
-            roles: ["landlord", "tenant"],
+            roles: ["landlord", "tenant", "property_manager", "manager"],
         },
         {
             title: "Payments",
@@ -64,7 +86,7 @@ export function DashboardNav({ className, userRole, isVerified, ...props }: Dash
             title: "Lease Agreements",
             href: "/dashboard/leases",
             icon: FileText,
-            roles: ["landlord", "tenant"],
+            roles: ["landlord", "tenant", "property_manager", "manager"],
         },
         // Provider Specific
         {
@@ -104,50 +126,62 @@ export function DashboardNav({ className, userRole, isVerified, ...props }: Dash
             icon: Wrench,
             roles: ["tenant"],
         },
-        // Landlord Specific
+        // Landlord & Manager Operations
         {
             title: "Properties",
             href: "/properties",
             icon: Building,
-            roles: ["landlord"],
+            roles: ["landlord", "property_manager", "manager"],
         },
         {
             title: "Applications",
             href: "/applications",
             icon: ClipboardList,
-            roles: ["landlord"],
+            roles: ["landlord", "property_manager", "manager"],
         },
         {
             title: "Tenants",
             href: "/tenants",
             icon: Users,
-            roles: ["landlord"],
+            roles: ["landlord", "property_manager", "manager"],
         },
         {
             title: "Maintenance",
             href: "/requests",
             icon: Wrench,
-            roles: ["landlord"],
+            roles: ["landlord", "property_manager", "manager"],
+        },
+        {
+            title: "Inventory",
+            href: "/dashboard/inventory",
+            icon: Boxes,
+            roles: ["landlord", "property_manager", "manager", "admin"],
         },
         {
             title: "Reports",
             href: "/reports",
             icon: BarChart,
-            roles: ["landlord"],
+            roles: ["landlord", "ceo", "admin"],
         },
-        // Shared
+        // Shared Communication & Support
         {
             title: "Messages",
             href: "/messages",
             icon: MessageSquare,
-            roles: ["landlord", "tenant", "service_provider"],
+            roles: ["landlord", "tenant", "service_provider", "property_manager", "manager", "ceo", "admin"],
             badge: true, // flag: show unread badge
+        },
+        {
+            title: "Support & Help",
+            href: "/support",
+            icon: HelpCircle,
+            roles: ["tenant", "landlord", "service_provider", "property_manager", "manager"],
         },
         {
             title: "Settings",
             href: "/settings",
             icon: Settings,
-            roles: ["landlord", "tenant", "service_provider"],
+            roles: ["landlord", "tenant", "service_provider", "property_manager", "manager", "ceo", "admin"],
         },
     ]
 

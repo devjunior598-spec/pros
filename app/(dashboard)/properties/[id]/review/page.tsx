@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { Property, PropertyUnit } from "@/types"
 
-const money=new Intl.NumberFormat("en-NG",{style:"currency",currency:"NGN",maximumFractionDigits:0})
+const money=new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0})
 const monthly=(unit:PropertyUnit)=>unit.payment_frequency==="yearly"?unit.rent/12:unit.payment_frequency==="quarterly"?unit.rent/3:unit.payment_frequency==="biannually"?unit.rent/6:unit.rent
 
 export default function ReviewPropertyPage(){const {id}=useParams<{id:string}>();const router=useRouter();const {toast}=useToast();const [property,setProperty]=useState<Property|null>(null);const [units,setUnits]=useState<PropertyUnit[]>([]);const [loading,setLoading]=useState(true);const [publishing,setPublishing]=useState(false)

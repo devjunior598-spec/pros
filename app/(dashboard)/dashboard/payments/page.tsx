@@ -56,7 +56,7 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
         <div className="bg-slate-950 dark:bg-slate-900 border border-slate-800 rounded-xl p-3 shadow-2xl">
             <p className="text-xs font-bold text-slate-400 mb-1">{label}</p>
             <p className="text-sm font-black text-blue-500">
-                ₦{Number(payload[0].value).toLocaleString()}
+                ${Number(payload[0].value).toLocaleString()}
             </p>
         </div>
     )
@@ -317,7 +317,7 @@ export default function LandlordPaymentsPage() {
                 tenantName: payment.tenant?.name || payment.tenant?.email || "Tenant",
                 tenantEmail: payment.tenant?.email || "",
                 propertyName: payment.property?.title || "Property",
-                propertyAddress: payment.property?.address || "Lagos, Nigeria",
+                propertyAddress: payment.property?.address || "United States",
                 paymentMethod: payment.payment_method,
                 transactionReference: payment.transaction_reference,
                 amountPaid: Number(payment.amount),
@@ -385,7 +385,7 @@ export default function LandlordPaymentsPage() {
                             <DollarSign className="h-7 w-7 text-blue-500" /> Rent & Finance Tracker
                         </h1>
                         <p className="text-sm text-slate-550 dark:text-slate-400">
-                            Monitor collected earnings, approve bank transfers, and audit outstanding balances.
+                            Review rent activity. U.S. checkout and payouts remain paused until a provider is configured.
                         </p>
                     </div>
                     <div className="flex gap-2 w-full sm:w-auto">
@@ -413,7 +413,7 @@ export default function LandlordPaymentsPage() {
                         <CardHeader className="pb-2">
                             <span className="text-[10px] text-blue-500 font-extrabold uppercase tracking-wider block">Total Collected</span>
                             <CardTitle className="text-xl sm:text-2xl font-black text-blue-600 dark:text-blue-400 mt-1">
-                                ₦{stats.totalCollected.toLocaleString()}
+                                ${stats.totalCollected.toLocaleString()}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -425,7 +425,7 @@ export default function LandlordPaymentsPage() {
                         <CardHeader className="pb-2">
                             <span className="text-[10px] text-amber-500 font-extrabold uppercase tracking-wider block">Outstanding Bills</span>
                             <CardTitle className="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 mt-1">
-                                ₦{stats.outstandingBalances.toLocaleString()}
+                                ${stats.outstandingBalances.toLocaleString()}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -493,7 +493,7 @@ export default function LandlordPaymentsPage() {
                                             <YAxis 
                                                 tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
                                                 axisLine={false}
-                                                tickFormatter={(v) => `₦${(v / 1000).toLocaleString()}k`} 
+                                                tickFormatter={(v) => `$${(v / 1000).toLocaleString()}k`}
                                                 tickLine={false}
                                             />
                                             <Tooltip content={<CustomTooltip />} />
@@ -570,7 +570,7 @@ export default function LandlordPaymentsPage() {
                                                             <div className="flex items-center gap-5 justify-between w-full sm:w-auto">
                                                                 <div className="text-left sm:text-right">
                                                                     <p className="text-base font-black text-slate-800 dark:text-slate-200">
-                                                                        ₦{Number(p.amount).toLocaleString()}
+                                                                        ${Number(p.amount).toLocaleString()}
                                                                     </p>
                                                                     <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
                                                                         {new Date(p.created_at).toLocaleDateString()}
@@ -630,7 +630,7 @@ export default function LandlordPaymentsPage() {
                                                         <div className="flex items-center gap-4 justify-between w-full sm:w-auto">
                                                             <div className="text-left sm:text-right">
                                                                 <p className="text-lg font-black text-orange-600 dark:text-orange-400">
-                                                                    ₦{Number(p.amount).toLocaleString()}
+                                                                    ${Number(p.amount).toLocaleString()}
                                                                 </p>
                                                                 <p className="text-[9px] text-slate-400 font-bold tracking-wider mt-0.5">
                                                                     Submitted: {new Date(p.created_at).toLocaleDateString()}
@@ -695,10 +695,10 @@ export default function LandlordPaymentsPage() {
 
                                                             <div className="text-left sm:text-right w-full sm:w-auto">
                                                                 <p className="text-base font-black text-slate-850 dark:text-slate-200">
-                                                                    ₦{unpaidAmount.toLocaleString()}
+                                                                    ${unpaidAmount.toLocaleString()}
                                                                 </p>
                                                                 <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
-                                                                    Total Rent: ₦{Number(bill.amount).toLocaleString()}
+                                                                    Total Rent: ${Number(bill.amount).toLocaleString()}
                                                                 </p>
                                                             </div>
                                                         </div>
@@ -737,15 +737,16 @@ export default function LandlordPaymentsPage() {
                                     <div className="p-4 rounded-xl border border-orange-100 dark:border-orange-950/50 bg-orange-500/[0.02] dark:bg-orange-950/10 space-y-2.5 text-xs text-orange-850 dark:text-orange-300">
                                         <p className="font-bold flex items-center gap-1"><AlertCircle className="h-4 w-4" /> No Custom Bank Details</p>
                                         <p className="leading-relaxed">
-                                            Tenants will see GTBank PRMS Escrow details by default. Save your local account below to configure direct tenant payments.
+                                            U.S. bank transfer and payout instructions are not configured. Do not submit payments through PRMS until account setup is complete.
                                         </p>
                                     </div>
                                 )}
                                 <Button 
                                     onClick={() => setIsBankModalOpen(true)}
-                                    className="w-full rounded-xl font-bold bg-blue-600 hover:bg-blue-700 text-white min-h-[44px]"
+                                    disabled
+                                    className="w-full rounded-xl font-bold bg-blue-600 text-white min-h-[44px]"
                                 >
-                                    {bankAccount ? "Modify Bank Details" : "Set Custom Account"}
+                                    U.S. payout setup pending
                                 </Button>
                             </CardContent>
                         </Card>
@@ -790,7 +791,7 @@ export default function LandlordPaymentsPage() {
                                 <Label htmlFor="bank_name" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Bank Name</Label>
                                 <Input 
                                     id="bank_name" 
-                                    placeholder="e.g. GTBank, Zenith Bank"
+                                    placeholder="U.S. bank name"
                                     value={bankForm.bank_name}
                                     onChange={(e) => setBankForm({ ...bankForm, bank_name: e.target.value })}
                                     className="h-11 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-xl"
@@ -870,7 +871,7 @@ export default function LandlordPaymentsPage() {
                             </div>
                             <div className="flex justify-between border-t pt-2 font-black text-sm text-slate-900 dark:text-white">
                                 <span>Amount:</span>
-                                <span>₦{Number(selectedPayment.amount).toLocaleString()}</span>
+                                <span>${Number(selectedPayment.amount).toLocaleString()}</span>
                             </div>
                         </div>
 

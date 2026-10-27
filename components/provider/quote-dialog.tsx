@@ -74,7 +74,7 @@ export function QuoteDialog({ isOpen, onOpenChange, request, providerId, onSucce
                     {error && <div className="p-3 bg-red-50 text-red-600 rounded-md text-sm">{error}</div>}
 
                     <div className="space-y-2">
-                        <Label htmlFor="price">Estimated Cost (₦)</Label>
+                        <Label htmlFor="price">Estimated Cost ($)</Label>
                         <div className="relative">
                             <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                             <Input

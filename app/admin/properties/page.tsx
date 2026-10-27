@@ -302,7 +302,7 @@ export default function AdminPropertiesPage() {
                                                 <span className="text-xs font-medium">{property.landlord?.name}</span>
                                             </div>
                                             <div className="font-bold text-blue-600">
-                                                ₦{property.price?.toLocaleString()}
+                                                ${property.price?.toLocaleString()}
                                             </div>
                                         </div>
 

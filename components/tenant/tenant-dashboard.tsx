@@ -64,7 +64,7 @@ function MyRentals({ rentals, loading }: { rentals: any[], loading: boolean }) {
                                     <div className="grid grid-cols-2 gap-2 mt-4 text-sm">
                                         <div className="flex items-center text-muted-foreground">
                                             <DollarSign className="h-3 w-3 mr-1" />
-                                            ₦{rental.property.price?.toLocaleString()} / month
+                                            ${rental.property.price?.toLocaleString()} / month
                                         </div>
                                         {rental.rent_start_date && (
                                             <div className="flex items-center text-muted-foreground">
@@ -270,7 +270,7 @@ function TenantDashboardContent({ userId }: TenantDashboardProps) {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">₦{stats.rentDue.toLocaleString()}</div>
+                        <div className="text-2xl font-bold">${stats.rentDue.toLocaleString()}</div>
                         <p className="text-xs text-muted-foreground mt-1">Outstanding balance</p>
                     </CardContent>
                 </Card>
@@ -282,7 +282,7 @@ function TenantDashboardContent({ userId }: TenantDashboardProps) {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">₦{stats.walletBalance.toLocaleString()}</div>
+                        <div className="text-2xl font-bold">${stats.walletBalance.toLocaleString()}</div>
                         <p className="text-xs text-muted-foreground mt-1">Available funds</p>
                     </CardContent>
                 </Card>
@@ -402,7 +402,7 @@ function TenantDashboardContent({ userId }: TenantDashboardProps) {
                                                     {rental.property.city}
                                                 </p>
                                                 <div className="flex items-center text-sm font-semibold text-blue-600 dark:text-blue-400">
-                                                    ₦{rental.property.price?.toLocaleString()} / month
+                                                    ${rental.property.price?.toLocaleString()} / month
                                                 </div>
                                             </div>
                                         </div>
@@ -443,7 +443,7 @@ function TenantDashboardContent({ userId }: TenantDashboardProps) {
                                                 </div>
                                             </div>
                                             <div className="text-sm font-bold text-gray-900 dark:text-white">
-                                                − ₦{payment.amount?.toLocaleString()}
+                                                − ${payment.amount?.toLocaleString()}
                                             </div>
                                         </div>
                                     ))
@@ -463,7 +463,7 @@ function TenantDashboardContent({ userId }: TenantDashboardProps) {
                         <CardContent className="space-y-6 relative z-10">
                             <div>
                                 <p className="text-sm text-blue-100/80 mb-1">Available Balance</p>
-                                <h3 className="text-4xl font-bold tracking-tight">₦{stats.walletBalance.toLocaleString()}</h3>
+                                <h3 className="text-4xl font-bold tracking-tight">${stats.walletBalance.toLocaleString()}</h3>
                             </div>
                             <div className="flex gap-3">
                                 <Link href="/wallet" className="flex-1">

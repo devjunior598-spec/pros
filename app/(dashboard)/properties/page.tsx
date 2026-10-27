@@ -1,28 +1,15 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import Link from "next/link"
-import { supabase } from "@/lib/supabase"
 import { RoleGuard } from "@/components/role-guard"
 import { MultiUnitPortfolio } from "@/components/landlord/multi-unit-portfolio"
 import { PageHeader } from "@/components/page-header"
 import { Plus, Building2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/contexts/auth-context"
 
 export default function PropertiesPage() {
-    const [landlordId, setLandlordId] = useState<string | null>(null)
-    const [loading, setLoading] = useState(true)
-
-    useEffect(() => {
-        let mounted = true
-        const fetchUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (user && mounted) setLandlordId(user.id)
-            if (mounted) setLoading(false)
-        }
-        fetchUser()
-        return () => { mounted = false }
-    }, [])
+    const { user, loading } = useAuth()
 
     if (loading) {
         return (
@@ -35,7 +22,7 @@ export default function PropertiesPage() {
         )
     }
 
-    if (!landlordId) {
+    if (!user) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
                 <p className="text-muted-foreground">Please log in to view your properties.</p>
@@ -51,7 +38,7 @@ export default function PropertiesPage() {
                     description="Manage your rental portfolio"
                     icon={Building2}
                 >
-                    <Link href="/dashboard/landlord/properties/new">
+                    <Link href="/dashboard/properties/add">
                         <Button className="w-full sm:w-auto min-h-[44px] rounded-lg">
                             <Plus className="h-4 w-4 mr-2" />
                             Add Property
@@ -59,7 +46,7 @@ export default function PropertiesPage() {
                     </Link>
                 </PageHeader>
 
-                <MultiUnitPortfolio landlordId={landlordId} />
+                <MultiUnitPortfolio landlordId={user.id} />
             </div>
         </RoleGuard>
     )

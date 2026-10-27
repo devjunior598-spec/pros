@@ -215,7 +215,7 @@ Email: ${user?.email || ""}`
             setSuccess(true)
             setTimeout(() => {
                 router.push("/applications")
-            }, 2000)
+            }, 6000)
         } catch (error: unknown) {
             console.error("Error submitting application:", error)
             setError(error instanceof Error ? error.message : "Failed to submit application.")
@@ -251,12 +251,37 @@ Email: ${user?.email || ""}`
     if (success) {
         return (
             <div className="container max-w-2xl py-8">
-                <Alert className="bg-green-50 border-green-200 dark:bg-green-950/40">
-                    <CheckCircle2 className="h-5 w-5 text-green-600 mr-2" />
-                    <AlertDescription className="text-green-800 dark:text-green-300 font-medium">
-                        Application letter and details submitted successfully! Redirecting to applications page...
-                    </AlertDescription>
-                </Alert>
+                <Card className="border-green-200 bg-green-50/60 dark:bg-green-950/30">
+                    <CardHeader>
+                        <div className="flex items-center gap-3">
+                            <CheckCircle2 className="h-6 w-6 text-green-600" />
+                            <div>
+                                <CardTitle>Application submitted</CardTitle>
+                                <CardDescription>Your landlord has received your application for review.</CardDescription>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4 text-sm text-green-900 dark:text-green-200">
+                        <div className="rounded-lg bg-white/70 p-4 dark:bg-slate-950/40">
+                            <p className="font-semibold">What happens next?</p>
+                            <ol className="mt-2 list-decimal space-y-1 pl-5">
+                                <li>Track this application from your Applications page.</li>
+                                <li>If the landlord requests inspection or more information, complete that step first.</li>
+                                <li>After approval, review and sign the lease agreement.</li>
+                                <li>When bills are created, fund your wallet or pay directly before the due date.</li>
+                            </ol>
+                        </div>
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                            <Button asChild>
+                                <Link href="/applications">View My Applications</Link>
+                            </Button>
+                            <Button asChild variant="outline">
+                                <Link href="/wallet">Prepare My Wallet</Link>
+                            </Button>
+                        </div>
+                        <p className="text-xs text-green-700 dark:text-green-300">Redirecting to Applications in a few seconds...</p>
+                    </CardContent>
+                </Card>
             </div>
         )
     }
@@ -280,7 +305,7 @@ Email: ${user?.email || ""}`
                             </CardDescription>
                         </div>
                         <Badge variant="outline" className="text-sm font-semibold px-3 py-1">
-                            ₦{property.price.toLocaleString()}/mo
+                            ${property.price.toLocaleString()}/mo
                         </Badge>
                     </div>
                 </CardHeader>
@@ -339,7 +364,7 @@ Email: ${user?.email || ""}`
                                 <Input
                                     id="income"
                                     name="income"
-                                    placeholder="e.g., ₦500,000"
+                                    placeholder="e.g., $500,000"
                                     value={formData.income}
                                     onChange={handleChange}
                                     required

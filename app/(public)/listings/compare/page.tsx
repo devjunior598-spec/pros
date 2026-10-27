@@ -60,6 +60,8 @@ function CompareContent() {
         const { data, error: dbError } = await supabase
           .from("properties")
           .select("id, title, city, state, price, type, bedrooms, bathrooms, square_footage, amenities, images, status")
+          .eq("country", "United States")
+          .eq("publication_status", "published")
           .in("id", ids)
 
         if (dbError) throw dbError
@@ -239,7 +241,7 @@ function CompareContent() {
               colCount={colCount}
               cells={properties.map((p) => (
                 <p key={p.id} className="text-blue-400 font-extrabold text-xl">
-                  ₦{p.price?.toLocaleString()}
+                  ${p.price?.toLocaleString()}
                   <span className="text-slate-500 text-xs font-normal ml-1">/yr</span>
                 </p>
               ))}

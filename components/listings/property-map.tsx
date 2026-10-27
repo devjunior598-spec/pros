@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import { Property } from '@/types'
+import { formatCurrency } from '@/lib/utils'
 
 // Fix Leaflet default icon resolution issue in webpack/Next.js
 delete (L.Icon.Default.prototype as any)._getIconUrl
@@ -13,25 +14,20 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 })
 
-// Static geocoding map for major Nigerian cities
-const NIGERIAN_CITY_COORDS: Record<string, [number, number]> = {
-  lagos: [6.5244, 3.3792],
-  abuja: [9.0765, 7.3986],
-  kano: [12.0022, 8.5920],
-  ibadan: [7.3776, 3.9470],
-  'port harcourt': [4.8156, 7.0498],
-  'benin city': [6.3350, 5.6270],
-  enugu: [6.4584, 7.5464],
-  kaduna: [10.5222, 7.4383],
-  owerri: [5.4836, 7.0333],
-  warri: [5.5167, 5.7500],
+// Approximate map markers for common U.S. rental markets.
+const US_CITY_COORDS: Record<string, [number, number]> = {
+  "austin": [30.2672, -97.7431], "boston": [42.3601, -71.0589], "chicago": [41.8781, -87.6298],
+  "dallas": [32.7767, -96.7970], "denver": [39.7392, -104.9903], "houston": [29.7604, -95.3698],
+  "los angeles": [34.0522, -118.2437], "miami": [25.7617, -80.1918], "new york": [40.7128, -74.0060],
+  "philadelphia": [39.9526, -75.1652], "phoenix": [33.4484, -112.0740], "san diego": [32.7157, -117.1611],
+  "san francisco": [37.7749, -122.4194], "seattle": [47.6062, -122.3321], "washington": [38.9072, -77.0369],
 }
 
 function getCityCoords(city?: string): [number, number] | null {
   if (!city) return null
   const key = city.toLowerCase().trim()
-  if (NIGERIAN_CITY_COORDS[key]) return NIGERIAN_CITY_COORDS[key]
-  for (const [cityKey, coords] of Object.entries(NIGERIAN_CITY_COORDS)) {
+  if (US_CITY_COORDS[key]) return US_CITY_COORDS[key]
+  for (const [cityKey, coords] of Object.entries(US_CITY_COORDS)) {
     if (key.includes(cityKey) || cityKey.includes(key)) return coords
   }
   return null
@@ -49,7 +45,7 @@ export default function PropertyMap({ properties }: PropertyMapProps) {
   return (
     <div className="rounded-2xl overflow-hidden border border-slate-800/60 shadow-2xl relative">
       <MapContainer
-        center={[9.0765, 7.3986]}
+        center={[39.8283, -98.5795]}
         zoom={6}
         style={{ height: '600px', width: '100%' }}
       >
@@ -73,7 +69,7 @@ export default function PropertyMap({ properties }: PropertyMapProps) {
                   {property.title}
                 </p>
                 <p className="text-blue-600 font-extrabold text-base">
-                  &#8358;{property.price?.toLocaleString()}
+                  {formatCurrency(Number(property.price || 0))}
                   <span className="text-slate-400 font-normal text-xs ml-1">/yr</span>
                 </p>
                 <div className="flex items-center gap-3 text-xs text-slate-500">

@@ -197,7 +197,7 @@ export function TenantMonitoring({ landlordId }: TenantMonitoringProps) {
                                     <CreditCard className="w-3 h-3" /> Total Paid
                                 </p>
                                 <p className="font-semibold text-slate-900 dark:text-slate-100">
-                                    ₦{totalPaid.toLocaleString()}
+                                    ${totalPaid.toLocaleString()}
                                 </p>
                             </div>
                             <div className="space-y-1">

@@ -462,7 +462,7 @@ export function NotificationManager({ children }: { children?: React.ReactNode }
                         if (payload.new.status === 'success') {
                             addPanelNotif(
                                 "Payment Confirmed",
-                                `Your payment of ₦${Number(payload.new.amount).toLocaleString()} was successful.`,
+                                `Your payment of $${Number(payload.new.amount).toLocaleString()} was successful.`,
                                 'payment'
                             )
                         }

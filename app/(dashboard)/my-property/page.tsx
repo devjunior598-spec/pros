@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import {
@@ -80,71 +80,134 @@ export default function MyPropertyPage() {
     const [bills, setBills] = useState<Bill[]>([])
     const [billsLoading, setBillsLoading] = useState(false)
 
-    useEffect(() => {
-        let mounted = true
-        const fetchData = async () => {
-            try {
-                const {
-                    data: { user },
-                } = await supabase.auth.getUser()
-                if (!user || !mounted) return
+    const fetchPropertyData = useCallback(async () => {
+        try {
+            const {
+                data: { user },
+            } = await supabase.auth.getUser()
+            if (!user) return
 
-                const { data: rentalData } = await supabase
-                    .from("rentals")
-                    .select(`
+            // Step 1: Query rentals table for approved/active leases
+            const { data: joinedData } = await supabase
+                .from("rentals")
+                .select(`
+                    id,
+                    status,
+                    rent_amount,
+                    rent_start_date,
+                    rent_end_date,
+                    property_id,
+                    landlord_id,
+                    tenant_id,
+                    property:properties (
                         id,
-                        status,
-                        rent_amount,
-                        rent_start_date,
-                        rent_end_date,
-                        property_id,
-                        property:properties (
-                            id,
-                            title,
-                            address,
-                            city,
-                            price,
-                            images,
-                            landlord_id
-                        ),
-                        landlord:profiles!rentals_landlord_id_fkey (
-                            full_name,
-                            name,
-                            phone
-                        )
-                    `)
+                        title,
+                        address,
+                        city,
+                        price,
+                        images,
+                        landlord_id
+                    )
+                `)
+                .eq("tenant_id", user.id)
+                .in("status", ["approved", "active", "accepted"])
+                .order("created_at", { ascending: false })
+                .limit(1)
+
+            let targetRaw: any = joinedData?.[0] || null
+
+            // Step 2: Fallback query without joins if PostgREST join returned null
+            if (!targetRaw) {
+                const { data: rawData } = await supabase
+                    .from("rentals")
+                    .select("*")
                     .eq("tenant_id", user.id)
-                    .in("status", ["approved", "active"])
+                    .in("status", ["approved", "active", "accepted"])
                     .order("created_at", { ascending: false })
                     .limit(1)
 
-                if (!mounted) return
-                const activeRental = (rentalData?.[0] as unknown as RentalData) ?? null
+                targetRaw = rawData?.[0] || null
+            }
+
+            if (targetRaw) {
+                // Populate property details if missing
+                let propObj = targetRaw.property
+                if (!propObj && targetRaw.property_id) {
+                    const { data: pData } = await supabase
+                        .from("properties")
+                        .select("id, title, address, city, price, images, landlord_id")
+                        .eq("id", targetRaw.property_id)
+                        .maybeSingle()
+                    propObj = pData
+                }
+
+                // Populate landlord profile
+                const lId = targetRaw.landlord_id || propObj?.landlord_id
+                let landlordObj = null
+                if (lId) {
+                    const { data: lData } = await supabase
+                        .from("profiles")
+                        .select("full_name, name, phone, email")
+                        .eq("id", lId)
+                        .maybeSingle()
+                    landlordObj = lData
+                }
+
+                const activeRental: RentalData = {
+                    id: targetRaw.id,
+                    status: targetRaw.status,
+                    rent_amount: targetRaw.rent_amount || propObj?.price || 0,
+                    rent_start_date: targetRaw.rent_start_date || null,
+                    rent_end_date: targetRaw.rent_end_date || null,
+                    property_id: targetRaw.property_id,
+                    property: propObj || null,
+                    landlord: landlordObj || null,
+                }
+
                 setRental(activeRental)
 
-                if (activeRental) {
-                    setBillsLoading(true)
-                    const { data: billsData } = await supabase
-                        .from("bills")
-                        .select("id, type, amount, due_date, status, created_at")
-                        .eq("rental_id", activeRental.id)
-                        .order("created_at", { ascending: false })
-                        .limit(5)
+                // Fetch bills for active rental
+                setBillsLoading(true)
+                const { data: billsData } = await supabase
+                    .from("bills")
+                    .select("id, type, amount, due_date, status, created_at")
+                    .eq("rental_id", activeRental.id)
+                    .order("created_at", { ascending: false })
+                    .limit(5)
 
-                    if (mounted) {
-                        setBills((billsData as Bill[]) || [])
-                        setBillsLoading(false)
-                    }
-                }
-            } catch (err) {
-                if (mounted) console.error("My Property fetch error:", err)
-            } finally {
-                if (mounted) setLoading(false)
+                setBills((billsData as Bill[]) || [])
+                setBillsLoading(false)
+            } else {
+                setRental(null)
             }
+        } catch (err) {
+            console.error("My Property fetch error:", err)
+        } finally {
+            setLoading(false)
         }
-        fetchData()
-        return () => { mounted = false }
     }, [])
+
+    useEffect(() => {
+        let mounted = true
+        if (mounted) fetchPropertyData()
+
+        // Realtime listener for rental application status changes
+        const channel = supabase
+            .channel("tenant-my-property-realtime")
+            .on(
+                "postgres_changes",
+                { event: "*", schema: "public", table: "rentals" },
+                () => {
+                    if (mounted) fetchPropertyData()
+                }
+            )
+            .subscribe()
+
+        return () => {
+            mounted = false
+            supabase.removeChannel(channel)
+        }
+    }, [fetchPropertyData])
 
     if (loading) {
         return (
@@ -258,7 +321,7 @@ export default function MyPropertyPage() {
                         Monthly Rent
                     </div>
                     <p className="text-2xl font-bold text-blue-400">
-                        &#8358;{monthlyRent.toLocaleString()}
+                        ${monthlyRent.toLocaleString()}
                     </p>
                     <p className="text-slate-500 text-xs mt-1">per month</p>
                 </div>
@@ -398,7 +461,7 @@ export default function MyPropertyPage() {
                                 </div>
                                 <div className="flex items-center gap-4">
                                     <span className="text-base font-bold text-slate-100">
-                                        &#8358;{bill.amount.toLocaleString()}
+                                        ${bill.amount.toLocaleString()}
                                     </span>
                                     <BillStatusBadge status={bill.status} />
                                 </div>

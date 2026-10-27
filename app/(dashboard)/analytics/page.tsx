@@ -88,7 +88,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
             <div className="bg-popover border border-border rounded-xl p-3 shadow-xl">
                 <p className="text-muted-foreground text-xs mb-1">{label}</p>
                 <p className="text-blue-500 font-bold">
-                    &#8358;{payload[0].value?.toLocaleString()}
+                    ${payload[0].value?.toLocaleString()}
                 </p>
             </div>
         )
@@ -304,7 +304,7 @@ function AnalyticsDashboard() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <SummaryCard
                             label="Total Revenue"
-                            value={`₦${data.totalRevenue.toLocaleString()}`}
+                            value={`$${data.totalRevenue.toLocaleString()}`}
                             icon={DollarSign}
                             accent="bg-blue-600/20 text-blue-500"
                             sub={RANGE_LABELS[range]}
@@ -325,7 +325,7 @@ function AnalyticsDashboard() {
                         />
                         <SummaryCard
                             label="Avg. Rent"
-                            value={data.avgRent > 0 ? `₦${Math.round(data.avgRent).toLocaleString()}` : "N/A"}
+                            value={data.avgRent > 0 ? `$${Math.round(data.avgRent).toLocaleString()}` : "N/A"}
                             icon={TrendingUp}
                             accent="bg-amber-500/20 text-amber-600 dark:text-amber-400"
                             sub="per month"
@@ -365,7 +365,7 @@ function AnalyticsDashboard() {
                                             tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
                                             axisLine={false}
                                             tickLine={false}
-                                            tickFormatter={(v) => `₦${(v / 1000).toFixed(0)}k`}
+                                            tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
                                             width={56}
                                         />
                                         <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(37,99,235,0.08)" }} />
@@ -414,7 +414,7 @@ function AnalyticsDashboard() {
                                             </div>
                                             <span className="text-right text-sm text-foreground">{prop.tenants}</span>
                                             <span className="text-right text-sm font-bold text-blue-500">
-                                                &#8358;{prop.revenue.toLocaleString()}
+                                                ${prop.revenue.toLocaleString()}
                                             </span>
                                         </div>
                                     ))}

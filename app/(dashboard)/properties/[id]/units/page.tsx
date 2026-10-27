@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input"
 import type { Property, PropertyUnit } from "@/types"
 
 type UnitRow=PropertyUnit&{unit_tenants?:{status:string;tenant?:{name?:string}}[];leases?:{status:string;end_date:string}[];unit_payments?:{status:string;amount:number}[];unit_maintenance?:{status:string}[];inspection_bookings?:{scheduled_at:string;status:string}[]}
-const money=new Intl.NumberFormat("en-NG",{style:"currency",currency:"NGN",maximumFractionDigits:0});const PAGE_SIZE=6
+const money=new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0});const PAGE_SIZE=6
 
 export default function UnitManagementPage(){
  const {id}=useParams<{id:string}>();const {toast}=useToast();const [property,setProperty]=useState<Property|null>(null);const [units,setUnits]=useState<UnitRow[]>([]);const [loading,setLoading]=useState(true);const [search,setSearch]=useState("");const [status,setStatus]=useState("all");const [page,setPage]=useState(1)

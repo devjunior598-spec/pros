@@ -34,10 +34,10 @@ interface LandlordProfile {
 // ─── Stat pill ────────────────────────────────────────────────────────────────
 function StatPill({ icon: Icon, value, label }: { icon: React.ElementType; value: string | number; label: string }) {
   return (
-    <div className="flex items-center gap-2 rounded-full bg-white/5 border border-white/10 px-4 py-2">
-      <Icon className="h-4 w-4 text-blue-400" />
-      <span className="font-bold text-white text-sm">{value}</span>
-      <span className="text-slate-400 text-xs">{label}</span>
+    <div className="flex items-center gap-2 rounded-full bg-white border border-slate-200 px-4 py-2">
+      <Icon className="h-4 w-4 text-blue-700" />
+      <span className="font-bold text-slate-900 text-sm">{value}</span>
+      <span className="text-slate-600 text-xs">{label}</span>
     </div>
   )
 }
@@ -45,21 +45,21 @@ function StatPill({ icon: Icon, value, label }: { icon: React.ElementType; value
 // ─── Skeleton card ────────────────────────────────────────────────────────────
 function SkeletonCard() {
   return (
-    <div className="rounded-2xl bg-white/5 border border-white/10 overflow-hidden animate-pulse">
+    <div className="rounded-2xl bg-white border border-slate-200 overflow-hidden animate-pulse">
       <div className="p-6">
         <div className="flex items-start gap-4 mb-4">
-          <div className="h-16 w-16 rounded-2xl bg-white/10 shrink-0" />
+          <div className="h-16 w-16 rounded-2xl bg-white shrink-0" />
           <div className="flex-1 space-y-2 pt-1">
-            <div className="h-4 w-3/4 rounded bg-white/10" />
-            <div className="h-3 w-1/2 rounded bg-white/10" />
-            <div className="h-3 w-1/3 rounded bg-white/10" />
+            <div className="h-4 w-3/4 rounded bg-white" />
+            <div className="h-3 w-1/2 rounded bg-white" />
+            <div className="h-3 w-1/3 rounded bg-white" />
           </div>
         </div>
-        <div className="h-3 w-full rounded bg-white/10 mb-2" />
-        <div className="h-3 w-4/5 rounded bg-white/10" />
+        <div className="h-3 w-full rounded bg-white mb-2" />
+        <div className="h-3 w-4/5 rounded bg-white" />
         <div className="mt-5 flex gap-2">
-          <div className="h-8 flex-1 rounded-lg bg-white/10" />
-          <div className="h-8 w-32 rounded-lg bg-white/10" />
+          <div className="h-8 flex-1 rounded-lg bg-white" />
+          <div className="h-8 w-32 rounded-lg bg-white" />
         </div>
       </div>
     </div>
@@ -73,24 +73,24 @@ function LandlordCard({ landlord, index }: { landlord: LandlordProfile; index: n
     : "??"
 
   const gradients = [
-    "from-blue-600 to-indigo-700",
-    "from-violet-600 to-purple-700",
-    "from-emerald-600 to-teal-700",
-    "from-rose-600 to-pink-700",
-    "from-amber-600 to-orange-700",
-    "from-cyan-600 to-sky-700",
+    "from-blue-50 to-indigo-50",
+    "from-violet-50 to-purple-50",
+    "from-emerald-50 to-teal-50",
+    "from-rose-50 to-pink-50",
+    "from-amber-50 to-orange-50",
+    "from-cyan-50 to-sky-700",
   ]
   const gradient = gradients[index % gradients.length]
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={false}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.06 }}
-      className="group relative rounded-2xl bg-gradient-to-b from-white/8 to-white/4 border border-white/10 hover:border-blue-500/40 overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-blue-900/20"
+      className="group relative rounded-2xl bg-gradient-to-b from-white/8 to-white/4 border border-slate-200 hover:border-blue-500/40 overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-blue-900/20"
     >
       {/* Subtle glow on hover */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-blue-500/0 group-hover:from-blue-500/5 group-hover:to-transparent transition-all duration-500 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-blue-50 group-hover:from-blue-50 group-hover:to-transparent transition-all duration-500 pointer-events-none" />
 
       <div className="p-6">
         {/* Avatar + name row */}
@@ -103,15 +103,15 @@ function LandlordCard({ landlord, index }: { landlord: LandlordProfile; index: n
             />
           ) : (
             <div className={`h-16 w-16 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center shrink-0 ring-2 ring-white/10 group-hover:ring-blue-500/30 transition-all`}>
-              <span className="text-white font-bold text-xl">{initials}</span>
+              <span className="text-slate-900 font-bold text-xl">{initials}</span>
             </div>
           )}
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-semibold text-white truncate text-base">{landlord.name}</h3>
+              <h3 className="font-semibold text-slate-900 truncate text-base">{landlord.name}</h3>
               {landlord.is_verified && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/25 px-2 py-0.5 shrink-0">
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-emerald-500/15 text-emerald-700 ring-1 ring-emerald-500/25 px-2 py-0.5 shrink-0">
                   <ShieldCheck className="h-3 w-3" />
                   Verified
                 </span>
@@ -119,16 +119,16 @@ function LandlordCard({ landlord, index }: { landlord: LandlordProfile; index: n
             </div>
 
             {/* Stats row */}
-            <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-400">
+            <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-600">
               {(landlord.property_count ?? 0) > 0 && (
                 <span className="flex items-center gap-1">
-                  <Building2 className="h-3.5 w-3.5 text-blue-400" />
+                  <Building2 className="h-3.5 w-3.5 text-blue-700" />
                   {landlord.property_count} {(landlord.property_count ?? 0) === 1 ? "property" : "properties"}
                 </span>
               )}
               {(landlord.avg_rating ?? 0) > 0 && (
                 <span className="flex items-center gap-1">
-                  <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400" />
+                  <Star className="h-3.5 w-3.5 text-amber-700 fill-amber-400" />
                   {(landlord.avg_rating ?? 0).toFixed(1)}
                 </span>
               )}
@@ -145,7 +145,7 @@ function LandlordCard({ landlord, index }: { landlord: LandlordProfile; index: n
 
         {/* Bio */}
         {landlord.bio ? (
-          <p className="text-sm text-slate-400 line-clamp-2 mb-5 leading-relaxed">
+          <p className="text-sm text-slate-600 line-clamp-2 mb-5 leading-relaxed">
             {landlord.bio}
           </p>
         ) : (
@@ -155,7 +155,7 @@ function LandlordCard({ landlord, index }: { landlord: LandlordProfile; index: n
         {/* CTA */}
         <Link
           href={`/landlords/${landlord.id}`}
-          className="flex items-center justify-center gap-2 w-full rounded-xl bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/25 hover:border-blue-500/50 text-blue-300 text-sm font-medium py-2.5 transition-all duration-200 group/btn"
+          className="flex items-center justify-center gap-2 w-full rounded-xl bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/25 hover:border-blue-500/50 text-blue-700 text-sm font-medium py-2.5 transition-all duration-200 group/btn"
         >
           View Profile
           <ChevronRight className="h-4 w-4 group-hover/btn:translate-x-0.5 transition-transform" />
@@ -177,11 +177,27 @@ export default function LandlordsPage() {
   const fetchLandlords = useCallback(async () => {
     setLoading(true)
     try {
-      // Fetch all landlord profiles
+      const { data: usProperties, error: propertiesError } = await supabase
+        .from("properties")
+        .select("landlord_id")
+        .eq("country", "United States")
+        .eq("publication_status", "published")
+        .eq("status", "available")
+
+      if (propertiesError) throw propertiesError
+      const landlordIds = [...new Set((usProperties || []).map((property) => property.landlord_id).filter(Boolean))]
+      if (landlordIds.length === 0) {
+        setLandlords([])
+        setFiltered([])
+        setTotalCount(0)
+        return
+      }
+
       const { data: profiles, error } = await supabase
         .from("profiles")
         .select("id, name, email, phone, bio, is_verified, profile_image_url, created_at")
         .eq("role", "landlord")
+        .in("id", landlordIds)
         .order("created_at", { ascending: false })
 
       if (error) throw error
@@ -194,11 +210,14 @@ export default function LandlordsPage() {
       }
 
       // Fetch property counts for each landlord
-      const landlordIds = profiles.map((p) => p.id)
+      const visibleLandlordIds = profiles.map((p) => p.id)
       const { data: propertyCounts } = await supabase
         .from("properties")
         .select("landlord_id")
-        .in("landlord_id", landlordIds)
+        .eq("country", "United States")
+        .eq("publication_status", "published")
+        .eq("status", "available")
+        .in("landlord_id", visibleLandlordIds)
 
       const countMap: Record<string, number> = {}
       propertyCounts?.forEach(({ landlord_id }) => {
@@ -251,14 +270,14 @@ export default function LandlordsPage() {
   return (
     <PublicPageShell
       pageTitle="Verified Landlords"
-      pageSubtitle="Discover trusted property owners across Nigeria. Browse profiles, view listings, and connect with verified landlords."
+      pageSubtitle="Browse property owners with published U.S. rental listings."
       badge="Landlord Directory"
     >
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 
         {/* Stats row */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
           className="flex flex-wrap gap-3 mb-8"
@@ -269,7 +288,7 @@ export default function LandlordsPage() {
 
         {/* Search + filter bar */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
           className="flex flex-col sm:flex-row gap-3 mb-8"
@@ -282,7 +301,7 @@ export default function LandlordsPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search landlords by name, location or bio…"
-              className="w-full h-12 pl-11 pr-4 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition-all"
+              className="w-full h-12 pl-11 pr-4 rounded-xl bg-white border border-slate-200 text-slate-900 placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition-all"
             />
           </div>
 
@@ -291,8 +310,8 @@ export default function LandlordsPage() {
             onClick={() => setShowVerifiedOnly((v) => !v)}
             className={`h-12 px-5 rounded-xl border text-sm font-medium flex items-center gap-2 transition-all duration-200 ${
               showVerifiedOnly
-                ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
-                : "bg-white/5 border-white/10 text-slate-400 hover:border-white/20 hover:text-white"
+                ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-700"
+                : "bg-white border-slate-200 text-slate-600 hover:border-slate-200 hover:text-slate-900"
             }`}
           >
             <ShieldCheck className="h-4 w-4" />
@@ -303,7 +322,7 @@ export default function LandlordsPage() {
           {hasFilters && (
             <button
               onClick={clearFilters}
-              className="h-12 px-4 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:border-white/20 text-sm flex items-center gap-2 transition-all"
+              className="h-12 px-4 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:border-slate-200 text-sm flex items-center gap-2 transition-all"
             >
               <X className="h-4 w-4" />
               Clear
@@ -314,7 +333,7 @@ export default function LandlordsPage() {
         {/* Results count */}
         {!loading && (
           <motion.p
-            initial={{ opacity: 0 }}
+            initial={false}
             animate={{ opacity: 1 }}
             className="text-sm text-slate-500 mb-6"
           >
@@ -333,19 +352,19 @@ export default function LandlordsPage() {
           </div>
         ) : filtered.length === 0 ? (
           <motion.div
-            initial={{ opacity: 0, scale: 0.97 }}
+            initial={false}
             animate={{ opacity: 1, scale: 1 }}
             className="flex flex-col items-center justify-center py-24 text-center"
           >
-            <div className="h-16 w-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-4">
+            <div className="h-16 w-16 rounded-2xl bg-white border border-slate-200 flex items-center justify-center mb-4">
               <User className="h-8 w-8 text-slate-600" />
             </div>
-            <h3 className="text-lg font-semibold text-white mb-1">No landlords found</h3>
+            <h3 className="text-lg font-semibold text-slate-900 mb-1">No landlords found</h3>
             <p className="text-slate-500 text-sm mb-5">Try adjusting your search or clearing filters.</p>
             {hasFilters && (
               <button
                 onClick={clearFilters}
-                className="px-4 py-2 rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-300 text-sm hover:bg-blue-600/30 transition-all"
+                className="px-4 py-2 rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-700 text-sm hover:bg-blue-600/30 transition-all"
               >
                 Clear filters
               </button>

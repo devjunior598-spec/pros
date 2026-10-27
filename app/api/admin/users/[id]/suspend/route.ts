@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
+import { requireAdmin } from "@/lib/admin-auth"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -11,16 +12,15 @@ export async function POST(
     req: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const { response } = await requireAdmin()
+    if (response) return response
+
     try {
         const { id: userId } = await params
         const body = await req.json()
         const { suspend } = body // true to suspend, false to activate
 
-        // 1. Verify caller is admin (In a real app, verify the session token from cookies!)
-        // For this implementation, we assume the frontend role guard is sufficient, 
-        // but robust apps should verify here.
-
-        // 2. Update user app_metadata to mark as suspended
+        // Update user app_metadata to mark as suspended.
         const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
             userId,
             { user_metadata: { suspended: suspend } }
@@ -28,7 +28,7 @@ export async function POST(
 
         if (authError) throw authError
 
-        // 3. Update the profiles table so the UI can easily query it. 
+        // Update the profiles table so the UI can easily query it.
         // Note: The UI won't fail if the status column doesn't exist yet, but it's best practice.
         const { error: profileError } = await supabaseAdmin
             .from('profiles')

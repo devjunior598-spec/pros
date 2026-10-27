@@ -102,7 +102,7 @@ export async function POST(req: Request) {
                 p_user_id: payment.tenant_id,
                 p_type: 'rent_refunded',
                 p_title: 'Rent Refunded',
-                p_message: `A refund of ₦${Number(payment.amount).toLocaleString()} for "${payment.property?.title || 'Property'}" has been credited to your wallet.`,
+                p_message: `A refund of $${Number(payment.amount).toLocaleString()} for "${payment.property?.title || 'Property'}" has been credited to your wallet.`,
                 p_link: '/dashboard/rent-payments'
             });
         }
@@ -112,7 +112,7 @@ export async function POST(req: Request) {
             p_user_id: payment.landlord_id,
             p_type: 'rent_refunded',
             p_title: 'Rent Refunded by Admin',
-            p_message: `Admin issued a refund of ₦${Number(payment.amount).toLocaleString()} to tenant for "${payment.property?.title || 'Property'}".`,
+            p_message: `Admin issued a refund of $${Number(payment.amount).toLocaleString()} to tenant for "${payment.property?.title || 'Property'}".`,
             p_link: '/dashboard/payments'
         });
 

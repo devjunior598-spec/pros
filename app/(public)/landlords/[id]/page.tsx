@@ -71,8 +71,8 @@ function StarDisplay({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'l
           className={cn(
             sz,
             s <= Math.round(rating)
-              ? 'fill-amber-400 text-amber-400'
-              : 'fill-white/10 text-white/10'
+              ? 'fill-amber-400 text-amber-700'
+              : 'fill-white/10 text-slate-900'
           )}
         />
       ))}
@@ -111,16 +111,22 @@ export default function LandlordPublicProfilePage() {
           setNotFoundFlag(true)
           return
         }
-        setProfile(profileData as LandlordProfile)
-
-        // 2. Fetch their properties
+        // 2. Fetch only active U.S. properties before exposing a public profile
         const { data: propsData } = await supabase
           .from('properties')
           .select('id, title, price, bedrooms, bathrooms, city, state, images, status, type')
+          .eq('country', 'United States')
+          .eq('status', 'available')
+          .eq('publication_status', 'published')
           .eq('landlord_id', landlordId)
           .order('created_at', { ascending: false })
           .limit(6)
-        setProperties((propsData || []) as Property[])
+        if (!propsData?.length) {
+          setNotFoundFlag(true)
+          return
+        }
+        setProfile(profileData as LandlordProfile)
+        setProperties(propsData as Property[])
 
         // 3. Fetch property IDs for reviews
         const propIds = (propsData || []).map((p: any) => p.id)
@@ -164,11 +170,11 @@ export default function LandlordPublicProfilePage() {
         <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
           <div className="relative">
             <div className="h-16 w-16 rounded-2xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
+              <Loader2 className="h-8 w-8 animate-spin text-blue-700" />
             </div>
             <div className="absolute inset-0 rounded-2xl bg-blue-500/10 blur-xl pointer-events-none" />
           </div>
-          <p className="text-sm font-semibold text-blue-200/50">Loading profile...</p>
+          <p className="text-sm font-semibold text-slate-700">Loading profile...</p>
         </div>
       </PublicPageShell>
     )
@@ -198,15 +204,15 @@ export default function LandlordPublicProfilePage() {
 
         {/* ── Hero Row ─────────────────────────────────────────────────────── */}
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="relative rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm overflow-hidden mb-6"
+          className="relative rounded-2xl border border-slate-200 bg-white overflow-hidden mb-6"
         >
           {/* Background glow */}
           <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-0 left-1/3 w-72 h-48 bg-blue-600/10 rounded-full blur-3xl" />
-            <div className="absolute top-0 right-1/4 w-48 h-32 bg-violet-600/10 rounded-full blur-3xl" />
+
+
           </div>
 
           <div className="relative z-10 p-6 md:p-10">
@@ -214,7 +220,7 @@ export default function LandlordPublicProfilePage() {
 
               {/* Avatar */}
               <div className="relative flex-shrink-0">
-                <div className="h-24 w-24 md:h-28 md:w-28 rounded-2xl bg-gradient-to-br from-blue-600 to-violet-600 flex items-center justify-center overflow-hidden shadow-2xl shadow-blue-600/30 border border-white/10">
+                <div className="h-24 w-24 md:h-28 md:w-28 rounded-2xl bg-gradient-to-br from-blue-50 to-violet-50 flex items-center justify-center overflow-hidden shadow-2xl shadow-blue-600/30 border border-slate-200">
                   {profile.profile_image_url ? (
                     <img
                       src={profile.profile_image_url}
@@ -222,12 +228,12 @@ export default function LandlordPublicProfilePage() {
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <span className="text-3xl font-black text-white">{initials}</span>
+                    <span className="text-3xl font-black text-slate-900">{initials}</span>
                   )}
                 </div>
                 {profile.is_verified && (
-                  <div className="absolute -bottom-2 -right-2 h-8 w-8 rounded-lg bg-blue-600 border-2 border-[#081A3A] flex items-center justify-center shadow-lg">
-                    <ShieldCheck className="h-4 w-4 text-white" />
+                  <div className="absolute -bottom-2 -right-2 h-8 w-8 rounded-lg bg-blue-100 border-2 border-white flex items-center justify-center shadow-lg">
+                    <ShieldCheck className="h-4 w-4 text-slate-900" />
                   </div>
                 )}
               </div>
@@ -235,30 +241,30 @@ export default function LandlordPublicProfilePage() {
               {/* Name & meta */}
               <div className="flex-1 min-w-0 space-y-2">
                 <div className="flex items-center gap-3 flex-wrap">
-                  <h1 className="text-3xl font-black text-white tracking-tight">
+                  <h1 className="text-3xl font-black text-slate-900 tracking-tight">
                     {profile.name}
                   </h1>
                   {profile.is_verified && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-300 text-xs font-semibold">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-700 text-xs font-semibold">
                       <ShieldCheck className="h-3.5 w-3.5" />
                       Verified Landlord
                     </span>
                   )}
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4 text-sm text-blue-200/60">
+                <div className="flex flex-wrap items-center gap-4 text-sm text-slate-700">
                   <span className="flex items-center gap-1.5">
-                    <Calendar className="h-4 w-4 text-blue-400/60" />
+                    <Calendar className="h-4 w-4 text-blue-700" />
                     Member since {joinDate}
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <User className="h-4 w-4 text-blue-400/60" />
+                    <User className="h-4 w-4 text-blue-700" />
                     {profile.role ?? 'Landlord'}
                   </span>
                 </div>
 
                 {profile.bio && (
-                  <p className="text-sm text-blue-200/50 leading-relaxed max-w-2xl line-clamp-2 mt-1">
+                  <p className="text-sm text-slate-700 leading-relaxed max-w-2xl line-clamp-2 mt-1">
                     {profile.bio}
                   </p>
                 )}
@@ -266,30 +272,30 @@ export default function LandlordPublicProfilePage() {
             </div>
 
             {/* ── Stat pills ──────────────────────────────────────────────── */}
-            <div className="flex flex-wrap gap-3 mt-6 pt-6 border-t border-white/5">
-              <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/10">
-                <Home className="h-4 w-4 text-blue-400" />
+            <div className="flex flex-wrap gap-3 mt-6 pt-6 border-t border-slate-200">
+              <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white border border-slate-200">
+                <Home className="h-4 w-4 text-blue-700" />
                 <div>
-                  <div className="text-lg font-black text-white leading-none">{properties.length}</div>
-                  <div className="text-[10px] font-bold text-blue-200/40 uppercase tracking-wider mt-0.5">Properties</div>
+                  <div className="text-lg font-black text-slate-900 leading-none">{properties.length}</div>
+                  <div className="text-[10px] font-bold text-slate-700 uppercase tracking-wider mt-0.5">Properties</div>
                 </div>
               </div>
 
               {reviews.length > 0 && (
-                <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/10">
-                  <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
+                <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white border border-slate-200">
+                  <Star className="h-4 w-4 text-amber-700 fill-amber-400" />
                   <div>
-                    <div className="text-lg font-black text-amber-400 leading-none">{avgRating.toFixed(1)}</div>
-                    <div className="text-[10px] font-bold text-blue-200/40 uppercase tracking-wider mt-0.5">Avg Rating</div>
+                    <div className="text-lg font-black text-amber-700 leading-none">{avgRating.toFixed(1)}</div>
+                    <div className="text-[10px] font-bold text-slate-700 uppercase tracking-wider mt-0.5">Avg Rating</div>
                   </div>
                 </div>
               )}
 
-              <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/10">
-                <Building2 className="h-4 w-4 text-violet-400" />
+              <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white border border-slate-200">
+                <Building2 className="h-4 w-4 text-violet-700" />
                 <div>
-                  <div className="text-lg font-black text-white leading-none">{reviews.length}</div>
-                  <div className="text-[10px] font-bold text-blue-200/40 uppercase tracking-wider mt-0.5">Reviews</div>
+                  <div className="text-lg font-black text-slate-900 leading-none">{reviews.length}</div>
+                  <div className="text-[10px] font-bold text-slate-700 uppercase tracking-wider mt-0.5">Reviews</div>
                 </div>
               </div>
             </div>
@@ -303,17 +309,17 @@ export default function LandlordPublicProfilePage() {
           <div className="lg:col-span-2 space-y-5">
             {properties.length > 0 && (
               <motion.section
-                initial={{ opacity: 0, y: 20 }}
+                initial={false}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.15 }}
               >
                 {/* Section header */}
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-300 text-xs font-semibold">
+                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-700 text-xs font-semibold">
                     <Home className="h-3.5 w-3.5" />
                     Properties Listed
                   </span>
-                  <span className="text-xs text-blue-200/30 font-medium">
+                  <span className="text-xs text-slate-700 font-medium">
                     {properties.length} listing{properties.length !== 1 ? 's' : ''}
                   </span>
                 </div>
@@ -324,16 +330,16 @@ export default function LandlordPublicProfilePage() {
                     return (
                       <motion.div
                         key={prop.id}
-                        initial={{ opacity: 0, y: 16 }}
+                        initial={false}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3, delay: i * 0.06 }}
                       >
                         <Link
                           href={`/listings/${prop.id}`}
-                          className="group block rounded-2xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.07] hover:border-blue-500/30 transition-all duration-200 overflow-hidden"
+                          className="group block rounded-2xl border border-slate-200 bg-white hover:bg-white hover:border-blue-500/30 transition-all duration-200 overflow-hidden"
                         >
                           {/* Thumbnail */}
-                          <div className="aspect-video w-full bg-white/[0.03] relative overflow-hidden">
+                          <div className="aspect-video w-full bg-white relative overflow-hidden">
                             {thumb ? (
                               <img
                                 src={thumb}
@@ -342,7 +348,7 @@ export default function LandlordPublicProfilePage() {
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
-                                <Building2 className="h-8 w-8 text-white/10" />
+                                <Building2 className="h-8 w-8 text-slate-900" />
                               </div>
                             )}
                             {/* Status badge */}
@@ -350,29 +356,29 @@ export default function LandlordPublicProfilePage() {
                               className={cn(
                                 'absolute top-2.5 right-2.5 text-[9px] uppercase font-bold px-2 py-0.5 rounded-lg border',
                                 prop.status === 'available'
-                                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 backdrop-blur-sm'
-                                  : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30 backdrop-blur-sm'
+                                  ? 'bg-emerald-500/20 text-emerald-700 border-emerald-500/30 '
+                                  : 'bg-yellow-500/20 text-yellow-700 border-yellow-500/30 '
                               )}
                             >
                               {prop.status}
                             </span>
                             {/* Type badge */}
-                            <span className="absolute top-2.5 left-2.5 text-[9px] uppercase font-bold px-2 py-0.5 rounded-lg border border-white/20 bg-black/40 text-white backdrop-blur-sm">
+                            <span className="absolute top-2.5 left-2.5 text-[9px] uppercase font-bold px-2 py-0.5 rounded-lg border border-slate-200 bg-white text-slate-900 ">
                               {prop.type}
                             </span>
                           </div>
 
                           {/* Info */}
                           <div className="p-4 space-y-2">
-                            <h3 className="text-sm font-bold text-white line-clamp-1 group-hover:text-blue-300 transition-colors">
+                            <h3 className="text-sm font-bold text-slate-900 line-clamp-1 group-hover:text-blue-700 transition-colors">
                               {prop.title}
                             </h3>
-                            <div className="flex items-center gap-1 text-xs text-blue-200/50">
+                            <div className="flex items-center gap-1 text-xs text-slate-700">
                               <MapPin className="h-3 w-3 text-red-400/70" />
                               <span>{prop.city}, {prop.state}</span>
                             </div>
                             <div className="flex items-center justify-between pt-1">
-                              <div className="flex items-center gap-3 text-xs text-blue-200/40">
+                              <div className="flex items-center gap-3 text-xs text-slate-700">
                                 <span className="flex items-center gap-1">
                                   <Bed className="h-3 w-3" />{prop.bedrooms}
                                 </span>
@@ -380,8 +386,8 @@ export default function LandlordPublicProfilePage() {
                                   <Bath className="h-3 w-3" />{prop.bathrooms}
                                 </span>
                               </div>
-                              <span className="text-sm font-black text-blue-400">
-                                ₦{prop.price?.toLocaleString()}
+                              <span className="text-sm font-black text-blue-700">
+                                ${prop.price?.toLocaleString()}
                               </span>
                             </div>
                           </div>
@@ -396,12 +402,12 @@ export default function LandlordPublicProfilePage() {
             {/* Empty listings state */}
             {properties.length === 0 && (
               <motion.div
-                initial={{ opacity: 0 }}
+                initial={false}
                 animate={{ opacity: 1 }}
-                className="flex flex-col items-center justify-center py-16 gap-4 rounded-2xl border border-white/10 bg-white/[0.02]"
+                className="flex flex-col items-center justify-center py-16 gap-4 rounded-2xl border border-slate-200 bg-white"
               >
-                <Building2 className="h-10 w-10 text-white/10" />
-                <p className="text-sm text-blue-200/40 font-medium">No active listings from this landlord.</p>
+                <Building2 className="h-10 w-10 text-slate-900" />
+                <p className="text-sm text-slate-700 font-medium">No active listings from this landlord.</p>
               </motion.div>
             )}
           </div>
@@ -411,47 +417,47 @@ export default function LandlordPublicProfilePage() {
 
             {/* Contact Card */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={false}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.2 }}
-              className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm p-5"
+              className="rounded-2xl border border-slate-200 bg-white p-5"
             >
-              <h2 className="text-sm font-black text-white mb-1 tracking-tight">
+              <h2 className="text-sm font-black text-slate-900 mb-1 tracking-tight">
                 Contact this Landlord
               </h2>
-              <p className="text-xs text-blue-200/50 mb-4 leading-relaxed">
+              <p className="text-xs text-slate-700 mb-4 leading-relaxed">
                 Send a message directly to {profile.name.split(' ')[0]} about any of their listings.
               </p>
 
               <Link
                 href="/messages"
-                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition-all shadow-lg shadow-blue-600/30"
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-blue-100 hover:bg-blue-100 text-slate-900 font-bold text-sm transition-all shadow-lg shadow-blue-600/30"
               >
                 <LinkIcon className="h-4 w-4" />
                 Send a Message
               </Link>
 
               {/* Divider */}
-              <div className="border-t border-white/5 mt-4 pt-4 space-y-2.5">
+              <div className="border-t border-slate-200 mt-4 pt-4 space-y-2.5">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-blue-200/40 font-medium">KYC Status</span>
+                  <span className="text-slate-700 font-medium">KYC Status</span>
                   <span
                     className={cn(
                       'font-bold',
-                      profile.is_verified ? 'text-emerald-400' : 'text-yellow-400'
+                      profile.is_verified ? 'text-emerald-700' : 'text-yellow-700'
                     )}
                   >
                     {profile.is_verified ? '✓ Verified' : 'Pending'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-blue-200/40 font-medium">Member Since</span>
-                  <span className="text-white font-bold">{joinDate}</span>
+                  <span className="text-slate-700 font-medium">Member Since</span>
+                  <span className="text-slate-900 font-bold">{joinDate}</span>
                 </div>
                 {reviews.length > 0 && (
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-blue-200/40 font-medium">Avg Rating</span>
-                    <span className="text-amber-400 font-bold">
+                    <span className="text-slate-700 font-medium">Avg Rating</span>
+                    <span className="text-amber-700 font-bold">
                       ★ {avgRating.toFixed(1)} / 5.0
                     </span>
                   </div>
@@ -462,13 +468,13 @@ export default function LandlordPublicProfilePage() {
             {/* Reviews */}
             {reviews.length > 0 && (
               <motion.section
-                initial={{ opacity: 0, y: 20 }}
+                initial={false}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.28 }}
               >
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs font-semibold">
-                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-700 text-xs font-semibold">
+                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-700" />
                     Recent Reviews
                   </span>
                 </div>
@@ -488,14 +494,14 @@ export default function LandlordPublicProfilePage() {
                     return (
                       <motion.div
                         key={review.id}
-                        initial={{ opacity: 0, x: 10 }}
+                        initial={false}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.3, delay: 0.3 + i * 0.07 }}
-                        className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 space-y-3"
+                        className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3"
                       >
                         {/* Reviewer */}
                         <div className="flex items-center gap-3">
-                          <div className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-600/40 to-violet-600/40 border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+                          <div className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-50 to-violet-50 border border-slate-200 flex items-center justify-center overflow-hidden flex-shrink-0">
                             {reviewer?.profile_image_url ? (
                               <img
                                 src={reviewer.profile_image_url}
@@ -503,16 +509,16 @@ export default function LandlordPublicProfilePage() {
                                 className="h-full w-full object-cover"
                               />
                             ) : (
-                              <span className="text-xs font-black text-white">
+                              <span className="text-xs font-black text-slate-900">
                                 {reviewerInitials}
                               </span>
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-white truncate">
+                            <p className="text-sm font-bold text-slate-900 truncate">
                               {reviewer?.name || 'Anonymous'}
                             </p>
-                            <p className="text-[10px] text-blue-200/40">
+                            <p className="text-[10px] text-slate-700">
                               {format(new Date(review.created_at), 'MMM d, yyyy')}
                             </p>
                           </div>
@@ -520,7 +526,7 @@ export default function LandlordPublicProfilePage() {
                         </div>
 
                         {review.comment && (
-                          <p className="text-xs text-blue-200/60 leading-relaxed pl-12">
+                          <p className="text-xs text-slate-700 leading-relaxed pl-12">
                             &ldquo;{review.comment}&rdquo;
                           </p>
                         )}
@@ -534,13 +540,13 @@ export default function LandlordPublicProfilePage() {
             {/* Empty reviews state */}
             {reviews.length === 0 && (
               <motion.div
-                initial={{ opacity: 0 }}
+                initial={false}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3 }}
-                className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 text-center space-y-2"
+                className="rounded-2xl border border-slate-200 bg-white p-5 text-center space-y-2"
               >
-                <Star className="h-8 w-8 text-white/10 mx-auto" />
-                <p className="text-xs text-blue-200/40 font-medium">No reviews yet.</p>
+                <Star className="h-8 w-8 text-slate-900 mx-auto" />
+                <p className="text-xs text-slate-700 font-medium">No reviews yet.</p>
               </motion.div>
             )}
           </div>

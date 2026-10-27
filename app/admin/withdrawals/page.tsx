@@ -102,21 +102,21 @@ export default function AdminWithdrawalsPage() {
                 <Card className="border-none shadow-sm bg-blue-600 text-white">
                     <CardContent className="p-6">
                         <Clock className="h-6 w-6 mb-2 opacity-80" />
-                        <div className="text-2xl font-bold">₦{pendingTotal.toLocaleString()}</div>
+                        <div className="text-2xl font-bold">${pendingTotal.toLocaleString()}</div>
                         <div className="text-xs opacity-80">{pendingCount} Pending Requests</div>
                     </CardContent>
                 </Card>
                 <Card className="border-none shadow-sm bg-white dark:bg-gray-950">
                     <CardContent className="p-6">
                         <CheckCircle className="h-6 w-6 mb-2 text-green-500" />
-                        <div className="text-2xl font-bold">₦{withdrawals.filter(w => w.status === 'approved').reduce((acc, w) => acc + w.amount, 0).toLocaleString()}</div>
+                        <div className="text-2xl font-bold">${withdrawals.filter(w => w.status === 'approved').reduce((acc, w) => acc + w.amount, 0).toLocaleString()}</div>
                         <div className="text-xs text-muted-foreground">Total Paid Out</div>
                     </CardContent>
                 </Card>
                 <Card className="border-none shadow-sm bg-white dark:bg-gray-950">
                     <CardContent className="p-6">
                         <AlertCircle className="h-6 w-6 mb-2 text-red-500" />
-                        <div className="text-2xl font-bold">₦{withdrawals.filter(w => w.status === 'rejected').reduce((acc, w) => acc + w.amount, 0).toLocaleString()}</div>
+                        <div className="text-2xl font-bold">${withdrawals.filter(w => w.status === 'rejected').reduce((acc, w) => acc + w.amount, 0).toLocaleString()}</div>
                         <div className="text-xs text-muted-foreground">Rejected/Failed</div>
                     </CardContent>
                 </Card>
@@ -153,7 +153,7 @@ export default function AdminWithdrawalsPage() {
                                                     <Calendar className="h-3 w-3" /> {new Date(w.created_at).toLocaleDateString()}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 font-bold text-lg">₦{w.amount.toLocaleString()}</td>
+                                            <td className="px-6 py-4 font-bold text-lg">${w.amount.toLocaleString()}</td>
                                             <td className="px-6 py-4">
                                                 {w.bank_details ? (
                                                     <div className="flex flex-col text-xs">

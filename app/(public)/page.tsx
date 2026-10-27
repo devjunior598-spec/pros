@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react"
 import { motion, useInView } from "motion/react"
 import { MarketingNavbar } from "@/components/marketing-navbar"
 import { SiteFooter } from "@/components/site-footer"
+import { formatCurrency } from "@/lib/utils"
 import {
   ArrowRight,
   Bath,
@@ -20,32 +21,6 @@ import {
   Wallet,
   Wrench,
 } from "lucide-react"
-
-interface StatItem {
-  label: string
-  value: string
-  suffix?: string
-}
-
-function Counter({ target, suffix = "" }: { target: number; suffix?: string }) {
-  const [count, setCount] = useState(0)
-  const ref = useRef<HTMLSpanElement>(null)
-  const inView = useInView(ref, { once: true })
-
-  useEffect(() => {
-    if (!inView) return
-    let start = 0
-    const step = target / 60
-    const timer = window.setInterval(() => {
-      start = Math.min(start + step, target)
-      setCount(Math.floor(start))
-      if (start >= target) window.clearInterval(timer)
-    }, 20)
-    return () => window.clearInterval(timer)
-  }, [inView, target])
-
-  return <span ref={ref}>{count.toLocaleString()}{suffix}</span>
-}
 
 function Section({ children, className = "", id = "" }: { children: React.ReactNode; className?: string; id?: string }) {
   const ref = useRef(null)
@@ -66,7 +41,6 @@ function Section({ children, className = "", id = "" }: { children: React.ReactN
 }
 
 export default function HomePage() {
-  const [stats, setStats] = useState({ properties: 0, tenants: 0, landlords: 0, txns: 0 })
   const [featuredProperties, setFeaturedProperties] = useState<Array<{ id: string; title: string; price: number; address: string | null; city: string | null; bedrooms: number | null; bathrooms: number | null; images: string[] | null; image_url: string | null }>>([])
 
   useEffect(() => {
@@ -75,10 +49,8 @@ export default function HomePage() {
         const response = await fetch("/api/public/home", { cache: "no-store" })
         const result = await response.json()
         if (!response.ok) throw new Error(result.error || "Unable to load homepage data")
-        setStats(result.stats)
         setFeaturedProperties(result.featuredProperties)
       } catch {
-        setStats({ properties: 0, tenants: 0, landlords: 0, txns: 0 })
         setFeaturedProperties([])
       }
     }
@@ -86,25 +58,18 @@ export default function HomePage() {
     fetchStats()
   }, [])
 
-  const statItems: StatItem[] = [
-    { label: "Properties Managed", value: String(stats.properties) },
-    { label: "Registered Tenants", value: String(stats.tenants) },
-    { label: "Verified Landlords", value: String(stats.landlords) },
-    { label: "Transactions (30 days)", value: String(stats.txns) },
-  ]
-
   const tenantBenefits = [
-    "Search verified homes with real details",
-    "Book inspections in minutes",
-    "Chat with landlords and manage documents",
-    "Pay rent securely from your phone",
+    "Browse rental listings by city, state, or ZIP code",
+    "Request an inspection from a listing",
+    "Keep applications and documents organized",
+    "Track lease and rent activity in one place",
   ]
 
   const landlordBenefits = [
-    "List properties and manage availability",
-    "Track tenants, rent, and renewals",
-    "Handle maintenance requests without delays",
-    "Keep leases and communication in one place",
+    "Manage properties and availability",
+    "Keep tenant and lease records together",
+    "Track maintenance requests",
+    "Review rent activity and upcoming renewals",
   ]
 
   const steps = [
@@ -146,13 +111,13 @@ export default function HomePage() {
             <div className="max-w-2xl text-white">
               <div className="mb-5 inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-sm font-medium text-white/90">
                 <ShieldCheck className="mr-2 h-4 w-4 text-prms-emerald" />
-                Trusted property management platform
+                U.S. rental operations, made clearer
               </div>
               <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl">
-                Smarter Property Management for Landlords and Tenants
+                Rental management built for the United States
               </h1>
               <p className="mt-5 max-w-xl text-base leading-relaxed text-white/75 sm:text-lg">
-                Manage rentals, inspections, payments, maintenance, and verified listings from one trusted platform.
+                Organize listings, applications, leases, rent activity, and maintenance in one place.
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -173,45 +138,31 @@ export default function HomePage() {
 
             <div className="w-full max-w-md rounded-xl border border-white/10 bg-white p-5 shadow-xl">
               <div className="flex items-center gap-2 text-sm font-medium text-prms-navy">
-                <Search className="h-4 w-4 text-prms-blue" /> Search properties
+                <Search className="h-4 w-4 text-prms-blue" /> Search U.S. rentals
               </div>
               <div className="mt-4 grid gap-3">
                 <label className="rounded-lg border border-border bg-secondary/50 px-3 py-2.5 text-sm">
                   <span className="mb-1 block text-xs font-medium text-prms-slate">Location</span>
-                  <input className="w-full bg-transparent text-prms-navy outline-none placeholder:text-prms-slate/60" placeholder="Lagos, Abuja, Port Harcourt" />
+                  <input className="w-full bg-transparent text-prms-navy outline-none placeholder:text-prms-slate/60" placeholder="Austin, TX or ZIP code" />
                 </label>
                 <label className="rounded-lg border border-border bg-secondary/50 px-3 py-2.5 text-sm">
                   <span className="mb-1 block text-xs font-medium text-prms-slate">Property Type</span>
-                  <input className="w-full bg-transparent text-prms-navy outline-none placeholder:text-prms-slate/60" placeholder="Apartment, Duplex, Office" />
+                  <input className="w-full bg-transparent text-prms-navy outline-none placeholder:text-prms-slate/60" placeholder="Apartment, house, townhome" />
                 </label>
                 <label className="rounded-lg border border-border bg-secondary/50 px-3 py-2.5 text-sm">
                   <span className="mb-1 block text-xs font-medium text-prms-slate">Budget</span>
-                  <input className="w-full bg-transparent text-prms-navy outline-none placeholder:text-prms-slate/60" placeholder="₦500,000 / month" />
+                  <input className="w-full bg-transparent text-prms-navy outline-none placeholder:text-prms-slate/60" placeholder="$2,500 / month" />
                 </label>
                 <Link
                   href="/listings"
                   className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-prms-blue text-sm font-semibold text-white transition hover:bg-blue-700"
                 >
-                  Search Properties
+                  Browse U.S. rentals
                 </Link>
               </div>
             </div>
           </div>
         </section>
-
-        {/* Stats */}
-        <Section className="border-b border-border bg-white">
-          <div className="mx-auto grid max-w-7xl gap-4 px-4 py-6 sm:px-6 md:grid-cols-2 lg:grid-cols-4 lg:px-8">
-            {statItems.map((item) => (
-              <div key={item.label} className="rounded-xl border border-border bg-secondary/30 px-5 py-4">
-                <div className="text-2xl font-semibold text-prms-navy">
-                  <Counter target={Number(item.value)} suffix={item.suffix} />
-                </div>
-                <div className="mt-1 text-sm text-prms-slate">{item.label}</div>
-              </div>
-            ))}
-          </div>
-        </Section>
 
         {/* Featured Properties */}
         <Section className="py-16 sm:py-20" id="marketplace">
@@ -220,7 +171,7 @@ export default function HomePage() {
               <div>
                 <p className="text-sm font-medium text-prms-blue">Featured properties</p>
                 <h2 className="mt-1 text-2xl font-semibold tracking-tight text-prms-navy sm:text-3xl">
-                  Explore verified homes across Nigeria
+                  Find a place that fits your next move
                 </h2>
               </div>
               <Link href="/listings" className="inline-flex items-center text-sm font-medium text-prms-blue transition hover:text-blue-700">
@@ -240,7 +191,7 @@ export default function HomePage() {
                   <div className="p-5">
                     <div className="flex items-start justify-between gap-3">
                       <h3 className="text-lg font-semibold text-prms-navy">{property.title}</h3>
-                      <span className="shrink-0 rounded-md bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">₦{Number(property.price || 0).toLocaleString()}</span>
+                      <span className="shrink-0 rounded-md bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">{formatCurrency(Number(property.price || 0))}</span>
                     </div>
                     <div className="mt-2 flex items-center text-sm text-prms-slate">
                       <MapPin className="mr-1.5 h-4 w-4" /> {[property.address, property.city].filter(Boolean).join(", ") || "Location pending"}
@@ -345,7 +296,7 @@ export default function HomePage() {
                     Start managing property the smarter way
                   </h2>
                   <p className="mt-3 text-base leading-relaxed text-white/70">
-                    Join a professional platform built for serious landlords, tenants, and property teams across Nigeria.
+                    Tools for U.S. landlords, tenants, and property teams to stay organized.
                   </p>
                 </div>
                 <div className="flex flex-col gap-3 sm:flex-row">

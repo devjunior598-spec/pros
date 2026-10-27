@@ -65,7 +65,7 @@ export function DashboardHero({ name = "Landlord", isVerified, metrics }: Dashbo
       <div className="relative z-10 mt-8 grid grid-cols-2 md:grid-cols-4 gap-4 border-t border-white/10 pt-6">
         <div>
           <span className="text-white/60 text-xs font-medium">Monthly Revenue</span>
-          <span className="block text-xl font-semibold text-white mt-0.5">₦{metrics.totalRevenue.toLocaleString()}</span>
+          <span className="block text-xl font-semibold text-white mt-0.5">${metrics.totalRevenue.toLocaleString()}</span>
         </div>
         <div>
           <span className="text-white/60 text-xs font-medium">Properties</span>

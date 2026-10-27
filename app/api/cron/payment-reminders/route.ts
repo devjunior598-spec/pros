@@ -47,19 +47,19 @@ export async function GET(req: Request) {
             if (diffDays === 30) {
                 sendReminder = true;
                 messageTitle = 'Rent Due in 30 Days';
-                messageContent = `Your rent of ₦${Number(bill.amount).toLocaleString()} for "${propertyTitle}" is due in 30 days (${bill.due_date}).`;
+                messageContent = `Your rent of $${Number(bill.amount).toLocaleString()} for "${propertyTitle}" is due in 30 days (${bill.due_date}).`;
             } else if (diffDays === 14) {
                 sendReminder = true;
                 messageTitle = 'Rent Due in 14 Days';
-                messageContent = `Friendly reminder: your rent of ₦${Number(bill.amount).toLocaleString()} for "${propertyTitle}" is due in 14 days (${bill.due_date}).`;
+                messageContent = `Friendly reminder: your rent of $${Number(bill.amount).toLocaleString()} for "${propertyTitle}" is due in 14 days (${bill.due_date}).`;
             } else if (diffDays === 7) {
                 sendReminder = true;
                 messageTitle = 'Rent Due in 7 Days';
-                messageContent = `Urgent reminder: your rent of ₦${Number(bill.amount).toLocaleString()} for "${propertyTitle}" is due in 7 days (${bill.due_date}).`;
+                messageContent = `Urgent reminder: your rent of $${Number(bill.amount).toLocaleString()} for "${propertyTitle}" is due in 7 days (${bill.due_date}).`;
             } else if (diffDays === 0) {
                 sendReminder = true;
                 messageTitle = 'Rent Due Today';
-                messageContent = `Your rent of ₦${Number(bill.amount).toLocaleString()} for "${propertyTitle}" is due today. Please pay as soon as possible.`;
+                messageContent = `Your rent of $${Number(bill.amount).toLocaleString()} for "${propertyTitle}" is due today. Please pay as soon as possible.`;
             } else if (diffDays < 0) {
                 // If overdue, update status to overdue in DB
                 if (bill.status !== 'overdue') {
@@ -74,7 +74,7 @@ export async function GET(req: Request) {
                 if (daysOverdue % 3 === 0) {
                     sendReminder = true;
                     messageTitle = 'Rent Overdue Alert';
-                    messageContent = `Your rent of ₦${Number(bill.amount).toLocaleString()} for "${propertyTitle}" is ${daysOverdue} days overdue. Please settle this immediately.`;
+                    messageContent = `Your rent of $${Number(bill.amount).toLocaleString()} for "${propertyTitle}" is ${daysOverdue} days overdue. Please settle this immediately.`;
                 }
             }
 

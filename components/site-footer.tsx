@@ -8,7 +8,7 @@ export function SiteFooter() {
         <div>
           <Logo href="/" />
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-prms-slate">
-            PRMS gives landlords, tenants, and property teams a calm, dependable way to manage rentals across Nigeria.
+            PRMS helps U.S. landlords, tenants, and property teams keep rental operations organized.
           </p>
         </div>
 

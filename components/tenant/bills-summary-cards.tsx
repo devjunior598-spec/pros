@@ -14,7 +14,7 @@ export function BillsSummaryCards({ totalOutstanding, nextDueDate, walletBalance
     const formatDate = (dateString: string | null) => {
         if (!dateString) return "No upcoming bills"
         const date = new Date(dateString)
-        return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+        return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
     }
 
     const getDaysLeft = (dateString: string | null) => {
@@ -35,7 +35,7 @@ export function BillsSummaryCards({ totalOutstanding, nextDueDate, walletBalance
                 </CardHeader>
                 <CardContent>
                     <div className={`text-2xl font-bold ${totalOutstanding > 0 ? "text-red-600" : ""}`}>
-                        ₦{totalOutstanding.toLocaleString()}
+                        ${totalOutstanding.toLocaleString()}
                     </div>
                     <p className="text-xs text-muted-foreground">
                         {overdueCount > 0 ? `${overdueCount} overdue bills` : "All caught up"}
@@ -62,7 +62,7 @@ export function BillsSummaryCards({ totalOutstanding, nextDueDate, walletBalance
                     <Wallet className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">₦{walletBalance.toLocaleString()}</div>
+                    <div className="text-2xl font-bold">${walletBalance.toLocaleString()}</div>
                     <p className="text-xs text-muted-foreground">Available for payments</p>
                 </CardContent>
             </Card>

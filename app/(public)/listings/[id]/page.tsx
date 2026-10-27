@@ -167,6 +167,8 @@ export default function PublicPropertyDetailsPage() {
                     .from('properties')
                     .select('*')
                     .eq('id', params.id)
+                    .eq('country', 'United States')
+                    .eq('publication_status', 'published')
                     .single()
 
                 if (propError) throw propError
@@ -476,7 +478,7 @@ export default function PublicPropertyDetailsPage() {
                             </h1>
                             <div className="flex items-center text-sm font-semibold text-slate-500 dark:text-slate-400 gap-1.5">
                                 <MapPin className="h-4.5 w-4.5 text-red-500" />
-                                <span>{property.address && `${property.address}, `}{property.city}, {property.state || 'Nigeria'}</span>
+                                <span>{property.address && `${property.address}, `}{property.city}, {property.state || 'United States'}</span>
                             </div>
                         </div>
 
@@ -549,7 +551,7 @@ export default function PublicPropertyDetailsPage() {
                             <CardHeader className="pb-4">
                                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest block mb-0.5">Annual Rent</span>
                                 <CardTitle className="text-3xl font-black text-blue-600 dark:text-blue-400">
-                                    ₦{property.price.toLocaleString()}
+                                    ${property.price.toLocaleString()}
                                     <span className="text-xs font-normal text-slate-400 ml-1">/ year</span>
                                 </CardTitle>
                             </CardHeader>
@@ -568,8 +570,7 @@ export default function PublicPropertyDetailsPage() {
                                     <Button
                                         className="w-full h-11 text-sm font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/10"
                                         onClick={() => {
-                                            localStorage.setItem("pending_application_id", property.id)
-                                            router.push("/signup")
+                                            router.push(user ? `/properties/${property.id}/apply` : `/login?next=${encodeURIComponent(`/properties/${property.id}/apply`)}`)
                                         }}
                                         disabled={property.status !== 'available'}
                                     >
@@ -718,7 +719,7 @@ export default function PublicPropertyDetailsPage() {
                                     id="phone" 
                                     type="tel" 
                                     required 
-                                    placeholder="e.g. +234 80 1234 5678"
+                                    placeholder="e.g. (512) 555-0123"
                                     value={bookingPhone} 
                                     onChange={(e) => setBookingPhone(e.target.value)}
                                     className="h-11 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-xl"

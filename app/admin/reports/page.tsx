@@ -67,7 +67,7 @@ function DarkTooltip({ active, payload, label }: any) {
             {payload.map((entry: any, i: number) => (
                 <p key={i} className="text-sm font-black" style={{ color: entry.color }}>
                     {entry.name === 'revenue'
-                        ? `₦${Number(entry.value).toLocaleString()}`
+                        ? `$${Number(entry.value).toLocaleString()}`
                         : `${entry.value} users`
                     }
                 </p>
@@ -228,7 +228,7 @@ export default function AdminReportsPage() {
 
             {/* Stat Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <ReportStatCard title="Total Revenue" value={`₦${reportStats.totalRevenue.toLocaleString()}`} description="Completed payments, last 6 months" />
+                <ReportStatCard title="Total Revenue" value={`$${reportStats.totalRevenue.toLocaleString()}`} description="Completed payments, last 6 months" />
                 <ReportStatCard title="Active Rentals" value={reportStats.activeRentals.toString()} description="Currently active leases" />
                 <ReportStatCard title="User Growth" value={reportStats.userGrowth >= 0 ? `+${reportStats.userGrowth}` : reportStats.userGrowth.toString()} description="New users vs previous month" />
                 <ReportStatCard title="Service Success" value={reportStats.serviceSuccess === null ? "N/A" : `${reportStats.serviceSuccess}%`} description="Completed maintenance requests" />
@@ -268,10 +268,10 @@ export default function AdminReportsPage() {
                                         tickLine={false}
                                         tickFormatter={(v) =>
                                             v >= 1000000
-                                                ? `₦${(v / 1000000).toFixed(1)}M`
+                                                ? `$${(v / 1000000).toFixed(1)}M`
                                                 : v >= 1000
-                                                ? `₦${(v / 1000).toFixed(0)}K`
-                                                : `₦${v}`
+                                                ? `$${(v / 1000).toFixed(0)}K`
+                                                : `$${v}`
                                         }
                                         width={60}
                                     />
@@ -344,9 +344,9 @@ export default function AdminReportsPage() {
                         <CardDescription>Live revenue totals from payments and ledger accounts.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4 border-t mt-4 pt-6">
-                        <BreakdownRow label="Rent payments" value={`₦${Math.max(revenueBreakdown.rent, 0).toLocaleString()}`} />
-                        <BreakdownRow label="Maintenance payments" value={`₦${revenueBreakdown.maintenance.toLocaleString()}`} />
-                        <BreakdownRow label="Commission ledger" value={`₦${revenueBreakdown.commission.toLocaleString()}`} />
+                        <BreakdownRow label="Rent payments" value={`$${Math.max(revenueBreakdown.rent, 0).toLocaleString()}`} />
+                        <BreakdownRow label="Maintenance payments" value={`$${revenueBreakdown.maintenance.toLocaleString()}`} />
+                        <BreakdownRow label="Commission ledger" value={`$${revenueBreakdown.commission.toLocaleString()}`} />
                     </CardContent>
                 </Card>
                 <Card className="border-none shadow-sm bg-white dark:bg-gray-950">

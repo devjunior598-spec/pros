@@ -70,7 +70,7 @@ export function PaymentModal({ open, onOpenChange, bill, walletBalance, onProces
                 <DialogHeader>
                     <DialogTitle>Pay Bill</DialogTitle>
                     <DialogDescription>
-                        Review your payment details before proceeding.
+                        Pay before or on the due date. You can also settle overdue bills here. Review your payment details before proceeding.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -88,6 +88,10 @@ export function PaymentModal({ open, onOpenChange, bill, walletBalance, onProces
                         <div className="flex justify-between items-center">
                             <span className="text-sm font-medium">Billing Period</span>
                             <span className="text-sm">{bill.billing_period || "Monthly"}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium">Due date</span>
+                            <span className="text-sm">{new Date(bill.due_date.slice(0, 10) + "T00:00:00").toLocaleDateString("en-US")}</span>
                         </div>
                         <div className="border-t my-2 pt-2 flex justify-between items-center font-bold">
                             <span>Total Outstanding</span>
@@ -127,12 +131,12 @@ export function PaymentModal({ open, onOpenChange, bill, walletBalance, onProces
                         {/* show info for redirect-based methods */}
                         <TabsContent value="card" className="pt-4">
                             <p className="text-sm text-muted-foreground">
-                                You will be redirected to our secure payment partner to pay by card.
+                                You will be redirected to our secure payment partner to pay by card. Early payments are accepted.
                             </p>
                         </TabsContent>
                         <TabsContent value="transfer" className="pt-4">
                             <p className="text-sm text-muted-foreground">
-                                After submitting you will be given instructions to complete a bank transfer.
+                                After submitting you will be given instructions to complete a bank transfer before or on the due date.
                             </p>
                         </TabsContent>
                     </Tabs>
@@ -205,8 +209,9 @@ export function PaymentModal({ open, onOpenChange, bill, walletBalance, onProces
                 </DialogFooter>
                 {/* offer funding link if wallet selected but insufficient */}
                 {paymentMethod === "wallet" && !canPayWithWallet && (
-                    <div className="mt-2 text-sm text-red-600">
-                        Insufficient wallet balance. <a href="/dashboard/wallet" className="underline">Fund your wallet</a> to continue.
+                    <div className="mt-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                        <p className="font-medium">Your wallet balance is not enough for this payment.</p>
+                        <a href="/wallet" className="mt-1 inline-flex font-semibold underline">Fund your wallet, then return to pay this bill.</a>
                     </div>
                 )}
             </DialogContent>

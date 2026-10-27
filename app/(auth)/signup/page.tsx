@@ -1,33 +1,36 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
-import { CheckCircle2, Mail, Loader2, ArrowRight } from "lucide-react"
+import { getAuthErrorMessage as getErrorMessage } from "@/lib/auth-verification"
+import { AuthTurnstile, type AuthTurnstileHandle, turnstileEnabled } from "@/components/auth/auth-turnstile"
+import { CheckCircle2, Mail, Loader2, ArrowRight, Eye, EyeOff } from "lucide-react"
 
-const getErrorMessage = (error: unknown): string => {
-    if (error instanceof Error) return error.message
-    if (typeof error === "object" && error && "message" in error) {
-        const message = (error as { message?: unknown }).message
-        if (typeof message === "string") return message
-    }
-    return "An unexpected error occurred."
-}
+
 
 
 
 export default function SignupPage() {
     const router = useRouter()
     const [isLoading, setIsLoading] = useState(false)
+    const [showPassword, setShowPassword] = useState(false)
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false)
     const [isSuccess, setIsSuccess] = useState(false)
     const [requiresEmailConfirm, setRequiresEmailConfirm] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [captchaToken, setCaptchaToken] = useState("")
+    const [securityError, setSecurityError] = useState<string | null>(null)
+    const turnstileRef = useRef<AuthTurnstileHandle>(null)
+    const authInFlight = useRef(false)
     const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",
+        phone: "",
         email: "",
         password: "",
+        confirmPassword: "",
         role: "tenant" as "tenant" | "landlord",
     })
 
@@ -41,19 +44,37 @@ export default function SignupPage() {
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault()
+        if (authInFlight.current) return
+        if (formData.password.length < 8) {
+            setError("Password must be at least 8 characters.")
+            return
+        }
+        if (formData.password !== formData.confirmPassword) {
+            setError("Passwords do not match. Please enter the same password twice.")
+            return
+        }
+        const verificationToken = turnstileEnabled ? turnstileRef.current?.consumeToken() : undefined
+        if (turnstileEnabled && !verificationToken) {
+            setSecurityError("Please complete the security verification before creating your account.")
+            return
+        }
+        authInFlight.current = true
         setIsLoading(true)
         setError(null)
         try {
             // 1. Sign up with Supabase Auth
             const { data: authData, error: authError } = await supabase.auth.signUp({
-                email: formData.email,
+                email: formData.email.trim(),
                 password: formData.password,
                 options: {
                     data: {
                         first_name: formData.firstName,
                         last_name: formData.lastName,
+                        phone: formData.phone,
                         role: formData.role,
                     },
+                    emailRedirectTo: `${window.location.origin}/login`,
+                    captchaToken: verificationToken,
                 },
             })
 
@@ -79,31 +100,14 @@ export default function SignupPage() {
                 return
             }
 
-            // 3. Attempt auto sign-in if no session yet
-            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-                email: formData.email,
-                password: formData.password,
-            })
-
-            if (!signInError && signInData.session) {
-                redirectToDashboard()
-                return
-            }
-
-            if (signInError?.message?.toLowerCase().includes("email") || signInError?.message?.toLowerCase().includes("confirm")) {
-                setRequiresEmailConfirm(true)
-                setIsSuccess(true)
-                return
-            }
-
-            if (signInError) throw signInError
-
             setRequiresEmailConfirm(true)
             setIsSuccess(true)
         } catch (err: unknown) {
             console.error("Signup process exception:", err)
+            turnstileRef.current?.reset()
             setError(getErrorMessage(err) || "Something went wrong. Please try again.")
         } finally {
+            authInFlight.current = false
             setIsLoading(false)
         }
     }
@@ -161,8 +165,8 @@ export default function SignupPage() {
                 {/* Name row */}
                 <div className="grid grid-cols-2 gap-3">
                     {[
-                        { id: "firstName", label: "First Name", placeholder: "John" },
-                        { id: "lastName",  label: "Last Name",  placeholder: "Doe" },
+                        { id: "firstName", label: "First Name", placeholder: "Chinedu" },
+                        { id: "lastName",  label: "Last Name",  placeholder: "Okafor" },
                     ].map(f => (
                         <div key={f.id} className="space-y-1.5">
                             <label htmlFor={f.id} className="text-sm font-medium text-prms-navy">{f.label}</label>
@@ -181,6 +185,20 @@ export default function SignupPage() {
 
                 {/* Email */}
                 <div className="space-y-1.5">
+                    <label htmlFor="phone" className="text-sm font-medium text-prms-navy">Phone number</label>
+                    <input
+                        id="phone"
+                        type="tel"
+                        placeholder="(555) 555-0123"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        disabled={isLoading}
+                        className="h-12 w-full rounded-lg border border-border bg-secondary/30 px-4 text-base text-prms-navy placeholder:text-prms-slate/60 transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 md:text-sm"
+                    />
+                </div>
+
+                {/* Email */}
+                <div className="space-y-1.5">
                     <label htmlFor="email" className="text-sm font-medium text-prms-navy">Email address</label>
                     <input
                         id="email"
@@ -194,20 +212,61 @@ export default function SignupPage() {
                     />
                 </div>
 
-                {/* Password */}
                 <div className="space-y-1.5">
                     <label htmlFor="password" className="text-sm font-medium text-prms-navy">Password</label>
-                    <input
-                        id="password"
-                        type="password"
-                        placeholder="Min. 6 characters"
-                        required
-                        minLength={6}
-                        value={formData.password}
-                        onChange={handleChange}
-                        disabled={isLoading}
-                        className="h-12 w-full rounded-lg border border-border bg-secondary/30 px-4 text-base text-prms-navy placeholder:text-prms-slate/60 transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 md:text-sm"
-                    />
+                    <div className="relative">
+                        <input
+                            id="password"
+                            type={showPassword ? "text" : "password"}
+                            autoComplete="new-password"
+                            placeholder="At least 8 characters"
+                            required
+                            minLength={8}
+                            value={formData.password}
+                            onChange={handleChange}
+                            disabled={isLoading}
+                            className="h-12 w-full rounded-lg border border-border bg-white pl-4 pr-14 text-base text-prms-navy placeholder:text-slate-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            aria-label={showPassword ? "Hide password" : "Show password"}
+                            aria-pressed={showPassword}
+                            aria-controls="password"
+                            disabled={isLoading}
+                            className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-lg text-slate-600 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-blue-700"
+                        >
+                            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </button>
+                    </div>
+                </div>
+                <div className="space-y-1.5">
+                    <label htmlFor="confirmPassword" className="text-sm font-medium text-prms-navy">Confirm password</label>
+                    <div className="relative">
+                        <input
+                            id="confirmPassword"
+                            type={showConfirmPassword ? "text" : "password"}
+                            autoComplete="new-password"
+                            placeholder="Enter your password again"
+                            required
+                            minLength={8}
+                            value={formData.confirmPassword}
+                            onChange={handleChange}
+                            disabled={isLoading}
+                            className="h-12 w-full rounded-lg border border-border bg-white pl-4 pr-14 text-base text-prms-navy placeholder:text-slate-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                            aria-pressed={showConfirmPassword}
+                            aria-controls="confirmPassword"
+                            disabled={isLoading}
+                            className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-lg text-slate-600 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-blue-700"
+                        >
+                            {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Role picker */}
@@ -223,7 +282,7 @@ export default function SignupPage() {
                                 className={[
                                     "flex min-h-[48px] items-center gap-2 rounded-lg border p-3.5 text-sm font-medium transition-all duration-150",
                                     formData.role === r
-                                        ? "border-primary bg-primary/10 text-primary"
+                                        ? "border-primary bg-primary/10 text-blue-700"
                                         : "border-border bg-white text-prms-slate hover:border-primary/30 hover:text-prms-navy",
                                 ].join(" ")}
                             >
@@ -239,10 +298,13 @@ export default function SignupPage() {
                     </div>
                 </div>
 
+                <AuthTurnstile ref={turnstileRef} onTokenChange={setCaptchaToken} onErrorChange={setSecurityError} />
+                {securityError && <span className="sr-only">{securityError}</span>}
+
                 {/* Submit */}
                 <button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={isLoading || Boolean(turnstileEnabled && !captchaToken)}
                     className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-prms-blue font-semibold text-white transition-all hover:bg-blue-700 disabled:opacity-60"
                 >
                     {isLoading ? (
@@ -252,12 +314,19 @@ export default function SignupPage() {
                     )}
                 </button>
 
-                <p className="pt-1 text-center text-sm text-prms-slate">
-                    Already have an account?{" "}
-                    <Link href="/login" className="font-semibold text-primary transition-colors hover:text-blue-700">
-                        Sign in
-                    </Link>
-                </p>
+                <div className="pt-1 text-center space-y-2">
+                    <p className="text-sm text-prms-slate">
+                        Already have an account?{" "}
+                        <Link href="/login" className="font-semibold text-primary transition-colors hover:text-blue-700">
+                            Sign in
+                        </Link>
+                    </p>
+                    <p className="text-sm text-prms-slate">
+                        <Link href="/provider-signup" className="font-semibold text-primary transition-colors hover:text-blue-700">
+                            Register as a service provider instead
+                        </Link>
+                    </p>
+                </div>
             </form>
         </div>
     )

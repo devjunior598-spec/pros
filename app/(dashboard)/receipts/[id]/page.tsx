@@ -29,14 +29,14 @@ interface ReceiptData {
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString('en-GB', {
+    return new Date(iso).toLocaleDateString('en-US', {
         day: 'numeric', month: 'long', year: 'numeric',
         hour: '2-digit', minute: '2-digit'
     })
 }
 
 function formatAmount(n: number) {
-    return `₦${n.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    return `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 function getReceiptNumber(id: string, createdAt: string) {
@@ -391,7 +391,7 @@ export default function ReceiptPage() {
                             This is an official receipt from PRMS. Thank you for your payment.
                         </p>
                         <p className="text-xs text-slate-300 mt-1">
-                            Generated on {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                            Generated on {new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
                         </p>
                     </div>
                 </div>

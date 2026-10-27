@@ -67,7 +67,9 @@ export async function GET(req: Request) {
     let query = supabase
         .from("properties")
         .select(LISTING_COLUMNS, { count: "exact" })
+        .eq("country", "United States")
         .eq("status", "available")
+        .eq("publication_status", "published")
         .order("created_at", { ascending: false })
         .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1)   // ← pagination
 

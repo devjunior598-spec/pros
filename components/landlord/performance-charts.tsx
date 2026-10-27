@@ -30,7 +30,7 @@ export function PerformanceCharts({ revenueData = [], occupancyData = [] }: Perf
                   axisLine={false}
                   tickLine={false}
                   tick={tickStyle}
-                  tickFormatter={(value) => `₦${value / 1000}k`}
+                  tickFormatter={(value) => `$${value / 1000}k`}
                 />
                 <Tooltip
                   cursor={{ fill: "rgba(37, 99, 235, 0.06)" }}

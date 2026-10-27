@@ -22,6 +22,10 @@ interface ProfileRecord {
     bio?: string | null
     address?: string | null
     profile_image_url?: string | null
+    occupation?: string | null
+    company?: string | null
+    emergency_contact?: string | null
+    verification_status?: string | null
 }
 
 export function ProfileSettings({ userId }: ProfileSettingsProps) {
@@ -32,6 +36,9 @@ export function ProfileSettings({ userId }: ProfileSettingsProps) {
     const [phone, setPhone] = useState("")
     const [bio, setBio] = useState("")
     const [address, setAddress] = useState("")
+    const [occupation, setOccupation] = useState("")
+    const [company, setCompany] = useState("")
+    const [emergencyContact, setEmergencyContact] = useState("")
     const [profileImage, setProfileImage] = useState<string | null>(null)
     const [imageFile, setImageFile] = useState<File | null>(null)
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
@@ -54,6 +61,9 @@ export function ProfileSettings({ userId }: ProfileSettingsProps) {
                 setPhone(data.phone || "")
                 setBio(data.bio || "")
                 setAddress(data.address || "")
+                setOccupation(data.occupation || "")
+                setCompany(data.company || "")
+                setEmergencyContact(data.emergency_contact || "")
                 setProfileImage(data.profile_image_url || null)
             }
             setLoading(false)
@@ -110,6 +120,9 @@ export function ProfileSettings({ userId }: ProfileSettingsProps) {
                     phone,
                     bio,
                     address,
+                    occupation,
+                    company,
+                    emergency_contact: emergencyContact,
                     profile_image_url: avatarUrl,
                     updated_at: new Date().toISOString()
                 })
@@ -210,7 +223,7 @@ export function ProfileSettings({ userId }: ProfileSettingsProps) {
                                         id="phone"
                                         value={phone}
                                         onChange={(e) => setPhone(e.target.value)}
-                                        placeholder="+234 ..."
+                                        placeholder="(555) 555-0123"
                                         className="pl-10"
                                     />
                                 </div>
@@ -235,6 +248,27 @@ export function ProfileSettings({ userId }: ProfileSettingsProps) {
                                     onChange={(e) => setAddress(e.target.value)}
                                     placeholder="Enter your full address"
                                 />
+                            </div>
+
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <div className="space-y-2">
+                                    <Label htmlFor="occupation">Occupation</Label>
+                                    <Input id="occupation" value={occupation} onChange={(e) => setOccupation(e.target.value)} placeholder="e.g. Architect" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="company">Company</Label>
+                                    <Input id="company" value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Company or organization" />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="emergency-contact">Emergency Contact</Label>
+                                <Input id="emergency-contact" value={emergencyContact} onChange={(e) => setEmergencyContact(e.target.value)} placeholder="Name and phone number" />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Verification Status</Label>
+                                <Badge variant="secondary" className="capitalize">{profile?.verification_status || (profile?.role === "admin" ? "verified" : "unverified")}</Badge>
                             </div>
                         </div>
 

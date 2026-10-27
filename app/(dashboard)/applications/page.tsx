@@ -134,6 +134,46 @@ function StatusStepper({ status }: { status: ApplicationStatus }) {
     )
 }
 
+function getApplicationNextStep(status: ApplicationStatus) {
+    switch (status) {
+        case "pending":
+            return {
+                title: "Next step: wait for landlord review",
+                description: "Keep your phone/email available. If the landlord requests inspection or more details, complete that request from your notifications.",
+                action: "Prepare wallet for payment",
+                href: "/wallet",
+            }
+        case "approved":
+            return {
+                title: "Next step: review your rental and lease",
+                description: "Your application is approved. Check your rental page for lease signing and any first bill created by the landlord.",
+                action: "View my rental",
+                href: "/my-property",
+            }
+        case "active":
+            return {
+                title: "Next step: stay ready for bills",
+                description: "Your tenancy is active. You can fund your wallet and pay rent or other bills before their due dates.",
+                action: "Pay bills",
+                href: "/pay-bills",
+            }
+        case "rejected":
+            return {
+                title: "Next step: apply for another property",
+                description: "This application was not accepted. Browse available listings and submit a stronger application when ready.",
+                action: "Browse listings",
+                href: "/listings",
+            }
+        case "withdrawn":
+            return {
+                title: "Next step: choose another property",
+                description: "You withdrew this application. You can browse listings and apply again anytime.",
+                action: "Browse listings",
+                href: "/listings",
+            }
+    }
+}
+
 function TenantApplicationCard({
     app,
     onWithdraw,
@@ -144,6 +184,7 @@ function TenantApplicationCard({
     withdrawing: boolean
 }) {
     const imageUrl = app.property?.images?.[0] ?? null
+    const nextStep = getApplicationNextStep(app.status)
 
     return (
         <div className="bg-card border border-border rounded-2xl overflow-hidden hover:border-blue-500/40 transition-all duration-200 group shadow-sm">
@@ -182,7 +223,7 @@ function TenantApplicationCard({
                             <div className="flex items-center gap-1.5">
                                 <DollarSign className="w-3.5 h-3.5 text-blue-500" />
                                 <span className="text-foreground font-semibold">
-                                    &#8358;{(app.rent_amount ?? app.property?.price ?? 0).toLocaleString()}
+                                    ${(app.rent_amount ?? app.property?.price ?? 0).toLocaleString()}
                                 </span>
                                 <span>/mo</span>
                             </div>
@@ -208,6 +249,14 @@ function TenantApplicationCard({
                         </div>
 
                         <StatusStepper status={app.status} />
+
+                        <div className="mt-4 rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 text-sm">
+                            <p className="font-semibold text-foreground">{nextStep.title}</p>
+                            <p className="mt-1 text-muted-foreground">{nextStep.description}</p>
+                            <Link href={nextStep.href} className="mt-3 inline-flex text-xs font-bold text-blue-600 hover:underline">
+                                {nextStep.action} →
+                            </Link>
+                        </div>
                     </div>
 
                     {app.status === "pending" && (

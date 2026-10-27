@@ -8,8 +8,8 @@
 
   /* PRMS brand palette */
   --color-prms-navy: #0F172A;
-  --color-prms-blue: #2563EB;
-  --color-prms-emerald: #10B981;
+  --color-prms-blue: #28664D;
+  --color-prms-emerald: #4B8A64;
   --color-prms-cream: #F8F5EF;
   --color-prms-slate: #64748B;
   --color-prms-white: #FFFFFF;
@@ -60,13 +60,16 @@
 }
 
 :root {
+  /* Local, resilient fallback that keeps the PRMS geometric sans-serif feel
+     without making production builds depend on Google Fonts availability. */
+  --font-outfit: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   --card: 0 0% 100%;
   --card-foreground: 222 47% 11%;
 
   --popover: 0 0% 100%;
   --popover-foreground: 222 47% 11%;
 
-  --primary: 221 83% 53%;
+  --primary: 151 43% 32%;
   --primary-foreground: 0 0% 100%;
 
   --secondary: 40 33% 96%;
@@ -83,15 +86,15 @@
 
   --border: 214 20% 90%;
   --input: 214 20% 90%;
-  --ring: 221 83% 53%;
+  --ring: 151 43% 32%;
 
   --radius: 0.75rem;
 
   --background: 40 33% 97%;
   --foreground: 222 47% 11%;
 
-  --chart-1: 221 83% 53%;
-  --chart-2: 160 84% 39%;
+  --chart-1: 151 43% 32%;
+  --chart-2: 135 32% 45%;
   --chart-3: 215 16% 47%;
   --chart-4: 43 74% 66%;
   --chart-5: 27 87% 67%;

@@ -44,13 +44,14 @@ export default function AdminPaymentsPage() {
     const [isRefundModalOpen, setIsRefundModalOpen] = useState(false)
     const [selectedPayment, setSelectedPayment] = useState<any>(null)
     const [refunding, setRefunding] = useState(false)
+    const [processingSettlementId, setProcessingSettlementId] = useState<string | null>(null)
 
     const fetchPayments = useCallback(async () => {
         setLoading(true)
         try {
             const { data, error } = await supabase
                 .from("rent_payments")
-                .select("*, property:properties(title, address), tenant:profiles!tenant_id(name, email), landlord:profiles!landlord_id(name, email)")
+                .select("*, property:properties(title, address), tenant:profiles!tenant_id(name, email), landlord:profiles!landlord_id(name, email), settlements:landlord_settlements(id, status, net_amount)")
                 .order("created_at", { ascending: false })
 
             if (error) throw error
@@ -109,7 +110,7 @@ export default function AdminPaymentsPage() {
             const result = await res.json()
             if (!res.ok) throw new Error(result.error || "Failed to execute refund request.")
 
-            toast({ title: "Refund Complete!", description: `₦${Number(selectedPayment.amount).toLocaleString()} credited back to tenant wallet balance.` })
+            toast({ title: "Refund Complete!", description: `$${Number(selectedPayment.amount).toLocaleString()} credited back to tenant wallet balance.` })
             setIsRefundModalOpen(false)
             fetchPayments()
         } catch (error: any) {
@@ -117,6 +118,21 @@ export default function AdminPaymentsPage() {
             alert(error.message || "Refund action failed.")
         } finally {
             setRefunding(false)
+        }
+    }
+
+    const processSettlement = async (settlementId: string, action: "approve" | "reject") => {
+        setProcessingSettlementId(settlementId)
+        try {
+            const response = await fetch("/api/admin/settlements", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ settlementId, action }) })
+            const data = await response.json()
+            if (!response.ok) throw new Error(data.error || "Unable to process settlement")
+            toast({ title: action === "approve" ? "Funds released" : "Payment held", description: data.message })
+            await fetchPayments()
+        } catch (error) {
+            toast({ title: "Settlement not processed", description: error instanceof Error ? error.message : "Please try again.", variant: "destructive" })
+        } finally {
+            setProcessingSettlementId(null)
         }
     }
 
@@ -160,7 +176,7 @@ export default function AdminPaymentsPage() {
                 tenantName: payment.tenant?.name || payment.tenant?.email || "Tenant",
                 tenantEmail: payment.tenant?.email || "",
                 propertyName: payment.property?.title || "Property",
-                propertyAddress: payment.property?.address || "Lagos, Nigeria",
+                propertyAddress: payment.property?.address || "United States",
                 paymentMethod: payment.payment_method,
                 transactionReference: payment.transaction_reference,
                 amountPaid: Number(payment.amount),
@@ -180,9 +196,9 @@ export default function AdminPaymentsPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-1">
                     <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-                        <CreditCard className="h-8 w-8 text-blue-600" /> Rent Transactions Audit
+                        <CreditCard className="h-8 w-8 text-blue-600" /> Payment & Settlement Audit
                     </h1>
-                    <p className="text-muted-foreground">Monitor and manage rent payments, execute wallet refunds, and export history.</p>
+                    <p className="text-muted-foreground">Monitor tenant bill payments, release approved landlord settlements, issue refunds, and export history.</p>
                 </div>
                 <div className="flex gap-2">
                     <Button variant="outline" onClick={fetchPayments} className="h-10 rounded-xl" title="Refresh Logs">
@@ -245,6 +261,8 @@ export default function AdminPaymentsPage() {
                             ) : (
                                 filteredPayments.map((p) => {
                                     const isPaid = p.payment_status === "Paid"
+                                    const settlement = Array.isArray(p.settlements) ? p.settlements[0] : p.settlements
+                                    const settlementPending = settlement?.status === "Pending"
                                     const isRefunded = p.payment_status === "Refunded"
                                     const isFailed = p.payment_status === "Failed"
                                     return (
@@ -278,10 +296,11 @@ export default function AdminPaymentsPage() {
                                                 </div>
                                                 <div>
                                                     <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">Amount</span>
-                                                    <p className="font-extrabold text-blue-600 dark:text-blue-400">₦{Number(p.amount).toLocaleString()}</p>
+                                                    <p className="font-extrabold text-blue-600 dark:text-blue-400">${Number(p.amount).toLocaleString()}</p>
                                                 </div>
                                             </div>
                                             <div className="flex gap-2 justify-end border-t pt-2.5">
+                                                {settlementPending && <><Button size="sm" onClick={() => processSettlement(settlement.id, "approve")} disabled={processingSettlementId === settlement.id} className="h-8 bg-emerald-600 hover:bg-emerald-700">{processingSettlementId === settlement.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Release"}</Button><Button size="sm" variant="outline" onClick={() => processSettlement(settlement.id, "reject")} disabled={processingSettlementId === settlement.id} className="h-8 text-amber-700">Hold</Button></>}
                                                 {isPaid && (
                                                     <>
                                                         <Button 
@@ -338,6 +357,8 @@ export default function AdminPaymentsPage() {
                                 ) : (
                                     filteredPayments.map((p) => {
                                         const isPaid = p.payment_status === "Paid"
+                                        const settlement = Array.isArray(p.settlements) ? p.settlements[0] : p.settlements
+                                        const settlementPending = settlement?.status === "Pending"
                                         const isRefunded = p.payment_status === "Refunded"
                                         const isFailed = p.payment_status === "Failed"
                                         return (
@@ -371,14 +392,15 @@ export default function AdminPaymentsPage() {
                                                     <span className="font-semibold text-slate-700 dark:text-slate-350">{p.property?.title}</span>
                                                 </td>
                                                 <td className="px-6 py-4 font-black text-blue-600 dark:text-blue-400">
-                                                    ₦{Number(p.amount).toLocaleString()}
+                                                    ${Number(p.amount).toLocaleString()}
                                                 </td>
                                                 <td className="px-6 py-4 font-mono text-[10px] text-slate-500">
                                                     <div>{p.transaction_reference}</div>
                                                     <div className="text-[9px] font-bold text-slate-400 tracking-wider uppercase mt-0.5">{p.payment_method}</div>
                                                 </td>
                                                 <td className="px-6 py-4 text-right space-x-1.5">
-                                                    {isPaid && (
+                                                    {settlementPending && <><Button size="sm" onClick={() => processSettlement(settlement.id, "approve")} disabled={processingSettlementId === settlement.id} className="h-8 bg-emerald-600 hover:bg-emerald-700">{processingSettlementId === settlement.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Release"}</Button><Button size="sm" variant="outline" onClick={() => processSettlement(settlement.id, "reject")} disabled={processingSettlementId === settlement.id} className="h-8 text-amber-700">Hold</Button></>}
+                                                {isPaid && (
                                                         <>
                                                             <Button 
                                                                 size="sm" 
@@ -426,13 +448,13 @@ export default function AdminPaymentsPage() {
 
                         <div className="space-y-3 text-xs leading-relaxed text-slate-550 dark:text-slate-400">
                             <p>
-                                You are initiating a full refund of <span className="font-black text-slate-900 dark:text-white">₦{Number(selectedPayment.amount).toLocaleString()}</span> for property <span className="font-black text-slate-900 dark:text-white">"{selectedPayment.property?.title}"</span>.
+                                You are initiating a full refund of <span className="font-black text-slate-900 dark:text-white">${Number(selectedPayment.amount).toLocaleString()}</span> for property <span className="font-black text-slate-900 dark:text-white">"{selectedPayment.property?.title}"</span>.
                             </p>
                             <div className="p-3 rounded-xl border border-red-100 dark:border-red-950 bg-red-500/[0.01] dark:bg-red-950/10 text-red-700 dark:text-red-400 space-y-1">
                                 <p className="font-bold uppercase tracking-wider text-[10px]">Critical Effects:</p>
                                 <ul className="list-disc pl-3.5 space-y-0.5">
                                     <li>Marks the rent transaction status as Refunded.</li>
-                                    <li>Credits ₦{Number(selectedPayment.amount).toLocaleString()} directly back to the tenant's wallet.</li>
+                                    <li>Credits ${Number(selectedPayment.amount).toLocaleString()} directly back to the tenant's wallet.</li>
                                     <li>Reverts the tenant's invoice status back to Unpaid (pending or overdue).</li>
                                 </ul>
                             </div>

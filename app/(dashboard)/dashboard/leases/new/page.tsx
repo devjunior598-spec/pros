@@ -234,7 +234,7 @@ ${terms}`
     }
 
     const formatCurrency = (value: string) =>
-        value ? new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 }).format(Number(value)) : "—"
+        value ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(Number(value)) : "—"
 
     const selectedPropertyDetails = properties.find((property) => property.id === selectedProperty)
     const availableTenants = tenantAssignments
@@ -408,7 +408,7 @@ ${terms}`
                             <CardContent className="p-6 grid gap-4 sm:grid-cols-2">
                                 
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="rentAmount" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Rent per payment period (₦) <span className="text-red-500">*</span></Label>
+                                    <Label htmlFor="rentAmount" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Rent per payment period ($) <span className="text-red-500">*</span></Label>
                                     <Input
                                         id="rentAmount"
                                         type="number"
@@ -423,7 +423,7 @@ ${terms}`
                                 </div>
 
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="securityDeposit" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Security Deposit (₦)</Label>
+                                    <Label htmlFor="securityDeposit" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Security Deposit ($)</Label>
                                     <Input
                                         id="securityDeposit"
                                         type="number"

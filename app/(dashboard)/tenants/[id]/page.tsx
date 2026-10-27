@@ -5,6 +5,7 @@ import { useParams } from "next/navigation"
 import Link from "next/link"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/contexts/auth-context"
+import { BillsTable } from "@/components/landlord/bills-table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -36,7 +37,7 @@ type RentalDetails = {
     tenant: TenantProfile | null
 }
 
-type BillRecord = { id: string; type: string; amount: number; due_date: string | null; status: string }
+type BillRecord = { id: string; type: string; amount: number; amount_paid: number | null; due_date: string | null; status: string }
 type PaymentRecord = { id: string; amount: number; status: string; created_at: string; payment_method?: string | null }
 type LeaseRecord = { id: string; title: string; status: string; start_date: string; end_date: string }
 type MaintenanceRecord = { id: string; title: string; status: string; created_at: string }
@@ -79,7 +80,7 @@ export default function TenantManagementPage() {
             setRental(typedRental)
 
             const [billResult, paymentResult, leaseResult, maintenanceResult, documentResult] = await Promise.all([
-                supabase.from("bills").select("id, type, amount, due_date, status").eq("rental_id", typedRental.id).order("due_date", { ascending: false }),
+                supabase.from("bills").select("id, type, amount, amount_paid, due_date, status").eq("rental_id", typedRental.id).order("due_date", { ascending: false }),
                 supabase.from("payments").select("id, amount, status, created_at, payment_method").eq("rental_id", typedRental.id).order("created_at", { ascending: false }),
                 supabase.from("lease_agreements").select("id, title, status, start_date, end_date").eq("property_id", typedRental.property_id).eq("tenant_id", typedRental.tenant_id).order("created_at", { ascending: false }),
                 supabase.from("maintenance_requests").select("id, title, status, created_at").eq("rental_id", typedRental.id).order("created_at", { ascending: false }),
@@ -106,7 +107,7 @@ export default function TenantManagementPage() {
 
     const tenantName = rental.tenant?.full_name || rental.tenant?.name || "Tenant"
     const totalPaid = payments.filter((payment) => ["success", "paid", "completed"].includes(payment.status)).reduce((sum, payment) => sum + Number(payment.amount), 0)
-    const outstanding = bills.filter((bill) => bill.status !== "paid").reduce((sum, bill) => sum + Number(bill.amount), 0)
+    const outstanding = bills.filter((bill) => bill.status !== "paid").reduce((sum, bill) => sum + Math.max(0, Number(bill.amount) - Number(bill.amount_paid || 0)), 0)
 
     return (
         <div className="mx-auto max-w-7xl space-y-6 pb-12">
@@ -124,9 +125,9 @@ export default function TenantManagementPage() {
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <Summary title="Property" value={rental.property?.title || "—"} icon={Building2} />
-                <Summary title="Monthly Rent" value={`₦${Number(rental.rent_amount || 0).toLocaleString()}`} icon={Home} />
-                <Summary title="Total Paid" value={`₦${totalPaid.toLocaleString()}`} icon={Receipt} />
-                <Summary title="Outstanding" value={`₦${outstanding.toLocaleString()}`} icon={CreditCard} />
+                <Summary title="Monthly Rent" value={`$${Number(rental.rent_amount || 0).toLocaleString()}`} icon={Home} />
+                <Summary title="Total Paid" value={`$${totalPaid.toLocaleString()}`} icon={Receipt} />
+                <Summary title="Outstanding" value={`$${outstanding.toLocaleString()}`} icon={CreditCard} />
             </div>
 
             <Card><CardContent className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -141,8 +142,8 @@ export default function TenantManagementPage() {
                     <TabsTrigger value="overview">Overview</TabsTrigger><TabsTrigger value="billing">Billing</TabsTrigger><TabsTrigger value="payments">Payments</TabsTrigger><TabsTrigger value="leases">Leases</TabsTrigger><TabsTrigger value="maintenance">Maintenance</TabsTrigger><TabsTrigger value="documents">Documents</TabsTrigger>
                 </TabsList>
                 <TabsContent value="overview"><Card><CardHeader><CardTitle>Tenancy Overview</CardTitle></CardHeader><CardContent className="space-y-2 text-sm"><div className="flex items-center"><strong>Status:</strong> <Badge className="ml-2 capitalize">{rental.status}</Badge></div><p><strong>Property:</strong> {rental.property?.title}</p><p><strong>Address:</strong> {[rental.property?.address, rental.property?.city].filter(Boolean).join(", ") || "Not provided"}</p><p><strong>Rental record created:</strong> {new Date(rental.created_at).toLocaleDateString()}</p></CardContent></Card></TabsContent>
-                <TabsContent value="billing"><RecordList empty="No bills for this tenant." rows={bills.map((bill) => ({ id: bill.id, title: bill.type, detail: `₦${Number(bill.amount).toLocaleString()} · Due ${bill.due_date ? new Date(bill.due_date).toLocaleDateString() : "not set"}`, status: bill.status }))} /></TabsContent>
-                <TabsContent value="payments"><RecordList empty="No payments recorded." rows={payments.map((payment) => ({ id: payment.id, title: `₦${Number(payment.amount).toLocaleString()}`, detail: new Date(payment.created_at).toLocaleDateString(), status: payment.status }))} /></TabsContent>
+                <TabsContent value="billing">{user && <BillsTable key={rental.id} landlordId={user.id} rentalId={rental.id} />}</TabsContent>
+                <TabsContent value="payments"><RecordList empty="No payments recorded." rows={payments.map((payment) => ({ id: payment.id, title: `$${Number(payment.amount).toLocaleString()}`, detail: new Date(payment.created_at).toLocaleDateString(), status: payment.status }))} /></TabsContent>
                 <TabsContent value="leases"><RecordList empty="No lease agreement created yet." rows={leases.map((lease) => ({ id: lease.id, title: lease.title, detail: `${new Date(lease.start_date).toLocaleDateString()} – ${new Date(lease.end_date).toLocaleDateString()}`, status: lease.status }))} /></TabsContent>
                 <TabsContent value="maintenance"><RecordList empty="No maintenance requests." rows={maintenance.map((request) => ({ id: request.id, title: request.title, detail: new Date(request.created_at).toLocaleDateString(), status: request.status }))} /></TabsContent>
                 <TabsContent value="documents"><RecordList empty="No shared documents." rows={documents.map((document) => ({ id: document.id, title: document.name, detail: document.type, status: "available", href: document.url }))} /></TabsContent>

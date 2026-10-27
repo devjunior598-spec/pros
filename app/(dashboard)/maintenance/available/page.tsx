@@ -260,7 +260,7 @@ export default function AvailableJobsPage() {
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="grid gap-2">
-                            <Label htmlFor="price">Your Quoted Price (₦)</Label>
+                            <Label htmlFor="price">Your Quoted Price ($)</Label>
                             <div className="relative">
                                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input

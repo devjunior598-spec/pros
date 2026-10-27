@@ -113,7 +113,7 @@ export default function PaymentHistoryPage() {
                                         </Badge>
                                     </div>
                                     <div className="font-bold text-sm">
-                                        ₦{payment.amount?.toLocaleString()}
+                                        ${payment.amount?.toLocaleString()}
                                     </div>
                                     <div className="flex items-center justify-between">
                                         <span className="font-mono text-xs text-muted-foreground">
@@ -171,7 +171,7 @@ export default function PaymentHistoryPage() {
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="font-bold text-gray-900 dark:text-gray-100">
-                                                ₦{payment.amount?.toLocaleString()}
+                                                ${payment.amount?.toLocaleString()}
                                             </TableCell>
                                             <TableCell className="text-sm text-muted-foreground">
                                                 {new Date(payment.updated_at).toLocaleDateString()}

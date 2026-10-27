@@ -77,7 +77,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
                 <div className="absolute top-3 right-3 flex items-center gap-1.5">
                     <Badge className={`uppercase text-[9px] font-semibold px-2 py-0.5 rounded-md border ${
                         property.status === 'available'
-                            ? 'bg-emerald-50 border-emerald-200 text-prms-emerald'
+                            ? 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200 text-emerald-700'
                             : 'bg-amber-50 border-amber-200 text-amber-700'
                         }`}>
                         {property.status}
@@ -99,7 +99,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
 
             <CardHeader className="p-4 pb-2 space-y-1.5 flex-1">
                 {property.verification_status === 'approved' && (
-                    <div className="flex items-center text-prms-emerald text-[10px] uppercase font-semibold tracking-wide">
+                    <div className="flex items-center text-emerald-700 text-[10px] uppercase font-semibold tracking-wide">
                         <ShieldCheck className="mr-1 h-3.5 w-3.5" />
                         Verified Property
                     </div>
@@ -117,7 +117,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
 
             <CardContent className="p-4 pt-0">
                 <div className="flex items-baseline gap-1 mt-1 border-b border-border pb-3">
-                    <span className="text-xl font-semibold text-foreground">₦{property.price.toLocaleString()}</span>
+                    <span className="text-xl font-semibold text-foreground">${property.price.toLocaleString()}</span>
                     <span className="text-[10px] font-medium text-muted-foreground uppercase">
                         / {property.frequency ? (property.frequency.toLowerCase() === 'monthly' ? 'month' : 'year') : 'year'}
                     </span>

@@ -60,7 +60,7 @@ export async function POST(request: Request) {
             }
 
             await supabaseAdmin.from("transactions").insert({ tenant_id: rental.tenant_id, type: "debit", amount: payment.amount, reference: payment.transaction_reference, description: "Rent payment via Bank Transfer (Approved)", status: "success" })
-            await supabaseAdmin.rpc("create_notification", { p_user_id: rental.tenant_id, p_type: "rent_paid", p_title: "Bank Transfer Approved", p_message: `Your transfer of ₦${Number(payment.amount).toLocaleString()} for "${rental.property?.title || "Property"}" was approved.`, p_link: "/payments" })
+            await supabaseAdmin.rpc("create_notification", { p_user_id: rental.tenant_id, p_type: "rent_paid", p_title: "Bank Transfer Approved", p_message: `Your transfer of $${Number(payment.amount).toLocaleString()} for "${rental.property?.title || "Property"}" was approved.`, p_link: "/payments" })
         } else {
             const { error: updateError } = await supabaseAdmin.from("rent_payments").update({ payment_status: "Failed" }).eq("id", payment.id).eq("payment_status", "Pending")
             if (updateError) throw updateError
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
                 const { data: bill } = await supabaseAdmin.from("bills").select("due_date").eq("id", payment.bill_id).maybeSingle()
                 if (bill) await supabaseAdmin.from("bills").update({ status: new Date(bill.due_date).getTime() < Date.now() ? "overdue" : "unpaid" }).eq("id", payment.bill_id)
             }
-            await supabaseAdmin.rpc("create_notification", { p_user_id: rental.tenant_id, p_type: "rent_rejected", p_title: "Bank Transfer Rejected", p_message: `Your transfer of ₦${Number(payment.amount).toLocaleString()} for "${rental.property?.title || "Property"}" was declined.${rejectionReason ? ` Reason: ${rejectionReason}` : ""}`, p_link: "/payments" })
+            await supabaseAdmin.rpc("create_notification", { p_user_id: rental.tenant_id, p_type: "rent_rejected", p_title: "Bank Transfer Rejected", p_message: `Your transfer of $${Number(payment.amount).toLocaleString()} for "${rental.property?.title || "Property"}" was declined.${rejectionReason ? ` Reason: ${rejectionReason}` : ""}`, p_link: "/payments" })
         }
 
         return NextResponse.json({ success: true, message: action === "approve" ? "Payment approved" : "Payment rejected" })

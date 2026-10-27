@@ -16,10 +16,11 @@ export async function GET(req: Request) {
             .from('properties')
             .select('landlord_id')
             .eq('id', propertyId)
+            .eq('country', 'United States')
             .single();
 
         if (propError || !property) {
-            return NextResponse.json({ error: 'Property not found' }, { status: 44 });
+            return NextResponse.json({ error: 'Property not found' }, { status: 404 });
         }
 
         const landlordId = property.landlord_id;

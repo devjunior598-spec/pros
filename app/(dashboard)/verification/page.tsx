@@ -42,7 +42,7 @@ export default function VerificationCenterPage() {
     const [tenantForm, setTenantForm] = useState({
         dob: "",
         address: "",
-        idType: "NIN",
+        idType: "Driver’s License",
         idNumber: "",
         employmentCompany: "",
         employmentPosition: "",
@@ -55,7 +55,7 @@ export default function VerificationCenterPage() {
 
     // Landlord Form State
     const [landlordForm, setLandlordForm] = useState({
-        idType: "NIN",
+        idType: "Driver’s License",
         idNumber: ""
     })
     const [landlordIdFile, setLandlordIdFile] = useState<File | null>(null)
@@ -452,7 +452,8 @@ export default function VerificationCenterPage() {
                                                     onChange={(e) => setTenantForm({ ...tenantForm, idType: e.target.value })}
                                                     className="flex h-11 w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 px-3 py-2 text-base md:text-sm focus-visible:outline-none text-slate-900 dark:text-slate-100 font-sans"
                                                 >
-                                                    <option value="NIN">NIN</option>
+                                                    <option value="Driver’s License">Driver’s License</option>
+                                                    <option value="State ID">State ID</option>
                                                     <option value="Driver's License">Driver's License</option>
                                                     <option value="Passport">International Passport</option>
                                                     <option value="Voter's Card">Voter's Card</option>
@@ -654,7 +655,8 @@ export default function VerificationCenterPage() {
                                                     onChange={(e) => setLandlordForm({ ...landlordForm, idType: e.target.value })}
                                                     className="flex h-11 w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 px-3 py-2 text-base md:text-sm focus-visible:outline-none text-slate-900 dark:text-slate-100 font-sans"
                                                 >
-                                                    <option value="NIN">NIN</option>
+                                                    <option value="Driver’s License">Driver’s License</option>
+                                                    <option value="State ID">State ID</option>
                                                     <option value="Driver's License">Driver's License</option>
                                                     <option value="Passport">International Passport</option>
                                                     <option value="Voter's Card">Voter's Card</option>

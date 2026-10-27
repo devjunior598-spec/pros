@@ -9,6 +9,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2, X, Plus, ImageIcon, Sparkles } from "lucide-react"
 import { Property, PropertyStatus } from "@/types"
+import { US_COUNTRY } from "@/lib/us-region"
+import { USStateSelect } from "@/components/us-state-select"
 
 interface PropertyEditFormProps {
     property: Property
@@ -24,6 +26,7 @@ export function PropertyEditForm({ property, onSuccess }: PropertyEditFormProps)
         address: property.address,
         city: property.city,
         state: property.state,
+        country: US_COUNTRY,
         zip_code: property.zip_code,
         area: property.area,
         type: property.type,
@@ -36,6 +39,11 @@ export function PropertyEditForm({ property, onSuccess }: PropertyEditFormProps)
         description: property.description,
         amenities: property.amenities || [],
         images: property.images || [],
+        electricity_meter_number: property.electricity_meter_number || '',
+        electricity_payment_method: property.electricity_payment_method || 'landlord_bill',
+        water_payment_method: property.water_payment_method || 'landlord_bill',
+        waste_payment_method: property.waste_payment_method || 'landlord_bill',
+        utility_notes: property.utility_notes || '',
     })
 
     // Local state for comma-separated amenities string
@@ -105,12 +113,13 @@ export function PropertyEditForm({ property, onSuccess }: PropertyEditFormProps)
                 images: finalImageUrls
             }
 
-            const { error } = await supabase
-                .from('properties')
-                .update(processedData)
-                .eq('id', property.id)
-
-            if (error) throw error
+            const response = await fetch(`/api/properties/${property.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(processedData),
+            })
+            const result = await response.json()
+            if (!response.ok) throw new Error(result.error || "Unable to update property")
 
             onSuccess()
         } catch (error: any) {
@@ -162,7 +171,7 @@ export function PropertyEditForm({ property, onSuccess }: PropertyEditFormProps)
                 {/* Price, Frequency, and Status */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="space-y-1.5">
-                        <Label htmlFor="price" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Price (₦)</Label>
+                        <Label htmlFor="price" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Price ($)</Label>
                         <Input
                             id="price"
                             type="number"
@@ -212,7 +221,7 @@ export function PropertyEditForm({ property, onSuccess }: PropertyEditFormProps)
                         id="address"
                         value={formData.address || ''}
                         onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                        placeholder="e.g. Plot 15, Admiralty Way"
+                        placeholder="e.g. 123 Main Street"
                         className="h-11 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl"
                     />
                 </div>
@@ -231,11 +240,11 @@ export function PropertyEditForm({ property, onSuccess }: PropertyEditFormProps)
                     </div>
                     <div className="space-y-1.5">
                         <Label htmlFor="state" className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">State</Label>
-                        <Input
+                        <USStateSelect
                             id="state"
                             value={formData.state || ''}
-                            onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                            className="h-11 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl"
+                            onChange={(state) => setFormData({ ...formData, state })}
+                            className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-sm dark:border-slate-800 dark:bg-slate-950/40"
                         />
                     </div>
                     <div className="space-y-1.5">
@@ -314,6 +323,20 @@ export function PropertyEditForm({ property, onSuccess }: PropertyEditFormProps)
                         placeholder="Pool, Gym, Parking, WiFi"
                         className="h-11 bg-slate-50/50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 rounded-xl text-sm"
                     />
+                </div>
+
+                <div className="space-y-4 rounded-xl border border-blue-200 bg-blue-50/40 p-4 dark:border-blue-900 dark:bg-blue-950/20">
+                    <div>
+                        <h3 className="text-sm font-bold">Utility billing</h3>
+                        <p className="text-xs text-muted-foreground">Set the meter and how tenants should pay NEPA, water, and waste bills.</p>
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-1.5"><Label htmlFor="electricity_meter_number">Electricity meter number</Label><Input id="electricity_meter_number" value={formData.electricity_meter_number || ''} onChange={(e) => setFormData({ ...formData, electricity_meter_number: e.target.value })} placeholder="Meter or account number" /></div>
+                        <div className="space-y-1.5"><Label>NEPA / electricity payment</Label><Select value={formData.electricity_payment_method} onValueChange={(value) => setFormData({ ...formData, electricity_payment_method: value as any })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="landlord_bill">Landlord sends bill in PRMS</SelectItem><SelectItem value="tenant_direct">Tenant pays provider directly</SelectItem><SelectItem value="prepaid_meter">Tenant funds prepaid meter</SelectItem><SelectItem value="included_in_rent">Included in rent</SelectItem></SelectContent></Select></div>
+                        <div className="space-y-1.5"><Label>Water payment</Label><Select value={formData.water_payment_method} onValueChange={(value) => setFormData({ ...formData, water_payment_method: value as any })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="landlord_bill">Landlord sends bill in PRMS</SelectItem><SelectItem value="tenant_direct">Tenant pays provider directly</SelectItem><SelectItem value="included_in_rent">Included in rent</SelectItem></SelectContent></Select></div>
+                        <div className="space-y-1.5"><Label>Waste payment</Label><Select value={formData.waste_payment_method} onValueChange={(value) => setFormData({ ...formData, waste_payment_method: value as any })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="landlord_bill">Landlord sends bill in PRMS</SelectItem><SelectItem value="tenant_direct">Tenant pays provider directly</SelectItem><SelectItem value="included_in_rent">Included in rent</SelectItem></SelectContent></Select></div>
+                    </div>
+                    <div className="space-y-1.5"><Label htmlFor="utility_notes">Utility instructions</Label><Textarea id="utility_notes" value={formData.utility_notes || ''} onChange={(e) => setFormData({ ...formData, utility_notes: e.target.value })} placeholder="Provider name, meter instructions, collection rules, or other bill details" rows={3} /></div>
                 </div>
 
                 {/* Description */}

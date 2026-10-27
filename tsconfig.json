@@ -38,6 +38,11 @@
     "**/*.mts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "node_modules_bad",
+    "house-do-platform",
+    ".next.corrupt-backup",
+    ".next.repair-backup-20260804",
+    ".next_old_cache"
   ]
 }

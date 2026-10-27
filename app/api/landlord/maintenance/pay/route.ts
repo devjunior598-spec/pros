@@ -62,7 +62,7 @@ export async function POST(req: Request) {
         }
 
         if (Number(wallet.balance) < cost) {
-            return NextResponse.json({ error: `Insufficient wallet balance. You need ₦${cost.toLocaleString()} to pay for this job.` }, { status: 400 })
+            return NextResponse.json({ error: `Insufficient wallet balance. You need $${cost.toLocaleString()} to pay for this job.` }, { status: 400 })
         }
 
         // 3. Process Transaction

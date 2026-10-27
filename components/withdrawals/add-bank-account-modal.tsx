@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Plus, Loader2, CheckCircle2, AlertCircle } from "lucide-react"
 import { addBankAccount } from "@/app/actions/withdrawals"
-import { getBanks, verifyBankAccount } from "@/app/actions/paystack"
+import { getBanks, verifyBankAccount } from "@/app/actions/us-payout-bank"
 import { Combobox } from "@/components/ui/combobox"
 import { useToast } from "@/hooks/use-toast"
 

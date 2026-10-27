@@ -121,9 +121,9 @@ export function MaintenanceRequestTable({ data }: MaintenanceRequestTableProps) 
             cell: ({ row }) => {
                 const val = row.getValue("final_cost") || (row.original as any).estimated_cost || "0"
                 const amount = parseFloat(String(val))
-                const formatted = new Intl.NumberFormat("en-NG", {
+                const formatted = new Intl.NumberFormat("en-US", {
                     style: "currency",
-                    currency: "NGN",
+                    currency: "USD",
                 }).format(amount)
 
                 return <div className="text-right font-medium">{amount > 0 ? formatted : '-'}</div>

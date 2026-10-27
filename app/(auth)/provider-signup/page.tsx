@@ -1,39 +1,27 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
-import { Button } from "@/components/ui/button"
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from "@/components/ui/select"
+import { getAuthErrorMessage as getErrorMessage } from "@/lib/auth-verification"
+import { AuthTurnstile, type AuthTurnstileHandle, turnstileEnabled } from "@/components/auth/auth-turnstile"
 import {
     Loader2,
-    Upload,
     CheckCircle,
     ChevronRight,
     ChevronLeft,
     Briefcase,
     MapPin,
     ShieldCheck,
-    User
+    User,
+    Mail,
+    Phone,
+    Lock,
+    EyeOff,
+    Eye,
+    Wrench,
+    Check
 } from "lucide-react"
 
 const CATEGORIES = [
@@ -41,10 +29,11 @@ const CATEGORIES = [
     "Painting", "Tiling", "Roofing", "AC Repair",
     "Waste Disposal", "General Handyman"
 ]
+import { US_STATES } from "@/lib/us-region"
 
-const NIGERIAN_STATES = [
-    "Lagos", "Abuja (FCT)", "Rivers", "Oyo", "Kano", "Ogun", "Delta", "Edo", "Anambra", "Enugu"
-]
+
+
+
 
 export default function ProviderSignupPage() {
     const router = useRouter()
@@ -52,404 +41,474 @@ export default function ProviderSignupPage() {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
+    const [showPassword, setShowPassword] = useState(false)
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+    const [captchaToken, setCaptchaToken] = useState("")
+    const [securityError, setSecurityError] = useState<string | null>(null)
+    const turnstileRef = useRef<AuthTurnstileHandle>(null)
+    const authInFlight = useRef(false)
 
     const [formData, setFormData] = useState({
         fullName: "",
         email: "",
         phone: "",
         password: "",
+        confirmPassword: "",
         category: "",
         experience: "",
         state: "",
         city: "",
         bio: "",
-        cacNumber: "",
     })
 
-    const [files, setFiles] = useState<{
-        profilePhoto: File | null;
-        governmentId: File | null;
-    }>({
-        profilePhoto: null,
-        governmentId: null,
-    })
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         setFormData({
             ...formData,
             [e.target.id]: e.target.value,
         })
     }
 
-    const handleSelectChange = (id: string, value: string) => {
-        setFormData({
-            ...formData,
-            [id]: value,
-        })
-    }
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'profilePhoto' | 'governmentId') => {
-        if (e.target.files && e.target.files[0]) {
-            setFiles({
-                ...files,
-                [type]: e.target.files[0]
-            })
+    const nextStep = () => {
+        setError(null)
+        // Basic validation before moving to next step
+        if (step === 1) {
+            if (!formData.fullName || !formData.email || !formData.phone || !formData.password) {
+                setError("Please fill in all account credentials.")
+                return
+            }
+            if (formData.password.length < 8) {
+                setError("Password must be at least 8 characters.")
+                return
+            }
+            if (formData.password !== formData.confirmPassword) {
+                setError("Passwords do not match. Please enter the same password twice.")
+                return
+            }
+        } else if (step === 2) {
+            if (!formData.category || !formData.experience || !formData.bio) {
+                setError("Please fill in all professional details.")
+                return
+            }
+        } else if (step === 3) {
+            if (!formData.state || !formData.city) {
+                setError("Please fill in all service location details.")
+                return
+            }
         }
+        setStep(step + 1)
     }
-
-    const nextStep = () => setStep(step + 1)
     const prevStep = () => setStep(step - 1)
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault()
+        if (authInFlight.current) return
+        
         if (step < 4) {
             nextStep()
             return
         }
 
+        if (formData.password.length < 8) {
+            setError("Password must be at least 8 characters.")
+            return
+        }
+        if (formData.password !== formData.confirmPassword) {
+            setError("Passwords do not match. Please enter the same password twice.")
+            return
+        }
+        const verificationToken = turnstileEnabled ? turnstileRef.current?.consumeToken() : undefined
+        if (turnstileEnabled && !verificationToken) {
+            setSecurityError("Please complete a fresh security verification before submitting your registration.")
+            return
+        }
+        authInFlight.current = true
         setIsLoading(true)
         setError(null)
 
         try {
             // 1. Sign up with Supabase Auth
             const { data: authData, error: authError } = await supabase.auth.signUp({
-                email: formData.email,
+                email: formData.email.trim(),
                 password: formData.password,
                 options: {
                     data: {
                         full_name: formData.fullName,
                         role: 'service_provider',
+                        phone: formData.phone.trim(),
+                        provider_registration: {
+                            category: formData.category, experience: formData.experience,
+                            state: formData.state, city: formData.city, bio: formData.bio.slice(0, 2000),
+                        },
                     },
+                    emailRedirectTo: `${window.location.origin}/provider-login`,
+                    captchaToken: verificationToken,
                 },
             })
-            console.log("Provider signup authData:", authData)
-            console.log("Provider signup authError:", authError)
 
             if (authError) throw authError
             if (!authData.user) throw new Error("Signup failed")
 
-            const userId = authData.user.id
-
-            // 2. Upload Files
-            let profileUrl = ""
-            let idUrl = ""
-
-            if (files.profilePhoto) {
-                const fileName = `${userId}/profile_${Date.now()}`
-                const { data: uploadData, error: uploadError } = await supabase.storage
-                    .from('provider_documents')
-                    .upload(fileName, files.profilePhoto)
-                if (uploadError) throw uploadError
-                profileUrl = supabase.storage.from('provider_documents').getPublicUrl(fileName).data.publicUrl
-            }
-
-            if (files.governmentId) {
-                const fileName = `${userId}/id_${Date.now()}`
-                const { data: uploadData, error: uploadError } = await supabase.storage
-                    .from('provider_documents')
-                    .upload(fileName, files.governmentId)
-                if (uploadError) throw uploadError
-                idUrl = supabase.storage.from('provider_documents').getPublicUrl(fileName).data.publicUrl
-            }
-
-            // 3. Create Service Provider Record
-            const { error: providerError } = await supabase
-                .from('service_providers')
-                .insert({
-                    user_id: userId,
-                    category: formData.category,
-                    experience_years: parseInt(formData.experience) || 0,
-                    location_state: formData.state,
-                    location_city: formData.city,
-                    bio: formData.bio,
-                    verified: false,
-                    approval_status: 'pending'
-                })
-
-            if (providerError) throw providerError
-
-            // 4. Update profile with photo if available
-            if (profileUrl) {
-                await supabase
-                    .from('profiles')
-                    .update({ profile_image_url: profileUrl })
-                    .eq('id', userId)
+            if (authData.session) {
+                router.replace("/provider-onboarding")
+                return
             }
 
             setSuccess(true)
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Signup error:", err)
-            setError(err.message || "Something went wrong during registration")
+            turnstileRef.current?.reset()
+            setError(getErrorMessage(err) || "Something went wrong during registration")
         } finally {
+            authInFlight.current = false
             setIsLoading(false)
         }
     }
 
+    // Success screen
     if (success) {
         return (
-            <Card className="max-w-md mx-auto text-center p-8 py-12">
-                <div className="flex justify-center mb-6">
-                    <div className="h-20 w-20 rounded-full bg-green-100 flex items-center justify-center">
-                        <CheckCircle className="h-10 w-10 text-green-600" />
+            <div className="w-full overflow-hidden rounded-xl border border-border bg-white shadow-lg">
+                <div className="space-y-4 px-6 py-10 text-center">
+                    <div className="flex justify-center">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50">
+                            <CheckCircle className="h-8 w-8 text-prms-emerald" />
+                        </div>
                     </div>
+                    <h2 className="text-2xl font-semibold text-prms-navy">Check your email</h2>
+                    <p className="mx-auto max-w-sm text-sm leading-relaxed text-prms-slate">
+                        Your login and professional details have been saved. Confirm your email, then sign in to upload your documents and submit your provider application for review.
+                    </p>
+                    <Link href="/provider-login">
+                        <button className="mt-4 h-11 w-full rounded-lg bg-prms-blue font-semibold text-white transition-all hover:bg-blue-700">
+                            Go to Login
+                        </button>
+                    </Link>
                 </div>
-                <CardTitle className="text-2xl mb-4">Registration Submitted!</CardTitle>
-                <CardDescription className="text-base mb-8">
-                    Your account has been created and is currently **pending admin approval**.
-                    We will notify you via email once your account is activated.
-                </CardDescription>
-                <Button className="w-full" asChild>
-                    <Link href="/login">Go to Login</Link>
-                </Button>
-            </Card>
+            </div>
         )
     }
 
-    return (
-        <Card className="max-w-2xl mx-auto shadow-xl border-none">
-            <CardHeader className="space-y-1">
-                <CardTitle className="text-3xl font-bold flex items-center gap-2">
-                    <Briefcase className="h-8 w-8 text-blue-600" />
-                    Provider Registration
-                </CardTitle>
-                <CardDescription>
-                    Step {step} of 4: {
-                        step === 1 ? "Account Credentials" :
-                            step === 2 ? "Professional Details" :
-                                step === 3 ? "Service Location" : "Verification Documents"
-                    }
-                </CardDescription>
-                <div className="w-full bg-gray-100 h-2 mt-4 rounded-full overflow-hidden">
-                    <div
-                        className="bg-blue-600 h-full transition-all duration-300"
-                        style={{ width: `${(step / 4) * 100}%` }}
-                    />
-                </div>
-            </CardHeader>
-            <form onSubmit={handleSignup}>
-                <CardContent className="pt-6 space-y-6">
-                    {error && (
-                        <Alert variant="destructive">
-                            <AlertDescription>{error}</AlertDescription>
-                        </Alert>
-                    )}
+    const steps = [
+        { num: 1, label: "Account" },
+        { num: 2, label: "Skills" },
+        { num: 3, label: "Location" },
+        { num: 4, label: "Confirm" },
+    ]
 
+    return (
+        <div className="w-full max-w-xl mx-auto overflow-hidden rounded-xl border border-border bg-white shadow-lg">
+            <div className="border-b border-border px-6 pb-4 pt-6">
+                <div className="flex items-center gap-2 mb-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-prms-blue/10 text-prms-blue">
+                        <Wrench className="h-4 w-4" />
+                    </div>
+                    <h1 className="text-2xl font-semibold tracking-tight text-prms-navy">Provider Registration</h1>
+                </div>
+                <p className="mt-1 text-sm text-prms-slate">
+                    Join our network of trusted service professionals.
+                </p>
+
+                {/* Step Indicator */}
+                <div className="mt-8 flex items-center justify-between relative px-2">
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 w-full bg-border -z-10" />
+                    <div 
+                        className="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 bg-prms-blue -z-10 transition-all duration-300"
+                        style={{ width: `${((step - 1) / (steps.length - 1)) * 100}%` }}
+                    />
+                    
+                    {steps.map((s) => {
+                        const isActive = s.num === step;
+                        const isCompleted = s.num < step;
+                        return (
+                            <div key={s.num} className="flex flex-col items-center gap-2 bg-white">
+                                <div className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-sm font-semibold transition-colors duration-300 ${
+                                    isCompleted ? 'border-prms-emerald bg-prms-emerald text-white' :
+                                    isActive ? 'border-prms-blue bg-prms-blue text-white' :
+                                    'border-border bg-secondary text-prms-slate'
+                                }`}>
+                                    {isCompleted ? <Check className="h-4 w-4" /> : s.num}
+                                </div>
+                                <span className={`text-xs font-medium ${isActive || isCompleted ? 'text-prms-navy' : 'text-prms-slate'}`}>
+                                    {s.label}
+                                </span>
+                            </div>
+                        )
+                    })}
+                </div>
+            </div>
+
+            <form onSubmit={handleSignup} className="space-y-4 px-6 pb-6 pt-5">
+                {error && (
+                    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-600">
+                        {error}
+                    </div>
+                )}
+
+                <div className="min-h-[280px]">
+                    {/* Step 1: Account Credentials */}
                     {step === 1 && (
-                        <div className="space-y-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="fullName">Full Name</Label>
-                                <Input
-                                    id="fullName"
-                                    placeholder="Enter your legal full name"
-                                    required
-                                    value={formData.fullName}
-                                    onChange={handleChange}
-                                />
+                        <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                            <div className="space-y-1.5">
+                                <label htmlFor="fullName" className="text-sm font-medium text-prms-navy">Full Name</label>
+                                <div className="relative">
+                                    <User className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                    <input
+                                        id="fullName"
+                                        placeholder="Chinedu Okafor"
+                                        required
+                                        value={formData.fullName}
+                                        onChange={handleChange}
+                                        disabled={isLoading}
+                                        className="h-12 w-full rounded-lg border border-border bg-secondary/30 pl-10 pr-4 text-base text-prms-navy placeholder:text-prms-slate/60 transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 md:text-sm"
+                                    />
+                                </div>
                             </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email Address</Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    placeholder="name@example.com"
-                                    required
-                                    value={formData.email}
-                                    onChange={handleChange}
-                                />
+                            
+                            <div className="space-y-1.5">
+                                <label htmlFor="email" className="text-sm font-medium text-prms-navy">Email Address</label>
+                                <div className="relative">
+                                    <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                    <input
+                                        id="email"
+                                        type="email"
+                                        placeholder="name@example.com"
+                                        required
+                                        value={formData.email}
+                                        onChange={handleChange}
+                                        disabled={isLoading}
+                                        className="h-12 w-full rounded-lg border border-border bg-secondary/30 pl-10 pr-4 text-base text-prms-navy placeholder:text-prms-slate/60 transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 md:text-sm"
+                                    />
+                                </div>
                             </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="phone">Phone Number</Label>
-                                <Input
-                                    id="phone"
-                                    placeholder="e.g., 08012345678"
-                                    required
-                                    value={formData.phone}
-                                    onChange={handleChange}
-                                />
+
+                            <div className="space-y-1.5">
+                                <label htmlFor="phone" className="text-sm font-medium text-prms-navy">Phone Number</label>
+                                <div className="relative">
+                                    <Phone className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                    <input
+                                        id="phone"
+                                        type="tel"
+                                        placeholder="(555) 555-0123"
+                                        required
+                                        value={formData.phone}
+                                        onChange={handleChange}
+                                        disabled={isLoading}
+                                        className="h-12 w-full rounded-lg border border-border bg-secondary/30 pl-10 pr-4 text-base text-prms-navy placeholder:text-prms-slate/60 transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 md:text-sm"
+                                    />
+                                </div>
                             </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="password">Password</Label>
-                                <Input
-                                    id="password"
-                                    type="password"
-                                    placeholder="Create a strong password"
-                                    required
-                                    value={formData.password}
-                                    onChange={handleChange}
-                                />
-                            </div>
+
+                            <div className="space-y-1.5">
+                    <label htmlFor="password" className="text-sm font-medium text-prms-navy">Password</label>
+                    <div className="relative">
+                        <input
+                            id="password"
+                            type={showPassword ? "text" : "password"}
+                            autoComplete="new-password"
+                            placeholder="At least 8 characters"
+                            required
+                            minLength={8}
+                            value={formData.password}
+                            onChange={handleChange}
+                            disabled={isLoading}
+                            className="h-12 w-full rounded-lg border border-border bg-white pl-4 pr-14 text-base text-prms-navy placeholder:text-slate-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            aria-label={showPassword ? "Hide password" : "Show password"}
+                            aria-pressed={showPassword}
+                            aria-controls="password"
+                            disabled={isLoading}
+                            className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-lg text-slate-600 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-blue-700"
+                        >
+                            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </button>
+                    </div>
+                </div>
+                            <div className="space-y-1.5">
+                    <label htmlFor="confirmPassword" className="text-sm font-medium text-prms-navy">Confirm password</label>
+                    <div className="relative">
+                        <input
+                            id="confirmPassword"
+                            type={showConfirmPassword ? "text" : "password"}
+                            autoComplete="new-password"
+                            placeholder="Enter your password again"
+                            required
+                            minLength={8}
+                            value={formData.confirmPassword}
+                            onChange={handleChange}
+                            disabled={isLoading}
+                            className="h-12 w-full rounded-lg border border-border bg-white pl-4 pr-14 text-base text-prms-navy placeholder:text-slate-500 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                            aria-pressed={showConfirmPassword}
+                            aria-controls="confirmPassword"
+                            disabled={isLoading}
+                            className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-lg text-slate-600 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-blue-700"
+                        >
+                            {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </button>
+                    </div>
+                </div>
                         </div>
                     )}
 
+                    {/* Step 2: Professional Details */}
                     {step === 2 && (
-                        <div className="space-y-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="category">Service Category</Label>
-                                <Select
-                                    value={formData.category}
-                                    onValueChange={(v) => handleSelectChange('category', v)}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select your primary skill" />
-                                    </SelectTrigger>
-                                    <SelectContent>
+                        <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                            <div className="space-y-1.5">
+                                <label htmlFor="category" className="text-sm font-medium text-prms-navy">Service Category</label>
+                                <div className="relative">
+                                    <Briefcase className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                    <select
+                                        id="category"
+                                        required
+                                        value={formData.category}
+                                        onChange={handleChange}
+                                        disabled={isLoading}
+                                        className="h-12 w-full appearance-none rounded-lg border border-border bg-secondary/30 pl-10 pr-4 text-base text-prms-navy transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 md:text-sm"
+                                    >
+                                        <option value="" disabled>Select your primary skill</option>
                                         {CATEGORIES.map(cat => (
-                                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                            <option key={cat} value={cat}>{cat}</option>
                                         ))}
-                                    </SelectContent>
-                                </Select>
+                                    </select>
+                                </div>
                             </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="experience">Years of Experience</Label>
-                                <Input
-                                    id="experience"
-                                    type="number"
-                                    placeholder="How many years have you been working?"
-                                    required
-                                    value={formData.experience}
-                                    onChange={handleChange}
-                                />
+                            
+                            <div className="space-y-1.5">
+                                <label htmlFor="experience" className="text-sm font-medium text-prms-navy">Years of Experience</label>
+                                <div className="relative">
+                                    <Briefcase className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                    <input
+                                        id="experience"
+                                        type="number"
+                                        placeholder="e.g., 5"
+                                        required
+                                        min={0}
+                                        value={formData.experience}
+                                        onChange={handleChange}
+                                        disabled={isLoading}
+                                        className="h-12 w-full rounded-lg border border-border bg-secondary/30 pl-10 pr-4 text-base text-prms-navy placeholder:text-prms-slate/60 transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 md:text-sm"
+                                    />
+                                </div>
                             </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="bio">Professional Bio</Label>
-                                <Textarea
+
+                            <div className="space-y-1.5">
+                                <label htmlFor="bio" className="text-sm font-medium text-prms-navy">Professional Bio</label>
+                                <textarea
                                     id="bio"
                                     placeholder="Briefly describe your services and expertise..."
-                                    className="min-h-[120px]"
                                     required
                                     value={formData.bio}
                                     onChange={handleChange}
+                                    disabled={isLoading}
+                                    className="min-h-[100px] w-full rounded-lg border border-border bg-secondary/30 p-3 text-base text-prms-navy placeholder:text-prms-slate/60 transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 md:text-sm resize-none"
                                 />
                             </div>
                         </div>
                     )}
 
+                    {/* Step 3: Service Location */}
                     {step === 3 && (
-                        <div className="space-y-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="state">Service State</Label>
-                                <Select
-                                    value={formData.state}
-                                    onValueChange={(v) => handleSelectChange('state', v)}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select state in Nigeria" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {NIGERIAN_STATES.map(state => (
-                                            <SelectItem key={state} value={state}>{state}</SelectItem>
+                        <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                            <div className="space-y-1.5">
+                                <label htmlFor="state" className="text-sm font-medium text-prms-navy">Service State</label>
+                                <div className="relative">
+                                    <MapPin className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                    <select
+                                        id="state"
+                                        required
+                                        value={formData.state}
+                                        onChange={handleChange}
+                                        disabled={isLoading}
+                                        className="h-12 w-full appearance-none rounded-lg border border-border bg-secondary/30 pl-10 pr-4 text-base text-prms-navy transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 md:text-sm"
+                                    >
+                                        <option value="" disabled>Select state</option>
+                                        {US_STATES.map(state => (
+                                            <option key={state} value={state}>{state}</option>
                                         ))}
-                                    </SelectContent>
-                                </Select>
+                                    </select>
+                                </div>
                             </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="city">City / Area</Label>
-                                <Input
-                                    id="city"
-                                    placeholder="Enter city or area of residence"
-                                    required
-                                    value={formData.city}
-                                    onChange={handleChange}
-                                />
+                            
+                            <div className="space-y-1.5">
+                                <label htmlFor="city" className="text-sm font-medium text-prms-navy">City / Area</label>
+                                <div className="relative">
+                                    <MapPin className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                    <input
+                                        id="city"
+                                        placeholder="e.g., Ikeja"
+                                        required
+                                        value={formData.city}
+                                        onChange={handleChange}
+                                        disabled={isLoading}
+                                        className="h-12 w-full rounded-lg border border-border bg-secondary/30 pl-10 pr-4 text-base text-prms-navy placeholder:text-prms-slate/60 transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 md:text-sm"
+                                    />
+                                </div>
                             </div>
                         </div>
                     )}
 
                     {step === 4 && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-3">
-                                <Label>Profile Photo</Label>
-                                <div className="border-2 border-dashed rounded-xl p-6 text-center hover:bg-gray-50 transition-colors relative">
-                                    <input
-                                        type="file"
-                                        className="absolute inset-0 opacity-0 cursor-pointer"
-                                        onChange={(e) => handleFileChange(e, 'profilePhoto')}
-                                        accept="image/*"
-                                    />
-                                    {files.profilePhoto ? (
-                                        <div className="flex flex-col items-center">
-                                            <CheckCircle className="h-8 w-8 text-green-500 mb-2" />
-                                            <p className="text-xs font-medium truncate w-full px-2">{files.profilePhoto.name}</p>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <User className="h-10 w-10 mx-auto text-gray-300 mb-2" />
-                                            <p className="text-xs text-gray-500">Upload professional photo</p>
-                                        </>
-                                    )}
-                                </div>
+                        <div className="space-y-4">
+                            <div className="rounded-lg border bg-secondary/30 p-4 text-sm">
+                                <p className="font-semibold">Create your login first</p>
+                                <p className="mt-2">Confirm your email, then sign in to upload your profile photo and government ID. Your professional details will be filled in automatically.</p>
+                                <p className="mt-2">Your application goes to the review team after you submit those documents.</p>
                             </div>
-
-                            <div className="space-y-3">
-                                <Label>Government ID (NIN/DL)</Label>
-                                <div className="border-2 border-dashed rounded-xl p-6 text-center hover:bg-gray-50 transition-colors relative">
-                                    <input
-                                        type="file"
-                                        className="absolute inset-0 opacity-0 cursor-pointer"
-                                        onChange={(e) => handleFileChange(e, 'governmentId')}
-                                        accept="image/*,.pdf"
-                                    />
-                                    {files.governmentId ? (
-                                        <div className="flex flex-col items-center">
-                                            <CheckCircle className="h-8 w-8 text-green-500 mb-2" />
-                                            <p className="text-xs font-medium truncate w-full px-2">{files.governmentId.name}</p>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <ShieldCheck className="h-10 w-10 mx-auto text-gray-300 mb-2" />
-                                            <p className="text-xs text-gray-500">Upload ID for verification</p>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="md:col-span-2 space-y-4 mt-4">
-                                <div className="p-4 bg-orange-50 border border-orange-100 rounded-lg text-sm text-orange-800 flex gap-3">
-                                    <ShieldCheck className="h-5 w-5 shrink-0" />
-                                    <p>Upon registration, your documents will be reviewed by our compliance team. Verification typically takes 24-48 hours.</p>
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="cacNumber">CAC Number (Optional for Companies)</Label>
-                                    <Input
-                                        id="cacNumber"
-                                        placeholder="RC-1234567"
-                                        value={formData.cacNumber}
-                                        onChange={handleChange}
-                                    />
-                                </div>
-                            </div>
+                            <AuthTurnstile ref={turnstileRef} onTokenChange={setCaptchaToken} onErrorChange={setSecurityError} />
+                            {securityError && <span className="sr-only">{securityError}</span>}
                         </div>
                     )}
-                </CardContent>
-                <CardFooter className="flex flex-col gap-4 p-6 border-t font-medium">
-                    <div className="flex w-full gap-4">
-                        {step > 1 && (
-                            <Button type="button" variant="outline" onClick={prevStep} disabled={isLoading}>
-                                <ChevronLeft className="h-4 w-4 mr-2" /> Back
-                            </Button>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                    {step > 1 && (
+                        <button
+                            type="button"
+                            onClick={prevStep}
+                            disabled={isLoading}
+                            className="flex h-12 w-1/3 items-center justify-center gap-2 rounded-lg border border-border bg-white font-semibold text-prms-navy transition-all hover:bg-secondary disabled:opacity-60"
+                        >
+                            <ChevronLeft className="h-4 w-4" /> Back
+                        </button>
+                    )}
+                    <button
+                        type="submit"
+                        disabled={isLoading || Boolean(step === 4 && turnstileEnabled && !captchaToken)}
+                        className={`flex h-12 ${step > 1 ? 'w-2/3' : 'w-full'} items-center justify-center gap-2 rounded-lg bg-prms-blue font-semibold text-white transition-all hover:bg-blue-700 disabled:opacity-60`}
+                    >
+                        {isLoading ? (
+                            <><Loader2 className="h-4 w-4 animate-spin" /> Processing…</>
+                        ) : (
+                            <>
+                                {step < 4 ? <span>Next</span> : <span>Submit Registration</span>}
+                                {step < 4 && <ChevronRight className="h-4 w-4" />}
+                            </>
                         )}
-                        <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
-                            {isLoading ? (
-                                <>
-                                    <Loader2 className="h-4 w-4 animate-spin mr-2" /> Registering...
-                                </>
-                            ) : (
-                                <>
-                                    {step < 4 ? (
-                                        <>Next <ChevronRight className="h-4 w-4 ml-2" /></>
-                                    ) : "Submit Registration"}
-                                </>
-                            )}
-                        </Button>
-                    </div>
-                    <div className="text-center text-sm font-normal text-gray-500">
-                        Interested in Renting?{" "}
-                        <Link href="/signup" className="text-blue-600 underline font-medium">
-                            Register as a Tenant
+                    </button>
+                </div>
+
+                <div className="pt-2 text-center space-y-2">
+                    <p className="text-sm text-prms-slate">
+                        Already have an account?{" "}
+                        <Link href="/provider-login" className="font-semibold text-primary transition-colors hover:text-blue-700">
+                            Sign in
                         </Link>
-                    </div>
-                </CardFooter>
+                    </p>
+                    <p className="text-sm text-prms-slate">
+                        Looking to rent?{" "}
+                        <Link href="/signup" className="font-semibold text-primary transition-colors hover:text-blue-700">
+                            Sign up as Tenant
+                        </Link>
+                    </p>
+                </div>
             </form>
-        </Card>
+        </div>
     )
 }

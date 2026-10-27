@@ -117,7 +117,7 @@ export function ProviderMarketplaceModal({ requestId, onAssign }: ProviderMarket
                                     </div>
                                     <div className="flex flex-col items-end gap-2">
                                         <div className="text-right">
-                                            <p className="font-bold">From ₦{provider.starting_price || 'Negotiable'}</p>
+                                            <p className="font-bold">From ${provider.starting_price || 'Negotiable'}</p>
                                             <p className="text-xs text-muted-foreground">Est. time: {provider.response_time || '24h'}</p>
                                         </div>
                                         <Button size="sm" onClick={() => handleAssign(provider.id)}>

@@ -143,7 +143,7 @@ export function ProviderDashboard({ userId }: ProviderDashboardProps) {
                 />
                 <SummaryCard
                     title="Available Earnings"
-                    value={`₦${stats.balance.toLocaleString()}`}
+                    value={`$${stats.balance.toLocaleString()}`}
                     description="Ready to withdraw"
                     icon={DollarSign}
                     iconClassName="text-green-600"

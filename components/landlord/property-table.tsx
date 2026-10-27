@@ -311,7 +311,7 @@ export function PropertyTable({ landlordId }: PropertyTableProps) {
                                     {/* Price pill */}
                                     <div className="absolute top-3 right-3">
                                         <span className="inline-flex items-center rounded-full bg-slate-900/80 backdrop-blur-md px-2.5 py-1 text-[11px] font-bold text-slate-100 border border-slate-700/60">
-                                            ₦{Number(prop.price).toLocaleString()}
+                                            ${Number(prop.price).toLocaleString()}
                                             <span className="font-normal text-slate-400">
                                                 /{prop.frequency ? (prop.frequency.toLowerCase() === 'monthly' ? 'mo' : 'yr') : 'yr'}
                                             </span>

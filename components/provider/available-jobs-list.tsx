@@ -116,7 +116,7 @@ export function AvailableJobsList({ providerId, category, locationState }: Avail
                                     </div>
                                     {existingQuote ? (
                                         <Badge className="bg-blue-100 text-blue-800 border-blue-200">
-                                            Quote Submitted (₦{existingQuote.quoted_price?.toLocaleString()})
+                                            Quote Submitted (${existingQuote.quoted_price?.toLocaleString()})
                                         </Badge>
                                     ) : (
                                         <Button

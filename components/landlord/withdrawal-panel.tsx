@@ -38,13 +38,13 @@ export function WithdrawalPanel({ landlordId }: WithdrawalPanelProps) {
 
         try {
             // Fetch balance
-            const { data: profile } = await supabase
-                .from('profiles')
+            const { data: wallet } = await supabase
+                .from('landlord_wallets')
                 .select('balance')
-                .eq('id', landlordId)
-                .single()
+                .eq('landlord_id', landlordId)
+                .maybeSingle()
 
-            if (profile && !signal?.aborted) setBalance(profile.balance || 0)
+            if (!signal?.aborted) setBalance(Number(wallet?.balance || 0))
 
             // Fetch withdrawals
             const { data: withdrawalData } = await supabase
@@ -122,7 +122,7 @@ export function WithdrawalPanel({ landlordId }: WithdrawalPanelProps) {
                         <DollarSign className="h-4 w-4 text-primary" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold">₦{balance.toLocaleString()}</div>
+                        <div className="text-3xl font-bold">${balance.toLocaleString()}</div>
                         <p className="text-xs text-muted-foreground mt-1">Ready for withdrawal</p>
                     </CardContent>
                 </Card>
@@ -134,7 +134,7 @@ export function WithdrawalPanel({ landlordId }: WithdrawalPanelProps) {
                     </CardHeader>
                     <CardContent>
                         <div className="text-3xl font-bold">
-                            ₦{withdrawals
+                            ${withdrawals
                                 .filter(w => w.status === 'pending')
                                 .reduce((acc, curr) => acc + curr.amount, 0)
                                 .toLocaleString()}
@@ -153,7 +153,7 @@ export function WithdrawalPanel({ landlordId }: WithdrawalPanelProps) {
                     <form onSubmit={handleWithdraw}>
                         <CardContent className="space-y-4">
                             <div className="space-y-2">
-                                <Label htmlFor="amount">Amount (₦)</Label>
+                                <Label htmlFor="amount">Amount ($)</Label>
                                 <Input
                                     id="amount"
                                     type="number"
@@ -167,7 +167,7 @@ export function WithdrawalPanel({ landlordId }: WithdrawalPanelProps) {
                                 <Label htmlFor="bank">Bank Name</Label>
                                 <Input
                                     id="bank"
-                                    placeholder="e.g. GTBank, Zenith"
+                                    placeholder="Enter U.S. bank name"
                                     value={bankName}
                                     onChange={(e) => setBankName(e.target.value)}
                                     required
@@ -237,7 +237,7 @@ export function WithdrawalPanel({ landlordId }: WithdrawalPanelProps) {
                                                 {new Date(w.created_at).toLocaleDateString()}
                                             </TableCell>
                                             <TableCell className="font-semibold">
-                                                ₦{w.amount.toLocaleString()}
+                                                ${w.amount.toLocaleString()}
                                             </TableCell>
                                             <TableCell className="text-sm">
                                                 {w.bank_name}

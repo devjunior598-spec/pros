@@ -1,7 +1,6 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -120,68 +119,25 @@ export function LandlordApplicationsList({ landlordId }: LandlordApplicationsLis
     }, [fetchApplications, landlordId])
 
     const handleAction = async (requestId: string, propertyId: string, status: RentalStatus) => {
+        void propertyId
         setActionLoading(requestId)
 
         try {
-            // 1. Update Rental Status
-            const { error: rentalError } = await supabase
-                .from('rentals')
-                .update({ status })
-                .eq('id', requestId)
+            const response = await fetch(`/api/applications/${requestId}/status`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status })
+            })
+            const result = await response.json().catch(() => ({}))
 
-            if (rentalError) throw rentalError
-
-            // 2. If approved, update property status to 'rented' and CREATE INITIAL BILL
-            if (status === 'approved') {
-                const { error: propertyError } = await supabase
-                    .from('properties')
-                    .update({ status: 'rented' })
-                    .eq('id', propertyId)
-
-                if (propertyError) throw propertyError
-
-                const app = applications.find(a => a.id === requestId)
-
-                const { error: billError } = await supabase
-                    .from('bills')
-                    .insert({
-                        rental_id: requestId,
-                        type: 'rent',
-                        amount: app?.rent_amount || 0,
-                        due_date: app?.rent_start_date || new Date().toISOString().split('T')[0],
-                        status: 'unpaid'
-                    })
-
-                if (billError) {
-                    console.error("Failed to create automated bill:", billError)
-                }
-
-                if (app?.tenant_id) {
-                    await supabase.from('notifications').insert({
-                        user_id: app.tenant_id,
-                        type: 'rental_approval',
-                        title: 'Application Approved!',
-                        message: `Your rental application for ${app.property?.title} was approved by the landlord.`,
-                        link: '/my-property'
-                    })
-                }
-            } else if (status === 'rejected') {
-                const app = applications.find(a => a.id === requestId)
-                if (app?.tenant_id) {
-                    await supabase.from('notifications').insert({
-                        user_id: app.tenant_id,
-                        type: 'rental_rejection',
-                        title: 'Application Update',
-                        message: `Your application for ${app.property?.title} was not accepted at this time.`,
-                        link: '/applications'
-                    })
-                }
+            if (!response.ok) {
+                throw new Error(result.error || `Failed to ${status} application.`)
             }
 
             await fetchApplications()
         } catch (error: unknown) {
             console.error(`Error during application ${status}:`, error)
-            alert(`Failed to ${status} application.`)
+            alert(error instanceof Error ? error.message : `Failed to ${status} application.`)
         } finally {
             setActionLoading(null)
         }
@@ -269,7 +225,7 @@ export function LandlordApplicationsList({ landlordId }: LandlordApplicationsLis
                         const applicantName = app.tenant?.full_name || app.tenant?.name || "Prospective Tenant"
                         const moveInStr = app.rent_start_date ? new Date(app.rent_start_date).toLocaleDateString() : "Immediate / Earliest Available"
                         const empStr = app.employment || "Employed Professional"
-                        const incStr = app.income ? `₦${app.income}` : "Specified in profile"
+                        const incStr = app.income ? `$${app.income}` : "Specified in profile"
 
                         const fallbackCoverLetter = `Dear Property Owner / Landlord,\n\nI am writing to formally present my rental application for ${app.property?.title || "your rental property"}.\n\nApplicant Information & Overview:\n• Full Name: ${applicantName}\n• Employment Status: ${empStr}\n• Monthly Income: ${incStr}\n• Preferred Move-in Date: ${moveInStr}\n\nI am seeking a comfortable, well-maintained residence and am committed to maintaining a clean, responsible tenancy and ensuring prompt monthly rent payments.\n\nThank you for reviewing my application details. I look forward to your positive response.\n\nSincerely,\n${applicantName}\nContact: ${app.tenant?.email || "N/A"}`
 
@@ -294,7 +250,7 @@ export function LandlordApplicationsList({ landlordId }: LandlordApplicationsLis
                                             <div className="flex items-center space-x-2">
                                                 <CardTitle className="text-lg font-bold">{app.property?.title}</CardTitle>
                                                 <Badge className="bg-primary/10 text-primary border-primary/20 font-bold">
-                                                    ₦{app.rent_amount?.toLocaleString()}/mo
+                                                    ${app.rent_amount?.toLocaleString()}/mo
                                                 </Badge>
                                                 <Badge
                                                     className={`capitalize font-bold text-xs ${
@@ -354,7 +310,7 @@ export function LandlordApplicationsList({ landlordId }: LandlordApplicationsLis
                                                     <div>
                                                         <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Monthly Income</p>
                                                         <p className="text-xs font-semibold text-green-600 dark:text-green-400 mt-0.5">
-                                                            ₦{app.income || 'Not specified'}
+                                                            ${app.income || 'Not specified'}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -560,7 +516,7 @@ export function LandlordApplicationsList({ landlordId }: LandlordApplicationsLis
                                 </div>
                                 <div>
                                     <span className="text-muted-foreground uppercase text-[10px] font-bold tracking-wider">Income</span>
-                                    <p className="font-semibold text-green-600 dark:text-green-400 mt-0.5">₦{selectedLetter.income || "N/A"}</p>
+                                    <p className="font-semibold text-green-600 dark:text-green-400 mt-0.5">${selectedLetter.income || "N/A"}</p>
                                 </div>
                             </div>
 

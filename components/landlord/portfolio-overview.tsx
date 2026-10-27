@@ -102,7 +102,7 @@ export function PortfolioOverview({ landlordId }: PortfolioOverviewProps) {
                         </p>
                     </div>
                     <div className="text-right">
-                        <p className="font-semibold text-sm">₦{property.monthly_rent?.toLocaleString() || 0}</p>
+                        <p className="font-semibold text-sm">${property.monthly_rent?.toLocaleString() || 0}</p>
                         <p className="text-[10px] text-muted-foreground uppercase">{property.status}</p>
                     </div>
                 </div>

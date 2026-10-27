@@ -69,7 +69,7 @@ export function MaintenanceRequestForm({ tenantId, onSuccess }: MaintenanceReque
                 .from('rentals')
                 .select('id, property_id, property:properties(city, state)')
                 .eq('tenant_id', tenantId)
-                .is('end_date', null)
+                .in('status', ['approved', 'active', 'accepted'])
 
             if (rentalError) throw rentalError
 

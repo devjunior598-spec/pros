@@ -240,7 +240,7 @@ export default function LeaseDetailsPage() {
                                     <div className="grid gap-4 grid-cols-2 sm:grid-cols-4">
                                         <div className="p-3.5 rounded-xl border bg-slate-50 dark:bg-slate-950/40">
                                             <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Rent Price</span>
-                                            <span className="font-black text-slate-900 dark:text-white mt-1 block">₦{Number(lease.rent_amount).toLocaleString()}</span>
+                                            <span className="font-black text-slate-900 dark:text-white mt-1 block">${Number(lease.rent_amount).toLocaleString()}</span>
                                         </div>
                                         <div className="p-3.5 rounded-xl border bg-slate-50 dark:bg-slate-950/40">
                                             <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Frequency</span>
@@ -248,7 +248,7 @@ export default function LeaseDetailsPage() {
                                         </div>
                                         <div className="p-3.5 rounded-xl border bg-slate-50 dark:bg-slate-950/40">
                                             <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Deposit</span>
-                                            <span className="font-black text-slate-900 dark:text-white mt-1 block">₦{Number(lease.security_deposit).toLocaleString()}</span>
+                                            <span className="font-black text-slate-900 dark:text-white mt-1 block">${Number(lease.security_deposit).toLocaleString()}</span>
                                         </div>
                                         <div className="p-3.5 rounded-xl border bg-slate-50 dark:bg-slate-950/40">
                                             <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider">Duration</span>

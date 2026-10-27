@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect, useCallback, useRef, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { Activity, DollarSign, Users, Activity as ActivityIcon, CreditCard, Building2, CalendarCheck } from "lucide-react"
@@ -44,6 +44,14 @@ function DashboardContent() {
     const [revenueData, setRevenueData] = useState<{ name: string; revenue: number }[]>([])
     const [occupancyData, setOccupancyData] = useState<{ name: string; rate: number }[]>([])
     const [activities, setActivities] = useState<ActivityItem[]>([])
+    const isMountedRef = useRef(true)
+
+    useEffect(() => {
+        isMountedRef.current = true
+        return () => {
+            isMountedRef.current = false
+        }
+    }, [])
 
     // Sync tab with URL
     useEffect(() => {
@@ -52,27 +60,24 @@ function DashboardContent() {
         }
     }, [tabParam])
 
-    useEffect(() => {
-        let mounted = true
+    const fetchDashboard = useCallback(async () => {
+        try {
+            const user  = ctxUser
+            const uid   = ctxUserId
+            const role  = ctxProfile?.role ?? null
 
-        const fetchUser = async () => {
-            try {
-                const user  = ctxUser
-                const uid   = ctxUserId
-                const role  = ctxProfile?.role ?? null
+            if (ctxLoading) return
 
-                if (ctxLoading) return 
-                
-                if (!user || !uid) { 
-                    setLoading(false)
-                    return 
-                }
-                if (!mounted) return
+            if (!user || !uid) {
+                setLoading(false)
+                return
+            }
+            if (!isMountedRef.current) return
 
-                setUserId(uid)
-                if (role) setUserRole(role)
+            setUserId(uid)
+            if (role) setUserRole(role)
 
-                if (role === 'landlord' || role === 'admin') {
+            if (role === 'landlord' || role === 'admin') {
                     // Rentals & portfolio size
                     const { data: rentalsData } = await supabase
                         .from('rentals')
@@ -84,7 +89,7 @@ function DashboardContent() {
                         .select('*', { count: 'exact', head: true })
                         .eq('landlord_id', uid)
 
-                    if (mounted) {
+                    if (isMountedRef.current) {
                         const landlordRentals = rentalsData || []
                         const activeT  = landlordRentals.filter(r => r.status === 'approved' || r.status === 'active').length
                         const newApp   = landlordRentals.filter(r => r.status === 'pending').length
@@ -131,20 +136,48 @@ function DashboardContent() {
                         setOccupancyData(propertyCount ? [{ name: 'Current', rate: occupancy }] : [])
                         setActivities(mappedActivities)
                     }
-                }
-            } catch (error: any) {
-                if (!mounted) return
-                console.error("Error fetching dashboard profile:", error)
-            } finally {
-                if (mounted) {
-                    setLoading(false)
-                }
+            }
+        } catch (error: any) {
+            if (!isMountedRef.current) return
+            console.error("Error fetching dashboard profile:", error)
+        } finally {
+            if (isMountedRef.current) {
+                setLoading(false)
             }
         }
-        fetchUser()
-
-        return () => { mounted = false }
     }, [ctxLoading, ctxUser, ctxUserId, ctxProfile])
+
+    useEffect(() => {
+        fetchDashboard()
+    }, [fetchDashboard])
+
+    useEffect(() => {
+        if (ctxLoading || !ctxUserId || (ctxProfile?.role !== 'landlord' && ctxProfile?.role !== 'admin')) return
+
+        const refreshDashboard = () => fetchDashboard()
+        const refreshOnFocus = () => {
+            if (document.visibilityState === 'visible') refreshDashboard()
+        }
+        const channel = supabase
+            .channel(`landlord-dashboard-${ctxUserId}`)
+            .on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${ctxUserId}` },
+                refreshDashboard,
+            )
+            .subscribe()
+        const intervalId = window.setInterval(refreshDashboard, 30000)
+
+        window.addEventListener('focus', refreshDashboard)
+        document.addEventListener('visibilitychange', refreshOnFocus)
+
+        return () => {
+            window.clearInterval(intervalId)
+            window.removeEventListener('focus', refreshDashboard)
+            document.removeEventListener('visibilitychange', refreshOnFocus)
+            supabase.removeChannel(channel)
+        }
+    }, [ctxLoading, ctxUserId, ctxProfile?.role, fetchDashboard])
 
     if (loading) {
         return (
@@ -169,6 +202,14 @@ function DashboardContent() {
         )
     }
 
+    if (userRole === 'ceo') {
+        router.push('/dashboard/ceo')
+        return null
+    }
+    if (userRole === 'property_manager' || userRole === 'manager') {
+        router.push('/dashboard/manager')
+        return null
+    }
     if (userRole === 'service_provider') return <ProviderDashboardPage />
     if (userRole === 'tenant') return <TenantDashboard userId={userId} />
 
@@ -193,7 +234,7 @@ function DashboardContent() {
                 <div className="grid gap-4 sm:gap-6 grid-cols-2 lg:grid-cols-4">
                     <StatCard
                         title="Total Revenue"
-                        value={`₦${metrics.totalRevenue.toLocaleString()}`}
+                        value={`$${metrics.totalRevenue.toLocaleString()}`}
                         description="All successful rent collections"
                         icon={DollarSign}
                         iconClassName="text-blue-600 dark:text-blue-400"

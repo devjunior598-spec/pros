@@ -91,7 +91,7 @@ export function TenantBillsTable() {
 
         try {
             // 1. Build a unique reference (used by webhook to identify bill)
-            const reference = `bill-${billId}-${Date.now()}`
+            const reference = `rent-${billId}-${Date.now()}`
 
             if (method === 'wallet') {
                 // wallet payments are handled entirely via RPC for atomicity
@@ -111,24 +111,20 @@ export function TenantBillsTable() {
                 if (!email) {
                     throw new Error('Email address is required for card or bank payments. Please update your profile.');
                 }
-                // redirect to Paystack using server endpoint
-                const initRes = await fetch('/api/initiate-payment', {
+                const initRes = await fetch('/api/payments/initiate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         amount,
-                        // email was validated earlier; Paystack requires it
-                        email,
                         reference,
-                        metadata: { bill_id: billId, payment_method: method },
-                        // limit to selected channel
-                        channels: [method === 'card' ? 'card' : 'bank']
+                        paymentMethod: method,
+                        metadata: { bill_id: billId, due_date: bills.find(b => b.id === billId)?.due_date || null },
                     }),
                 })
 
                 const initData = await initRes.json()
                 if (!initRes.ok || !initData.payment_url) {
-                    throw new Error(initData?.message || 'Failed to initialize payment')
+                    throw new Error(initData?.error || initData?.message || 'Failed to initialize payment')
                 }
 
                 // redirecting will unmount component; no further state updates required
@@ -136,24 +132,8 @@ export function TenantBillsTable() {
                 return
             }
 
-            // 2. Update Bill
-            const bill = bills.find(b => b.id === billId)
-            if (!bill) return
-
-            const newAmountPaid = (bill.amount_paid || 0) + amount
-            const newStatus = newAmountPaid >= bill.amount ? 'paid' : 'partially_paid'
-
-            await supabase
-                .from('bills')
-                .update({
-                    amount_paid: newAmountPaid,
-                    status: newStatus,
-                    paid_at: newStatus === 'paid' ? new Date().toISOString() : null
-                })
-                .eq('id', billId)
-
             setIsPaymentModalOpen(false)
-            fetchData() // Refresh data
+            fetchData()
             toast({
                 title: "Payment successful!",
                 description: `Successfully paid ${formatCurrency(amount)}`,

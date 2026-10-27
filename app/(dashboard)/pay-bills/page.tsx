@@ -1,10 +1,11 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import { supabase } from "@/lib/supabase"
 import { Bill, PaymentTransaction } from "@/types"
 import { PaymentModal } from "@/components/tenant/payment-modal"
 import { formatCurrency } from "@/lib/utils"
+import { getBillDaysUntilDue } from "@/lib/bill-dates"
 import { useToast } from "@/hooks/use-toast"
 import { generateReceipt } from "@/lib/receipt-generator"
 import Link from "next/link"
@@ -20,22 +21,20 @@ import { Button } from "@/components/ui/button"
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 function formatDate(dateStr: string) {
-    return new Date(dateStr).toLocaleDateString('en-GB', {
+    return new Date(dateStr.length === 10 ? `${dateStr}T00:00:00` : dateStr).toLocaleDateString('en-US', {
         day: 'numeric', month: 'short', year: 'numeric'
     })
 }
 
 function getDueDateStatus(dueDate: string): 'overdue' | 'soon' | 'future' {
-    const diff = new Date(dueDate).getTime() - Date.now()
-    const days = diff / (1000 * 60 * 60 * 24)
+    const days = getBillDaysUntilDue(dueDate)
     if (days < 0) return 'overdue'
     if (days <= 7) return 'soon'
     return 'future'
 }
 
 function getDaysLabel(dueDate: string) {
-    const diff = new Date(dueDate).getTime() - Date.now()
-    const days = Math.ceil(diff / (1000 * 60 * 60 * 24))
+    const days = getBillDaysUntilDue(dueDate)
     if (days < 0) return `${Math.abs(days)}d overdue`
     if (days === 0) return 'Due today'
     return `${days}d left`
@@ -172,11 +171,11 @@ function BillCard({ bill, walletBalance, onPayClick }: {
                     {/* Amount */}
                     <div className="text-right flex-shrink-0">
                         <p className="text-xl font-bold text-foreground">
-                            ₦{bill.amount.toLocaleString()}
+                            ${bill.amount.toLocaleString()}
                         </p>
                         {(bill.amount_paid || 0) > 0 && (
                             <p className="text-xs text-slate-500 mt-0.5">
-                                ₦{(bill.amount_paid || 0).toLocaleString()} paid
+                                ${(bill.amount_paid || 0).toLocaleString()} paid
                             </p>
                         )}
                     </div>
@@ -208,7 +207,7 @@ function BillCard({ bill, walletBalance, onPayClick }: {
                             )}
                         >
                             <CreditCard className="h-3.5 w-3.5" />
-                            Pay Now
+                            {getBillDaysUntilDue(bill.due_date) > 0 ? 'Pay Early' : 'Pay Now'}
                         </button>
                     )}
                 </div>
@@ -256,7 +255,7 @@ function HistoryRow({ tx, onDownload }: {
                 <p className="text-xs text-slate-500 font-mono">{tx.reference.substring(0, 12)}...</p>
             </div>
             <div className="text-right flex-shrink-0">
-                <p className="text-sm font-bold text-foreground">₦{tx.amount.toLocaleString()}</p>
+                <p className="text-sm font-bold text-foreground">${tx.amount.toLocaleString()}</p>
                 <p className="text-[10px] text-slate-500">{formatDate(tx.created_at)}</p>
             </div>
             <span className={cn(
@@ -293,6 +292,7 @@ export default function PayBillsPage() {
     const [selectedBill, setSelectedBill] = useState<Bill | null>(null)
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
     const [refreshing, setRefreshing] = useState(false)
+    const openedBillFromUrl = useRef(false)
     const { toast } = useToast()
 
     const fetchPageData = useCallback(async () => {
@@ -309,10 +309,20 @@ export default function PayBillsPage() {
             const typed = billsData as any as Bill[]
             setBills(typed)
             const unpaid = typed.filter(b => b.status !== 'paid' && b.status !== 'processing')
-            const overdue = typed.filter(b => b.status === 'overdue')
+            const overdue = unpaid.filter(b => getBillDaysUntilDue(b.due_date) < 0)
             const totalOutstanding = unpaid.reduce((sum, b) => sum + (Number(b.amount) - Number(b.amount_paid || 0)), 0)
             const nextDue = unpaid.length > 0 ? unpaid[0].due_date : null
             setSummaryStats(prev => ({ ...prev, totalOutstanding, nextDueDate: nextDue, overdueCount: overdue.length }))
+
+            const billIdFromUrl = new URLSearchParams(window.location.search).get('billId')
+            if (!openedBillFromUrl.current && billIdFromUrl) {
+                const targetBill = unpaid.find(bill => bill.id === billIdFromUrl)
+                if (targetBill) {
+                    openedBillFromUrl.current = true
+                    setSelectedBill(targetBill)
+                    setIsPaymentModalOpen(true)
+                }
+            }
         }
 
         // 2. Wallet
@@ -350,58 +360,10 @@ export default function PayBillsPage() {
         setIsPaymentModalOpen(true)
     }
 
-    const processPayment = async (billId: string, amount: number, method: string) => {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
-        const email = user.email || ''
-
-        try {
-            const reference = `bill-${billId}-${Date.now()}`
-
-            if (method === 'wallet') {
-                const { data: rpcRes, error: walletError } = await supabase.rpc('process_wallet_payment', {
-                    p_bill_id: billId,
-                    p_amount: amount,
-                    p_tenant_id: user.id,
-                    p_reference: reference
-                })
-                if (walletError) throw walletError
-                if (rpcRes && (rpcRes as any).success === false) {
-                    throw new Error((rpcRes as any).message || 'Wallet payment failed')
-                }
-            } else {
-                if (!email) throw new Error('Email required for card or bank payments.')
-                const initRes = await fetch('/api/initiate-payment', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        amount, email, reference,
-                        metadata: { bill_id: billId, payment_method: method },
-                        channels: [method === 'card' ? 'card' : 'bank']
-                    }),
-                })
-                const initData = await initRes.json()
-                if (!initRes.ok || !initData.payment_url) throw new Error(initData?.message || 'Failed to initialize payment')
-                window.location.href = initData.payment_url
-                return
-            }
-
-            const bill = bills.find(b => b.id === billId)
-            if (!bill) return
-            const newAmountPaid = (bill.amount_paid || 0) + amount
-            const newStatus = newAmountPaid >= bill.amount ? 'paid' : 'partially_paid'
-            await supabase.from('bills').update({
-                amount_paid: newAmountPaid,
-                status: newStatus,
-                paid_at: newStatus === 'paid' ? new Date().toISOString() : null
-            }).eq('id', billId)
-
-            setIsPaymentModalOpen(false)
-            fetchPageData()
-            toast({ title: "Payment successful!", description: `Paid ${formatCurrency(amount)}` })
-        } catch (error: any) {
-            toast({ title: "Payment failed", description: error.message || "An error occurred.", variant: "destructive" })
-        }
+    const processPayment = async (_billId: string, _amount: number, _method: string) => {
+        const message = "U.S. payment processing is not configured yet. No payment was taken. Follow the payment instructions in your lease."
+        toast({ title: "Payments are not configured", description: message, variant: "destructive" })
+        throw new Error(message)
     }
 
     const handleDownloadReceipt = async (tx: PaymentTransaction) => {
@@ -457,7 +419,7 @@ export default function PayBillsPage() {
                     <div className="flex items-end justify-between">
                         <div>
                             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground tracking-tight">Pay Bills</h1>
-                            <p className="text-muted-foreground mt-1">View and settle your rent, utilities, and property charges.</p>
+                            <p className="text-muted-foreground mt-1">Pay rent, electricity, water, waste, and other bills before or on their due date. No need to wait for a reminder.</p>
                         </div>
                         <button
                             onClick={handleRefresh}
@@ -480,7 +442,7 @@ export default function PayBillsPage() {
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                             <SummaryCard
                                 label="Total Outstanding"
-                                value={`₦${summaryStats.totalOutstanding.toLocaleString()}`}
+                                value={`$${summaryStats.totalOutstanding.toLocaleString()}`}
                                 subtext={summaryStats.overdueCount > 0 ? `${summaryStats.overdueCount} bills need attention` : "Keep it up!"}
                                 icon={<TrendingDown className="h-5 w-5" />}
                                 accent="red"
@@ -494,7 +456,7 @@ export default function PayBillsPage() {
                             />
                             <SummaryCard
                                 label="Wallet Balance"
-                                value={`₦${summaryStats.walletBalance.toLocaleString()}`}
+                                value={`$${summaryStats.walletBalance.toLocaleString()}`}
                                 subtext="Available for instant pay"
                                 icon={<Wallet className="h-5 w-5" />}
                                 accent="green"

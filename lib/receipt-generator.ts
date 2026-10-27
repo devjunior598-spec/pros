@@ -28,8 +28,7 @@ export const generateReceipt = (data: ReceiptData) => {
     doc.setFontSize(10)
     doc.setTextColor(100, 100, 100)
     doc.text("Property Rental Management System", 14, 28)
-    doc.text("123 Property Lane, Lagos", 14, 33)
-    doc.text("Email: support@housedoplatform.com", 14, 38)
+    doc.text("United States", 14, 33)
 
     // Receipt Title & Number
     doc.setFontSize(16)

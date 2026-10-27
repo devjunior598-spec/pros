@@ -1,16 +1,10 @@
 import type { Metadata } from "next";
-import { Outfit } from "next/font/google";
 import "./globals.css";
-
-const outfit = Outfit({
-  variable: "--font-outfit",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "PRMS – Property Rental Management System",
-  description: "Nigeria's #1 property rental management platform. Verified landlords, smart tenant screening, online rent collection and more.",
-  keywords: "property management, Nigeria, rental, landlord, tenant, PRMS",
+  description: "Manage U.S. rental properties, listings, applications, leases, rent activity, and maintenance in one place.",
+  keywords: "U.S. property management, rentals, landlord, tenant, leasing, PRMS",
   icons: {
     icon: "/prms-logo.png",
     shortcut: "/prms-logo.png",
@@ -18,7 +12,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "PRMS – Property Rental Management System",
-    description: "Join the property network that values verification, speed, and safety.",
+    description: "A clear workspace for U.S. rental property operations.",
     type: "website",
   }
 };
@@ -61,7 +55,7 @@ export default function RootLayout({
         }} />
       </head>
       <body
-        className={`${outfit.variable} antialiased flex flex-col min-h-screen`}
+        className="antialiased flex flex-col min-h-screen"
         suppressHydrationWarning
       >
         <GlobalErrorSuppressor />

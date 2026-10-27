@@ -50,7 +50,7 @@ export default function TenantRentPaymentsPage() {
     const [paymentAmount, setPaymentAmount] = useState<number>(0)
     const [amountType, setAmountType] = useState<string>("full")
     const [customAmount, setCustomAmount] = useState<string>("")
-    const [paymentMethod, setPaymentMethod] = useState<string>("paystack")
+    const [paymentMethod, setPaymentMethod] = useState<string>("card")
     const [bankReference, setBankReference] = useState<string>("")
     const [landlordBank, setLandlordBank] = useState<any>(null)
     const [processing, setProcessing] = useState(false)
@@ -137,7 +137,7 @@ export default function TenantRentPaymentsPage() {
         setPaymentAmount(Number(bill.amount) - Number(bill.amount_paid || 0))
         setAmountType("full")
         setCustomAmount("")
-        setPaymentMethod("paystack")
+        setPaymentMethod("card")
         setBankReference("")
         setIsPayModalOpen(true)
 
@@ -163,142 +163,7 @@ export default function TenantRentPaymentsPage() {
 
     const handleProcessPayment = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!selectedBill || !profile) return
-
-        const outstanding = Number(selectedBill.amount) - Number(selectedBill.amount_paid || 0)
-        if (paymentAmount <= 0 || paymentAmount > outstanding) {
-            alert("Invalid payment amount.")
-            return
-        }
-
-        setProcessing(true)
-        const reference = `rent-${selectedBill.id}-${Date.now()}`
-        const meta = {
-            bill_id: selectedBill.id,
-            tenant_id: profile.id,
-            landlord_id: selectedBill.rental.property.landlord_id,
-            property_id: selectedBill.rental.property.id,
-            due_date: selectedBill.due_date
-        }
-
-        try {
-            // Option 1: Paystack / Flutterwave Online Payments
-            if (paymentMethod === "paystack" || paymentMethod === "flutterwave") {
-                const initRes = await fetch("/api/payments/initiate", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        amount: paymentAmount,
-                        email: profile.email,
-                        reference,
-                        paymentMethod: paymentMethod,
-                        metadata: meta
-                    })
-                })
-                const initData = await initRes.json()
-                if (!initRes.ok || !initData.payment_url) {
-                    throw new Error(initData.error || "Failed to initialize payment gateway")
-                }
-                
-                // Insert a pending record in rent_payments
-                await supabase.from("rent_payments").insert({
-                    tenant_id: profile.id,
-                    landlord_id: selectedBill.rental.property.landlord_id,
-                    property_id: selectedBill.rental.property.id,
-                    bill_id: selectedBill.id,
-                    amount: paymentAmount,
-                    payment_method: paymentMethod === "paystack" ? "Paystack" : "Flutterwave",
-                    transaction_reference: reference,
-                    payment_status: "Pending",
-                    due_date: selectedBill.due_date
-                })
-
-                toast({ title: "Redirecting...", description: "Taking you to secure checkout gateway." })
-                window.location.href = initData.payment_url
-                return
-            }
-
-            // Option 2: Wallet Payments
-            else if (paymentMethod === "wallet") {
-                if (walletBalance < paymentAmount) {
-                    alert("Insufficient wallet balance.")
-                    setProcessing(false)
-                    return
-                }
-
-                const { data: rpcRes, error: rpcError } = await supabase.rpc("process_wallet_payment", {
-                    p_bill_id: selectedBill.id,
-                    p_amount: paymentAmount,
-                    p_tenant_id: profile.id,
-                    p_reference: reference
-                })
-
-                if (rpcError) throw rpcError
-                if (rpcRes && (rpcRes as any).success === false) {
-                    throw new Error((rpcRes as any).message || "Wallet processing failed")
-                }
-
-                // Insert Paid record directly
-                const receiptNo = `RCP-${new Date().toISOString().substring(0,10).replace(/-/g, '')}-${reference.substring(reference.length - 4)}`.toUpperCase()
-                
-                await supabase.from("rent_payments").insert({
-                    tenant_id: profile.id,
-                    landlord_id: selectedBill.rental.property.landlord_id,
-                    property_id: selectedBill.rental.property.id,
-                    bill_id: selectedBill.id,
-                    amount: paymentAmount,
-                    payment_method: "Wallet",
-                    transaction_reference: reference,
-                    payment_status: "Paid",
-                    due_date: selectedBill.due_date,
-                    payment_date: new Date().toISOString(),
-                    receipt_number: receiptNo
-                })
-
-                toast({ title: "Payment Successful!", description: `₦${paymentAmount.toLocaleString()} paid from wallet balance.` })
-                setIsPayModalOpen(false)
-                fetchPageData()
-            }
-
-            // Option 3: Manual Bank Transfer
-            else if (paymentMethod === "transfer") {
-                if (!bankReference.trim()) {
-                    alert("Please enter transaction transfer reference code.")
-                    setProcessing(false)
-                    return
-                }
-
-                const res = await fetch("/api/payments/bank-transfer", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        propertyId: selectedBill.rental.property.id,
-                        tenantId: profile.id,
-                        landlordId: selectedBill.rental.property.landlord_id,
-                        amount: paymentAmount,
-                        reference: bankReference,
-                        dueDate: selectedBill.due_date,
-                        billId: selectedBill.id
-                    })
-                })
-
-                const result = await res.json()
-                if (!res.ok) throw new Error(result.error || "Failed to submit bank transfer reference")
-
-                toast({
-                    title: "Reference Submitted!",
-                    description: "Manual verification is pending landlord approval."
-                })
-                setIsPayModalOpen(false)
-                fetchPageData()
-            }
-
-        } catch (error: any) {
-            console.error(error)
-            alert(error.message || "An error occurred while processing payment.")
-        } finally {
-            setProcessing(false)
-        }
+        toast({ title: "Payments are not configured", description: "U.S. payment processing is not available yet. No payment was taken.", variant: "destructive" })
     }
 
     const handleDownloadPDF = (payment: any) => {
@@ -310,7 +175,7 @@ export default function TenantRentPaymentsPage() {
                 tenantName: profile?.name || profile?.email || "Tenant",
                 tenantEmail: profile?.email || "",
                 propertyName: payment.property?.title || "Rental Property",
-                propertyAddress: payment.property?.address || "Lagos, Nigeria",
+                propertyAddress: payment.property?.address || "United States",
                 paymentMethod: payment.payment_method,
                 transactionReference: payment.transaction_reference,
                 amountPaid: Number(payment.amount),
@@ -391,7 +256,7 @@ export default function TenantRentPaymentsPage() {
                         <CardHeader className="pb-2">
                             <span className="text-[10px] text-red-500 font-bold uppercase tracking-wider block">Current Rent Balance</span>
                             <CardTitle className="text-3xl font-black text-red-600 dark:text-red-400 mt-1">
-                                ₦{outstandingRent.toLocaleString()}
+                                ${outstandingRent.toLocaleString()}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -415,7 +280,7 @@ export default function TenantRentPaymentsPage() {
                         <CardHeader className="pb-2">
                             <span className="text-[10px] text-green-500 font-bold uppercase tracking-wider block">Wallet Balance</span>
                             <CardTitle className="text-3xl font-black text-green-600 dark:text-green-400 mt-1">
-                                ₦{walletBalance.toLocaleString()}
+                                ${walletBalance.toLocaleString()}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -467,11 +332,11 @@ export default function TenantRentPaymentsPage() {
                                                     <div className="flex items-center gap-5 justify-between w-full sm:w-auto">
                                                         <div className="text-left sm:text-right">
                                                             <p className="text-lg font-black text-blue-600 dark:text-blue-400">
-                                                                ₦{unpaidAmount.toLocaleString()}
+                                                                ${unpaidAmount.toLocaleString()}
                                                             </p>
                                                             {Number(bill.amount_paid || 0) > 0 && (
                                                                 <p className="text-[10px] text-slate-450 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">
-                                                                    ₦{Number(bill.amount_paid).toLocaleString()} Paid
+                                                                    ${Number(bill.amount_paid).toLocaleString()} Paid
                                                                 </p>
                                                             )}
                                                         </div>
@@ -520,7 +385,7 @@ export default function TenantRentPaymentsPage() {
                                                             <span className="text-[10px] font-mono text-slate-400 block mt-0.5">{p.transaction_reference.substring(0,12)}</span>
                                                         </div>
                                                         <div className="text-right">
-                                                            <p className="text-xs font-black text-slate-900 dark:text-slate-100">₦{Number(p.amount).toLocaleString()}</p>
+                                                            <p className="text-xs font-black text-slate-900 dark:text-slate-100">${Number(p.amount).toLocaleString()}</p>
                                                             <span className="text-[9px] text-slate-400 mt-0.5 block">{new Date(p.created_at).toLocaleDateString()}</span>
                                                         </div>
                                                     </div>
@@ -601,77 +466,13 @@ export default function TenantRentPaymentsPage() {
                                 </div>
                                 <div className="flex justify-between border-t border-slate-200/50 dark:border-slate-800/50 pt-2 font-black text-sm text-blue-600 dark:text-blue-400">
                                     <span>Outstanding Balance</span>
-                                    <span>₦{(Number(selectedBill.amount) - Number(selectedBill.amount_paid || 0)).toLocaleString()}</span>
+                                    <span>${(Number(selectedBill.amount) - Number(selectedBill.amount_paid || 0)).toLocaleString()}</span>
                                 </div>
                             </div>
 
-                            {/* Choose channels tabs */}
-                            <Tabs value={paymentMethod} onValueChange={setPaymentMethod} className="w-full">
-                                <TabsList className="grid w-full grid-cols-4 bg-slate-100 dark:bg-slate-950 rounded-xl p-1">
-                                    <TabsTrigger value="paystack" className="text-xs font-bold py-1.5 rounded-lg">Paystack</TabsTrigger>
-                                    <TabsTrigger value="flutterwave" className="text-xs font-bold py-1.5 rounded-lg">FWave</TabsTrigger>
-                                    <TabsTrigger value="wallet" className="text-xs font-bold py-1.5 rounded-lg">Wallet</TabsTrigger>
-                                    <TabsTrigger value="transfer" className="text-xs font-bold py-1.5 rounded-lg">Transfer</TabsTrigger>
-                                </TabsList>
-
-                                <TabsContent value="paystack" className="pt-3 text-xs text-slate-400 space-y-1.5">
-                                    <p className="font-semibold leading-relaxed">
-                                        🔗 You will be redirected to secure Paystack transaction portal to complete payment with card, bank, or USSD.
-                                    </p>
-                                </TabsContent>
-
-                                <TabsContent value="flutterwave" className="pt-3 text-xs text-slate-400 space-y-1.5">
-                                    <p className="font-semibold leading-relaxed">
-                                        🔗 You will be redirected to secure Flutterwave checkout form to complete payment using cards, transfer, or mobile money.
-                                    </p>
-                                </TabsContent>
-
-                                <TabsContent value="wallet" className="pt-3 space-y-3">
-                                    <div className="flex items-center justify-between p-4 rounded-xl border border-blue-100 dark:border-blue-900 bg-blue-50/50 dark:bg-blue-950/20">
-                                        <div>
-                                            <p className="text-xs text-slate-400 font-semibold">Wallet balance</p>
-                                            <p className="text-xl font-black text-blue-600 dark:text-blue-400 mt-0.5">₦{walletBalance.toLocaleString()}</p>
-                                        </div>
-                                        {walletBalance < paymentAmount && (
-                                            <Badge variant="destructive" className="text-[9px] uppercase tracking-wider font-extrabold flex items-center gap-1 rounded-lg">
-                                                <AlertCircle className="h-3 w-3" /> Insufficient Funds
-                                            </Badge>
-                                        )}
-                                    </div>
-                                </TabsContent>
-
-                                <TabsContent value="transfer" className="pt-3 space-y-3">
-                                    <div className="p-4 rounded-xl bg-orange-50/50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900 space-y-2 text-xs">
-                                        <p className="font-bold text-orange-850 dark:text-orange-300">Landlord Bank Details:</p>
-                                        {landlordBank ? (
-                                            <div className="space-y-1 font-semibold text-slate-655 dark:text-slate-300">
-                                                <p>Bank Name: <span className="font-extrabold">{landlordBank.bank_name}</span></p>
-                                                <p>Account Number: <span className="font-extrabold text-sm tracking-wider text-slate-900 dark:text-white">{landlordBank.account_number}</span></p>
-                                                <p>Account Name: <span className="font-extrabold">{landlordBank.account_name}</span></p>
-                                            </div>
-                                        ) : (
-                                            <div className="space-y-1 font-semibold text-slate-600 dark:text-slate-350">
-                                                <p>Bank Name: <span className="font-extrabold">PRMS Escrow Bank (GTBank)</span></p>
-                                                <p>Account Number: <span className="font-extrabold text-sm tracking-wider text-slate-900 dark:text-white">0123456789</span></p>
-                                                <p>Account Name: <span className="font-extrabold">PRMS Rent Escrow Account</span></p>
-                                            </div>
-                                        )}
-                                        <p className="text-[10px] text-slate-400 italic pt-1 leading-normal">
-                                            Transfer rent to account details above, then enter the transaction reference details below.
-                                        </p>
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <Label htmlFor="bank-ref" className="text-xs font-bold text-slate-400 uppercase tracking-wider">Transaction Reference</Label>
-                                        <Input 
-                                            id="bank-ref" 
-                                            placeholder="Enter your transfer Reference/ID code"
-                                            value={bankReference}
-                                            onChange={(e) => setBankReference(e.target.value)}
-                                            className="h-11 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 rounded-xl"
-                                        />
-                                    </div>
-                                </TabsContent>
-                            </Tabs>
+                            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+                                U.S. online payments and payouts are not configured yet. No payment can be submitted from PRMS. Follow the payment instructions in your lease.
+                            </div>
 
                             {/* Payment Amount selection */}
                             <div className="space-y-3">
@@ -704,21 +505,21 @@ export default function TenantRentPaymentsPage() {
 
                             {/* Terms Checkbox */}
                             <p className="text-[10px] text-center text-slate-400 leading-normal">
-                                Secure payments are verification audited server-side. PDF Receipts are generated upon gateway callback confirmation.
+                                Payment processing will be enabled after a U.S. provider is configured.
                             </p>
 
                             <Button 
                                 type="submit" 
-                                disabled={processing || (paymentMethod === "wallet" && walletBalance < paymentAmount) || paymentAmount <= 0}
+                                disabled
                                 className="w-full h-12 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold text-sm tracking-wide mt-2 shadow-lg shadow-green-600/10"
                             >
                                 {processing ? (
                                     <>
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Redirecting to secure gateway...
+                                        Preparing payment...
                                     </>
                                 ) : (
-                                    `Confirm Rent Payment (₦${paymentAmount.toLocaleString()})`
+                                    `Payment setup pending ($${paymentAmount.toLocaleString()})`
                                 )}
                             </Button>
                         </form>

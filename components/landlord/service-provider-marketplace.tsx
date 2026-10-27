@@ -25,8 +25,6 @@ import {
     Search,
     Star,
     Phone,
-    Mail,
-    ExternalLink,
     Globe,
     CheckCircle2,
     Loader2,
@@ -36,6 +34,7 @@ import {
     Briefcase
 } from "lucide-react"
 import { ServiceProvider, MaintenanceRequest } from "@/types/maintenance"
+import { US_STATES } from "@/lib/us-region"
 
 interface ServiceProviderMarketplaceProps {
     isOpen: boolean
@@ -108,6 +107,7 @@ export function ServiceProviderMarketplace({
                 .from('service_providers')
                 .select('*, provider:profiles!service_providers_user_id_fkey(*)')
                 .eq('approval_status', 'approved')
+                .in('location_state', [...US_STATES])
                 .order('rating', { ascending: false })
 
             if (signal) {
@@ -234,20 +234,6 @@ export function ServiceProviderMarketplace({
         }
     }
 
-    const getLocation = () => {
-        // In a real app, this would come from the property location
-        return "Lagos"
-    }
-
-    const getExternalLinks = (category: string) => {
-        const location = getLocation()
-        const query = `${category} in ${location}`
-        return [
-            { name: "Jiji Nigeria", url: `https://jiji.ng/search?query=${encodeURIComponent(query)}` },
-            { name: "OList Nigeria", url: `https://olist.ng/search?q=${encodeURIComponent(query)}` },
-            { name: "VConnect Nigeria", url: `https://www.vconnect.com/search?query=${encodeURIComponent(query)}` }
-        ]
-    }
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -317,7 +303,7 @@ export function ServiceProviderMarketplace({
                                                     </div>
                                                 </div>
                                                 <div className="flex flex-col items-end justify-between gap-2">
-                                                    <div className="text-lg font-bold text-blue-700">₦{quote.quoted_price?.toLocaleString()}</div>
+                                                    <div className="text-lg font-bold text-blue-700">${quote.quoted_price?.toLocaleString()}</div>
                                                     <Button
                                                         size="sm"
                                                         className="bg-blue-600 hover:bg-blue-700 w-full"
@@ -381,43 +367,12 @@ export function ServiceProviderMarketplace({
                                 ) : (
                                     <div className="text-center py-12 border border-dashed rounded-xl">
                                         <p className="text-muted-foreground mb-4">No in-app providers found matching your criteria.</p>
-                                        <div className="space-y-4">
-                                            <p className="text-sm font-semibold uppercase tracking-wider">Try External Platforms (Nigeria Focus)</p>
-                                            <div className="flex flex-wrap justify-center gap-3">
-                                                {getExternalLinks(selectedCategory === "all" ? "Service" : selectedCategory).map(link => (
-                                                    <Button key={link.name} variant="outline" size="sm" asChild>
-                                                        <a href={link.url} target="_blank" rel="noopener noreferrer">
-                                                            <ExternalLink className="h-3 w-3 mr-2" />
-                                                            Search on {link.name}
-                                                        </a>
-                                                    </Button>
-                                                ))}
-                                            </div>
-                                        </div>
+                                        <p className="mx-auto max-w-md text-sm text-muted-foreground">Provider listings will appear here when U.S. service-provider onboarding is configured.</p>
                                     </div>
                                 )}
                             </div>
                         </div>
                     </ScrollArea>
-                </div>
-
-                <div className="p-6 border-t bg-gray-50/50">
-                    <div className="flex flex-col gap-3">
-                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">Can't find what you're looking for?</p>
-                        <div className="flex flex-wrap gap-3">
-                            {getExternalLinks("Handyman").map(link => (
-                                <a
-                                    key={link.name}
-                                    href={link.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-sm text-blue-600 hover:underline flex items-center gap-1"
-                                >
-                                    <ExternalLink className="h-3 w-3" /> {link.name}
-                                </a>
-                            ))}
-                        </div>
-                    </div>
                 </div>
 
                 <DialogFooter className="p-6 border-t">

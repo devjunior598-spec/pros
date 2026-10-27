@@ -126,7 +126,7 @@ export default function ProviderDashboardPage() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-green-700">₦{stats.earnings.toLocaleString()}</div>
+                        <div className="text-2xl font-bold text-green-700">${stats.earnings.toLocaleString()}</div>
                         <p className="text-xs text-muted-foreground mt-1">Total completed jobs</p>
                     </CardContent>
                 </Card>

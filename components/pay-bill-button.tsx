@@ -36,7 +36,7 @@ export default function PayBillButton({ bill }: PayBillButtonProps) {
             const data = await response.json();
 
             if (data?.payment_url) {
-                // Redirect to Paystack checkout
+                // Redirect only after U.S. checkout is configured
                 window.location.href = data.payment_url;
             } else {
                 alert('Payment initialization failed: ' + (data?.message || 'Unknown error'));
@@ -61,7 +61,7 @@ export default function PayBillButton({ bill }: PayBillButtonProps) {
         <Button
             className="w-full bg-green-600 hover:bg-green-700 text-white"
             onClick={payBill}
-            disabled={loading}
+            disabled
         >
             {loading ? (
                 <>

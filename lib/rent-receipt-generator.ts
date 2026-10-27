@@ -91,7 +91,7 @@ export const generateRentReceipt = (data: RentReceiptData) => {
 
     doc.setFontSize(9)
     doc.setTextColor(148, 163, 184) // slate-400
-    doc.text("Thank you for your business. For support or dispute inquiries, contact billing@prms.ng", 14, finalY)
+    doc.text("Thank you for your business. Contact your property manager with questions.", 14, finalY)
     doc.text("This document serves as an official receipt of transaction fulfillment.", 14, finalY + 5)
 
     // Success Stamp

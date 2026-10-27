@@ -15,7 +15,7 @@ export async function POST(req: Request) {
         console.log(`Receipt Number: ${receiptNumber}`);
         console.log(`Tenant Name:    ${tenantName}`);
         console.log(`Property Name:  ${propertyName}`);
-        console.log(`Amount Paid:    ₦${Number(amountPaid).toLocaleString()}`);
+        console.log(`Amount Paid:    $${Number(amountPaid).toLocaleString()}`);
         console.log(`Date Paid:      ${datePaid}`);
         console.log(`Method:         ${paymentMethod}`);
         console.log(`Reference:      ${transactionReference}`);

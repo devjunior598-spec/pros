@@ -51,7 +51,7 @@ function FilterSelect({
 }) {
   return (
     <div className="flex w-full flex-col gap-1 sm:w-auto sm:min-w-[130px]">
-      <label className="px-1 text-xs font-medium text-muted-foreground">{label}</label>
+      <label className="px-1 text-xs font-medium text-slate-600">{label}</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -118,7 +118,9 @@ function ListingsContent() {
         let query = supabase
           .from("properties")
           .select("*")
+          .eq("country", "United States")
           .eq("status", "available")
+          .eq("publication_status", "published")
 
         if (searchQuery.trim()) {
           const q = searchQuery.trim()
@@ -149,6 +151,7 @@ function ListingsContent() {
 
         if (availableNow) {
           query = query.eq("status", "available")
+          .eq("publication_status", "published")
         }
 
         if (priceRange !== "all") {
@@ -230,7 +233,7 @@ function ListingsContent() {
   return (
     <PublicPageShell
       pageTitle="Browse Properties"
-      pageSubtitle="Discover available rental properties across Nigeria."
+      pageSubtitle="Browse rental homes across the United States by city, state, and ZIP code."
       badge="Property Marketplace"
       showBanner={true}
     >
@@ -246,20 +249,20 @@ function ListingsContent() {
           <div className="flex flex-col gap-4">
 
             <div className="w-full">
-              <label className="mb-1 block px-1 text-xs font-medium text-muted-foreground">Search</label>
+              <label className="mb-1 block px-1 text-xs font-medium text-slate-600">Search</label>
               <div className="relative">
-                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600" />
                 <input
                   type="text"
                   placeholder="Search by location or title..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-11 w-full rounded-lg border border-border bg-secondary/30 pl-10 pr-10 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                  className="h-11 w-full rounded-lg border border-border bg-secondary/30 pl-10 pr-10 text-sm text-foreground placeholder:text-slate-600 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 transition-colors hover:text-foreground"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -288,12 +291,12 @@ function ListingsContent() {
                 onChange={setPriceRange}
               >
                 <option value="all">Any Price</option>
-                <option value="0-500000">Under ₦500k</option>
-                <option value="500000-1500000">₦500k – ₦1.5M</option>
-                <option value="1500000-3000000">₦1.5M – ₦3M</option>
-                <option value="3000000-5000000">₦3M – ₦5M</option>
-                <option value="5000000-10000000">₦5M – ₦10M</option>
-                <option value="10000000">Above ₦10M</option>
+                <option value="0-1000">Under $1,000</option>
+                <option value="1000-2000">$1,000 – $2,000</option>
+                <option value="2000-3000">$2,000 – $3,000</option>
+                <option value="3000-5000">$3,000 – $5,000</option>
+                <option value="5000-10000">$5,000 – $10,000</option>
+                <option value="10000">Above $10,000</option>
               </FilterSelect>
 
               <FilterSelect
@@ -321,13 +324,13 @@ function ListingsContent() {
 
               {/* Saved toggle */}
               <div className="flex flex-col gap-1">
-                <label className="px-1 text-xs font-medium text-muted-foreground">Saved</label>
+                <label className="px-1 text-xs font-medium text-slate-600">Saved</label>
                 <button
                   onClick={() => setShowSavedOnly(!showSavedOnly)}
                   className={`flex h-10 items-center gap-2 rounded-lg border px-4 text-sm font-medium transition-all ${
                     showSavedOnly
                       ? "border-primary bg-primary text-white"
-                      : "border-border bg-secondary/30 text-muted-foreground hover:bg-secondary"
+                      : "border-border bg-secondary/30 text-slate-600 hover:bg-secondary"
                   }`}
                 >
                   <LayoutList className="h-4 w-4" />
@@ -336,9 +339,9 @@ function ListingsContent() {
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="px-1 text-xs font-medium text-muted-foreground">Extras</label>
+                <label className="px-1 text-xs font-medium text-slate-600">Extras</label>
                 <div className="flex flex-wrap gap-2">
-                  <button onClick={() => setAvailableNow(!availableNow)} className={`h-10 rounded-lg border px-3 text-sm font-medium transition-all ${availableNow ? "border-primary bg-primary text-white" : "border-border bg-secondary/30 text-muted-foreground hover:bg-secondary"}`}>
+                  <button onClick={() => setAvailableNow(!availableNow)} className={`h-10 rounded-lg border px-3 text-sm font-medium transition-all ${availableNow ? "border-primary bg-primary text-white" : "border-border bg-secondary/30 text-slate-600 hover:bg-secondary"}`}>
                     Available Now
                   </button>
                 </div>
@@ -362,7 +365,7 @@ function ListingsContent() {
           {filtersActive && (
             <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
               <SlidersHorizontal className="h-3.5 w-3.5 text-primary" />
-              <span className="text-xs font-medium text-muted-foreground">Filters active</span>
+              <span className="text-xs font-medium text-slate-600">Filters active</span>
               {!loading && (
                 <span className="text-xs font-semibold text-primary">
                   — {properties.length} propert{properties.length !== 1 ? "ies" : "y"} found
@@ -376,7 +379,7 @@ function ListingsContent() {
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="mb-6 text-sm font-medium text-muted-foreground"
+            className="mb-6 text-sm font-medium text-slate-600"
           >
             Showing{" "}
             <span className="font-semibold text-foreground">{properties.length}</span>{" "}
@@ -387,7 +390,7 @@ function ListingsContent() {
         {loading ? (
           <div className="flex flex-col items-center justify-center gap-4 py-32">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm font-medium text-muted-foreground">Loading properties...</p>
+            <p className="text-sm font-medium text-slate-600">Loading properties...</p>
           </div>
         ) : properties.length === 0 ? (
           <motion.div
@@ -396,11 +399,11 @@ function ListingsContent() {
             className="mx-auto flex max-w-md flex-col items-center justify-center gap-5 py-32 text-center"
           >
             <div className="flex h-20 w-20 items-center justify-center rounded-xl border border-border bg-secondary/50">
-              <Home className="h-9 w-9 text-muted-foreground/40" />
+              <Home className="h-9 w-9 text-slate-600/40" />
             </div>
             <div className="space-y-2">
               <h3 className="text-xl font-semibold tracking-tight text-foreground">No properties found</h3>
-              <p className="text-sm leading-relaxed text-muted-foreground">
+              <p className="text-sm leading-relaxed text-slate-600">
                 Try adjusting your filters or clearing your search. New listings are added daily.
               </p>
             </div>
@@ -448,7 +451,7 @@ export default function ListingsPage() {
             </div>
             <div className="absolute inset-0 rounded-2xl bg-blue-500/10 blur-xl pointer-events-none" />
           </div>
-          <p className="text-sm font-semibold text-blue-200/50">
+          <p className="text-sm font-semibold text-slate-700">
             Loading Listings...
           </p>
         </div>
