@@ -43,7 +43,8 @@ function Section({ children, className = "", id = "" }: { children: React.ReactN
 }
 
 export default function HomePage() {
-  const [featuredProperties, setFeaturedProperties] = useState<Array<{ id: string; title: string; price: number; address: string | null; city: string | null; bedrooms: number | null; bathrooms: number | null; images: string[] | null; image_url: string | null }>>([])
+  const [featuredProperties, setFeaturedProperties] = useState<Array<{ id: string; title: string; price: number; sale_price: number | null; listing_purpose: "rent" | "sale" | "both"; frequency: string | null; type: string; lot_size_sqft: number | null; address: string | null; city: string | null; bedrooms: number | null; bathrooms: number | null; images: string[] | null; image_url: string | null }>>([])
+  const [searchPurpose, setSearchPurpose] = useState<"rent" | "sale">("rent")
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -61,14 +62,14 @@ export default function HomePage() {
   }, [])
 
   const tenantBenefits = [
-    "Browse rental listings by city, state, or ZIP code",
-    "Request an inspection from a listing",
+    "Browse U.S. homes for rent or sale by city, state, or ZIP code",
+    "Request a viewing or contact a property owner",
     "Keep applications and documents organized",
     "Track lease and rent activity in one place",
   ]
 
   const landlordBenefits = [
-    "Manage properties and availability",
+    "List homes for rent or sale and manage availability",
     "Keep tenant and lease records together",
     "Track maintenance requests",
     "Review rent activity and upcoming renewals",
@@ -77,7 +78,7 @@ export default function HomePage() {
   const steps = [
     { title: "Search", description: "Browse verified listings by location, type, and budget." },
     { title: "Book inspection", description: "Schedule a visit and review property details with confidence." },
-    { title: "Apply or list", description: "Apply for your next home or publish your property in minutes." },
+    { title: "Apply or inquire", description: "Apply for a rental or send a buyer inquiry to the owner." },
     { title: "Manage online", description: "Track payments, maintenance, and communication from one dashboard." },
   ]
 
@@ -116,18 +117,18 @@ export default function HomePage() {
             <div className="max-w-2xl text-white">
               <div className="mb-6 inline-flex items-center rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-sm font-medium text-white/90 shadow-lg shadow-black/10 backdrop-blur">
                 <ShieldCheck className="mr-2 h-4 w-4 text-prms-emerald" />
-                U.S. rental operations, made clearer
+                Homes across the U.S., made easier to find
               </div>
               <h1 className="text-4xl font-semibold tracking-[-0.045em] sm:text-5xl lg:text-6xl lg:leading-[1.05]">
-                Feel at home with <span className="text-blue-200">better rental management.</span>
+                Find your next place to <span className="text-blue-200">rent or buy.</span>
               </h1>
               <p className="mt-6 max-w-xl text-base leading-relaxed text-white/75 sm:text-lg">
-                A polished workspace for listings, applications, leases, rent activity, and maintenance — made for the way U.S. teams work.
+                Explore U.S. homes and land, request a viewing, or list your own property for rent or sale. Keep rental operations in one place, too.
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
-                  href="/listings"
+                  href="/listings?purpose=rent"
                   className="inline-flex min-h-[50px] items-center justify-center rounded-xl bg-white px-6 py-3 text-sm font-semibold text-prms-navy shadow-xl shadow-black/15 transition hover:-translate-y-0.5 hover:bg-white/90"
                 >
                   Find a Home <ArrowRight className="ml-2 h-4 w-4" />
@@ -141,36 +142,28 @@ export default function HomePage() {
               </div>
 
               <div className="mt-10 flex flex-wrap gap-x-7 gap-y-3 text-sm text-white/70">
-                <span className="inline-flex items-center gap-2"><Star className="h-4 w-4 fill-prms-gold text-prms-gold" /> Designed for easier decisions</span>
-                <span className="inline-flex items-center gap-2"><Sparkles className="h-4 w-4 text-prms-emerald" /> Clear from search to move-in</span>
+                <span className="inline-flex items-center gap-2"><Star className="h-4 w-4 fill-prms-gold text-prms-gold" /> Homes and land across the U.S.</span>
+                <span className="inline-flex items-center gap-2"><Sparkles className="h-4 w-4 text-prms-emerald" /> Clear from search to viewing</span>
               </div>
             </div>
 
             <div className="w-full max-w-md rounded-3xl border border-white/60 bg-white/95 p-5 shadow-2xl shadow-black/30 backdrop-blur-xl sm:p-6">
               <div className="flex items-center justify-between gap-3 text-sm font-semibold text-prms-navy">
-                <span className="flex items-center gap-2"><Search className="h-4 w-4 text-prms-blue" /> Search U.S. rentals</span>
+                <span className="flex items-center gap-2"><Search className="h-4 w-4 text-prms-blue" /> Search U.S. properties</span>
                 <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-prms-blue">Start exploring</span>
               </div>
-              <div className="mt-5 grid gap-3">
+              <div className="mt-5 flex gap-2 rounded-xl bg-secondary/60 p-1.5">
+                <button type="button" onClick={() => setSearchPurpose("rent")} className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold ${searchPurpose === "rent" ? "bg-prms-blue text-white" : "text-prms-slate"}`}>Rent</button>
+                <button type="button" onClick={() => setSearchPurpose("sale")} className={`flex-1 rounded-lg px-3 py-2 text-sm font-semibold ${searchPurpose === "sale" ? "bg-prms-blue text-white" : "text-prms-slate"}`}>Buy</button>
+              </div>
+              <form action="/listings" method="get" className="mt-4 grid gap-3">
+                <input type="hidden" name="purpose" value={searchPurpose} />
                 <label className="rounded-xl border border-border bg-secondary/55 px-3.5 py-3 text-sm transition focus-within:border-prms-blue focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-500/10">
                   <span className="mb-1 block text-xs font-medium text-prms-slate">Location</span>
-                  <input className="w-full bg-transparent text-prms-navy outline-none placeholder:text-prms-slate/60" placeholder="Austin, TX or ZIP code" />
+                  <input name="q" className="w-full bg-transparent text-prms-navy outline-none placeholder:text-prms-slate/60" placeholder="City, state name, or ZIP code" />
                 </label>
-                <label className="rounded-xl border border-border bg-secondary/55 px-3.5 py-3 text-sm transition focus-within:border-prms-blue focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-500/10">
-                  <span className="mb-1 block text-xs font-medium text-prms-slate">Property Type</span>
-                  <input className="w-full bg-transparent text-prms-navy outline-none placeholder:text-prms-slate/60" placeholder="Apartment, house, townhome" />
-                </label>
-                <label className="rounded-xl border border-border bg-secondary/55 px-3.5 py-3 text-sm transition focus-within:border-prms-blue focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-500/10">
-                  <span className="mb-1 block text-xs font-medium text-prms-slate">Budget</span>
-                  <input className="w-full bg-transparent text-prms-navy outline-none placeholder:text-prms-slate/60" placeholder="$2,500 / month" />
-                </label>
-                <Link
-                  href="/listings"
-                  className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-prms-blue text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:-translate-y-0.5 hover:bg-blue-700"
-                >
-                  Browse U.S. rentals
-                </Link>
-              </div>
+                <button type="submit" className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-prms-blue text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:-translate-y-0.5 hover:bg-blue-700">Browse {searchPurpose === "sale" ? "homes for sale" : "rentals"}</button>
+              </form>
             </div>
           </div>
         </section>
@@ -179,7 +172,7 @@ export default function HomePage() {
           <div className="grid overflow-hidden rounded-b-2xl border border-white/70 bg-white shadow-[0_18px_45px_-32px_rgba(15,23,42,0.45)] sm:grid-cols-3">
             {[
               [ShieldCheck, "Thoughtfully verified", "Clearer property information"],
-              [Building2, "One calm workspace", "Everyday rental operations"],
+              [Building2, "Rent or buy", "Find the right next place"],
               [MessageSquare, "Better communication", "Stay connected at every step"],
             ].map(([Icon, title, description], index) => {
               const TrustIcon = Icon as typeof ShieldCheck
@@ -208,7 +201,7 @@ export default function HomePage() {
               </Link>
             </div>
 
-            {featuredProperties.length === 0 ? <div className="prms-surface prms-dot-grid px-6 py-14 text-center"><Building2 className="mx-auto h-9 w-9 text-prms-blue" /><p className="mt-4 text-base font-semibold text-prms-navy">New homes will appear here soon.</p><p className="mx-auto mt-2 max-w-md text-sm text-prms-slate">Once a landlord publishes a verified property, it will be ready for renters to discover.</p></div> : <div className="grid gap-6 lg:grid-cols-3">
+            {featuredProperties.length === 0 ? <div className="prms-surface prms-dot-grid px-6 py-14 text-center"><Building2 className="mx-auto h-9 w-9 text-prms-blue" /><p className="mt-4 text-base font-semibold text-prms-navy">New homes will appear here soon.</p><p className="mx-auto mt-2 max-w-md text-sm text-prms-slate">Owners can publish U.S. rental and sale listings for people to discover.</p></div> : <div className="grid gap-6 lg:grid-cols-3">
               {featuredProperties.map((property) => (
                 <div key={property.id} className="group overflow-hidden rounded-[1.5rem] border border-border bg-white shadow-[0_14px_36px_-26px_rgba(15,23,42,0.5)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_50px_-25px_rgba(15,23,42,0.42)]">
                   <div className="relative h-56 overflow-hidden">
@@ -217,7 +210,7 @@ export default function HomePage() {
                     <div className="absolute left-4 top-4 flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-semibold text-prms-emerald shadow-sm backdrop-blur">
                       <ShieldCheck className="h-3 w-3" /> Available
                     </div>
-                    <span className="absolute bottom-4 right-4 rounded-xl bg-white/95 px-3 py-1.5 text-sm font-bold text-prms-navy shadow-lg backdrop-blur">{formatCurrency(Number(property.price || 0))}<span className="ml-1 text-xs font-medium text-prms-slate">/mo</span></span>
+                    <span className="absolute bottom-4 right-4 rounded-xl bg-white/95 px-3 py-1.5 text-sm font-bold text-prms-navy shadow-lg backdrop-blur">{formatCurrency(Number(property.listing_purpose === "sale" ? property.sale_price ?? property.price : property.price || 0))}{property.listing_purpose !== "sale" && <span className="ml-1 text-xs font-medium text-prms-slate">/{property.frequency?.toLowerCase() === "yearly" ? "yr" : "mo"}</span>}</span>
                   </div>
                   <div className="p-5 sm:p-6">
                     <div className="flex items-start justify-between gap-3">
@@ -228,10 +221,12 @@ export default function HomePage() {
                       <MapPin className="mr-1.5 h-4 w-4" /> {[property.address, property.city].filter(Boolean).join(", ") || "Location pending"}
                     </div>
                     <div className="mt-4 flex items-center gap-5 border-y border-border py-3 text-sm text-prms-slate">
-                      <span className="flex items-center"><BedDouble className="mr-1.5 h-4 w-4 text-prms-blue" /> {property.bedrooms || 0} beds</span>
-                      <span className="flex items-center"><Bath className="mr-1.5 h-4 w-4 text-prms-blue" /> {property.bathrooms || 0} baths</span>
+                      {property.type === "Land" ? <span>Land for sale{property.lot_size_sqft ? ` · ${Number(property.lot_size_sqft).toLocaleString()} sq ft` : ""}</span> : <>
+                        <span className="flex items-center"><BedDouble className="mr-1.5 h-4 w-4 text-prms-blue" /> {property.bedrooms || 0} beds</span>
+                        <span className="flex items-center"><Bath className="mr-1.5 h-4 w-4 text-prms-blue" /> {property.bathrooms || 0} baths</span>
+                      </>}
                     </div>
-                    <Link href={`/listings/${property.id}`} className="mt-4 inline-flex items-center text-sm font-semibold text-prms-blue transition hover:gap-2 hover:text-blue-700">
+                    <Link href={`/listings/${property.id}${property.listing_purpose === "sale" ? "?purpose=sale" : ""}`} className="mt-4 inline-flex items-center text-sm font-semibold text-prms-blue transition hover:gap-2 hover:text-blue-700">
                       Explore this home <ArrowRight className="ml-1.5 h-4 w-4" />
                     </Link>
                   </div>
@@ -334,7 +329,7 @@ export default function HomePage() {
                     Start managing property the smarter way
                   </h2>
                   <p className="mt-3 text-base leading-relaxed text-white/70">
-                    Tools for U.S. landlords, tenants, and property teams to stay organized.
+                    Tools for U.S. buyers, renters, owners, and property teams to stay organized.
                   </p>
                 </div>
                 <div className="relative flex flex-col gap-3 sm:flex-row">

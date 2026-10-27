@@ -11,12 +11,16 @@ export interface Profile {
 }
 
 export type PropertyStatus = 'available' | 'pending' | 'rented';
+export type ListingPurpose = 'rent' | 'sale' | 'both';
 
 export interface Property {
     id: string;
     landlord_id: string;
     title: string;
     price: number;
+    listing_purpose?: ListingPurpose;
+    sale_price?: number | null;
+    lot_size_sqft?: number | null;
     address?: string;
     city: string;
     state?: string;

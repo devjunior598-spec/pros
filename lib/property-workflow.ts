@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase"
 
-export const SINGLE_PROPERTY_TYPES = ["Apartment", "Condo", "Townhouse", "Single-Family Home", "Duplex", "Manufactured Home", "Office", "Retail", "Warehouse"]
+export const SINGLE_PROPERTY_TYPES = ["Apartment", "House", "Condo", "Townhouse", "Single-Family Home", "Duplex", "Manufactured Home", "Land", "Office", "Retail", "Warehouse"]
 export const MULTI_PROPERTY_TYPES = ["Multi-family Building", "Condominium Building", "Townhome Community", "Office Building", "Retail Center", "Warehouse", "Mixed Use"]
 export const PAYMENT_FREQUENCIES = ["monthly", "quarterly", "biannually", "yearly"]
 

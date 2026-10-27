@@ -8,9 +8,9 @@ export function SiteFooter() {
         <div>
           <Logo href="/" />
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-prms-slate">
-            PRMS helps U.S. landlords, tenants, and property teams keep rental operations organized.
+            PRMS helps people across the U.S. find homes to rent or buy and helps owners manage their listings.
           </p>
-          <p className="mt-4 inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-prms-blue">Built for clearer rental decisions</p>
+          <p className="mt-4 inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-prms-blue">Built for clearer property decisions</p>
         </div>
 
         <div>
@@ -25,7 +25,8 @@ export function SiteFooter() {
         <div>
           <h3 className="text-xs font-semibold uppercase tracking-wider text-prms-slate">Explore</h3>
           <ul className="mt-4 space-y-2.5 text-sm text-prms-slate">
-            <li><Link href="/listings" className="transition hover:text-prms-navy">Properties</Link></li>
+            <li><Link href="/listings?purpose=rent" className="transition hover:text-prms-navy">Rent</Link></li>
+            <li><Link href="/listings?purpose=sale" className="transition hover:text-prms-navy">Buy</Link></li>
             <li><Link href="/faq" className="transition hover:text-prms-navy">FAQ</Link></li>
             <li><Link href="/privacy" className="transition hover:text-prms-navy">Privacy</Link></li>
           </ul>
@@ -42,7 +43,7 @@ export function SiteFooter() {
       </div>
 
       <div className="mx-auto flex max-w-7xl flex-col gap-2 border-t border-border px-4 py-6 text-sm text-prms-slate sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-        <span>© {new Date().getFullYear()} PRMS. Built for serious property rental management.</span>
+        <span>© {new Date().getFullYear()} PRMS. U.S. property listings and rental management.</span>
         <span className="text-xs font-medium uppercase tracking-[0.14em] text-prms-slate/80">United States</span>
       </div>
     </footer>

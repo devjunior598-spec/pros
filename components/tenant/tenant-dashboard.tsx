@@ -232,12 +232,14 @@ function TenantDashboardContent({ userId }: TenantDashboardProps) {
     return (
         <div className="space-y-8">
             <div className="flex flex-col gap-2">
-                <h2 className="text-3xl font-bold tracking-tight">Welcome, {profile?.name?.split(' ')[0] || 'Tenant'}</h2>
-                <p className="text-muted-foreground">Here&apos;s a summary of your property and payments.</p>
+                <h2 className="text-3xl font-bold tracking-tight">Welcome, {profile?.name?.split(' ')[0] || 'there'}</h2>
+                <p className="text-muted-foreground">Your home search and property activity at a glance.</p>
             </div>
 
+            <Card className="border-blue-100 bg-gradient-to-r from-blue-50 to-white shadow-sm"><CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"><div><h3 className="text-lg font-semibold text-prms-navy">Looking to buy?</h3><p className="mt-1 text-sm text-muted-foreground">Browse U.S. homes and land for sale, then send the owner an inquiry or request a viewing.</p></div><div className="flex shrink-0 flex-wrap gap-2"><Button asChild><Link href="/listings?purpose=sale">Browse for sale</Link></Button><Button asChild variant="outline"><Link href="/dashboard/sale-inquiries">My inquiries</Link></Button></div></CardContent></Card>
+
             {/* Verification Alert */}
-            {!profile?.is_verified && (
+            {!profile?.is_verified && rentals.length > 0 && (
                 <Card className="border-orange-200 bg-orange-50/50 dark:bg-orange-950/20 dark:border-orange-900 shadow-sm transition-all hover:bg-orange-50">
                     <CardContent className="pt-6">
                         <div className="flex items-start gap-4">

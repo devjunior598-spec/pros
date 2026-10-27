@@ -20,7 +20,7 @@ import { rateLimit, getClientIp }     from "@/lib/rate-limit"
 const PAGE_SIZE = 20
 
 // Columns the PropertyCard displays — nothing more, nothing less
-const LISTING_COLUMNS = "id,title,city,area,price,type,status,images,created_at"
+const LISTING_COLUMNS = "id,title,city,state,area,price,sale_price,listing_purpose,lot_size_sqft,frequency,bedrooms,bathrooms,type,status,images,created_at"
 
 // Supabase server client (uses service role for read-only public data)
 const supabase = createClient(
@@ -29,7 +29,7 @@ const supabase = createClient(
 )
 
 // ── Allowed filter values (whitelist to prevent injection) ────────────────────
-const ALLOWED_TYPES   = new Set(["Apartment","Studio","Duplex","House","Office"])
+const ALLOWED_TYPES   = new Set(["Apartment","Studio","Duplex","House","Condo","Townhouse","Single-Family Home","Land","Office","Retail","Warehouse"])
 const PRICE_RE        = /^\d+-\d+$|^\d+$/   // "0-500000" or "10000000"
 
 export async function GET(req: Request) {
@@ -56,7 +56,8 @@ export async function GET(req: Request) {
     const rawPage  = parseInt(searchParams.get("page")  ?? "1", 10)
     const page     = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage
 
-    const q        = searchParams.get("q")?.slice(0, 100) ?? ""      // max 100 chars
+    const q        = (searchParams.get("q")?.slice(0, 100) ?? "").replace(/[^a-zA-Z0-9\s-]/g, "").trim()
+    const purpose  = searchParams.get("purpose") === "sale" ? "sale" : "rent"
     const rawType  = searchParams.get("type") ?? ""
     const type     = ALLOWED_TYPES.has(rawType) ? rawType : ""
 
@@ -69,13 +70,15 @@ export async function GET(req: Request) {
         .select(LISTING_COLUMNS, { count: "exact" })
         .eq("country", "United States")
         .eq("status", "available")
+        .eq("verification_status", "approved")
         .eq("publication_status", "published")
+        .in("listing_purpose", purpose === "sale" ? ["sale", "both"] : ["rent", "both"])
         .order("created_at", { ascending: false })
         .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1)   // ← pagination
 
     if (q) {
         query = query.or(
-            `city.ilike.%${q}%,area.ilike.%${q}%,title.ilike.%${q}%`
+            `city.ilike.%${q}%,state.ilike.%${q}%,area.ilike.%${q}%,title.ilike.%${q}%,zip_code.ilike.%${q}%`
         )
     }
     if (type) {
@@ -84,9 +87,9 @@ export async function GET(req: Request) {
     if (price) {
         const parts = price.split("-").map(Number)
         if (parts.length === 2) {
-            query = query.gte("price", parts[0]).lte("price", parts[1])
+            query = query.gte(purpose === "sale" ? "sale_price" : "price", parts[0]).lte(purpose === "sale" ? "sale_price" : "price", parts[1])
         } else {
-            query = query.gte("price", parts[0])
+            query = query.gte(purpose === "sale" ? "sale_price" : "price", parts[0])
         }
     }
 

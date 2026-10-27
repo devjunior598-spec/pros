@@ -79,21 +79,20 @@ function DashboardContent() {
 
             if (role === 'landlord' || role === 'admin') {
                     // Rentals & portfolio size
-                    const { data: rentalsData } = await supabase
-                        .from('rentals')
-                        .select('id, status, property_id')
-                        .eq('landlord_id', uid)
-
-                    const { count: propertyCount } = await supabase
-                        .from('properties')
-                        .select('*', { count: 'exact', head: true })
-                        .eq('landlord_id', uid)
+                    const [rentalsResult, propertyResult, rentalPropertyResult] = await Promise.all([
+                        supabase.from('rentals').select('id, status, property_id').eq('landlord_id', uid),
+                        supabase.from('properties').select('*', { count: 'exact', head: true }).eq('landlord_id', uid),
+                        supabase.from('properties').select('*', { count: 'exact', head: true }).eq('landlord_id', uid).in('listing_purpose', ['rent', 'both']),
+                    ])
+                    const rentalsData = rentalsResult.data
+                    const propertyCount = propertyResult.count
+                    const rentalPropertyCount = rentalPropertyResult.count
 
                     if (isMountedRef.current) {
                         const landlordRentals = rentalsData || []
                         const activeT  = landlordRentals.filter(r => r.status === 'approved' || r.status === 'active').length
                         const newApp   = landlordRentals.filter(r => r.status === 'pending').length
-                        const occupancy = propertyCount ? Math.round((activeT / propertyCount) * 100) : 0
+                        const occupancy = rentalPropertyCount ? Math.round((activeT / rentalPropertyCount) * 100) : 0
 
                         const rentalIds = landlordRentals.map(rental => rental.id)
                         const { data: paidBills } = rentalIds.length > 0 ? await supabase
@@ -133,7 +132,7 @@ function DashboardContent() {
                             occupancyRate: occupancy,
                         })
                         setRevenueData(months.map(({ name, revenue: monthlyRevenue }) => ({ name, revenue: monthlyRevenue })))
-                        setOccupancyData(propertyCount ? [{ name: 'Current', rate: occupancy }] : [])
+                        setOccupancyData(rentalPropertyCount ? [{ name: 'Current', rate: occupancy }] : [])
                         setActivities(mappedActivities)
                     }
             }

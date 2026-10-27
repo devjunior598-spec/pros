@@ -9,7 +9,8 @@ import { cn } from "@/lib/utils"
 
 const NAV_LINKS = [
   { label: "Home", href: "/" },
-  { label: "Properties", href: "/listings" },
+  { label: "Rent", href: "/listings?purpose=rent" },
+  { label: "Buy", href: "/listings?purpose=sale" },
   { label: "Marketplace", href: "/#marketplace" },
   { label: "Contact", href: "/contact" },
 ]

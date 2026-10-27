@@ -35,7 +35,7 @@ export default function PropertiesPage() {
             <div className="flex-1 space-y-6">
                 <PageHeader
                     title="Properties"
-                    description="Manage your rental portfolio"
+                    description="Manage your rental and for-sale listings"
                     icon={Building2}
                 >
                     <Link href="/dashboard/properties/add">

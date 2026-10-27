@@ -25,8 +25,11 @@ export default function PrivacyPage() {
             </li>
             <li>
               <span className="text-slate-900 font-semibold">Property Details:</span> Property
-              addresses, descriptions, rental amounts, lease terms, and any associated documents you
+              addresses, descriptions, rental or asking prices, lease terms, and any associated documents you
               upload to the platform.
+            </li>
+            <li>
+              <span className="text-slate-900 font-semibold">Buyer Inquiries:</span> The name, email address, optional phone number, message, and preferred viewing date you submit when contacting an owner about a property for sale.
             </li>
             <li>
               <span className="text-slate-900 font-semibold">Payment Information:</span> Transaction
@@ -99,6 +102,9 @@ export default function PrivacyPage() {
             However, we may share specific information with the following categories of trusted
             third parties, strictly on a need-to-know basis and only to the extent necessary to
             perform their services:
+          </p>
+          <p className="text-slate-700 text-base leading-7 mt-3">
+            When you send a buyer inquiry, the property owner can see the contact details, message, and preferred viewing date you submitted so they can respond.
           </p>
           <ul className="mt-3 space-y-2 list-disc list-inside text-slate-700 text-base leading-7">
             <li>

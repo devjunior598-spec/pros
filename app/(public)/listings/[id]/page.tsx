@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { Suspense, useState, useEffect, useCallback } from "react"
+import type { User as SupabaseUser } from "@supabase/supabase-js"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -26,7 +27,6 @@ import {
     MessageSquare,
     ShieldCheck,
     AlertCircle,
-    Copy,
     Building2,
     Compass
 } from "lucide-react"
@@ -34,12 +34,17 @@ import Image from "next/image"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { PropertyReviews } from "@/components/listings/property-reviews"
+import { SaleInquiryForm } from "@/components/listings/sale-inquiry-form"
 
 interface PropertyDetails {
     id: string
     title: string
     description: string
     price: number
+    listing_purpose?: "rent" | "sale" | "both"
+    sale_price?: number | null
+    lot_size_sqft?: number | null
+    frequency?: string | null
     address: string
     city: string
     state: string
@@ -60,23 +65,22 @@ interface PropertyDetails {
 interface LandlordProfile {
     id: string
     name: string
-    email: string
-    phone?: string
     bio?: string
     is_verified?: boolean
     profile_image_url?: string
 }
 
-export default function PublicPropertyDetailsPage() {
+function PublicPropertyDetailsContent() {
     const params = useParams()
     const router = useRouter()
+    const searchParams = useSearchParams()
     
     // Property state
     const [property, setProperty] = useState<PropertyDetails | null>(null)
     const [landlord, setLandlord] = useState<LandlordProfile | null>(null)
     const [loading, setLoading] = useState(true)
     const [currentImageIndex, setCurrentImageIndex] = useState(0)
-    const [user, setUser] = useState<any>(null)
+    const [user, setUser] = useState<SupabaseUser | null>(null)
     
     // Bookmark state
     const [isSaved, setIsSaved] = useState(false)
@@ -94,7 +98,7 @@ export default function PublicPropertyDetailsPage() {
     const [bookingNotes, setBookingNotes] = useState("")
     const [availableSlots, setAvailableSlots] = useState<string[]>([])
     const [fetchingSlots, setFetchingSlots] = useState(false)
-    const [userProfile, setUserProfile] = useState<any>(null)
+    const [userProfile, setUserProfile] = useState<{ name?: string; phone?: string; email?: string } | null>(null)
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -127,7 +131,7 @@ export default function PublicPropertyDetailsPage() {
         }
     }, [isBookingOpen, userProfile, user])
 
-    const fetchSlots = async (date: string) => {
+    const fetchSlots = useCallback(async (date: string) => {
         if (!property || !date) return
         setFetchingSlots(true)
         try {
@@ -144,7 +148,7 @@ export default function PublicPropertyDetailsPage() {
         } finally {
             setFetchingSlots(false)
         }
-    }
+    }, [property])
 
     useEffect(() => {
         if (bookingDate && property?.id) {
@@ -153,7 +157,7 @@ export default function PublicPropertyDetailsPage() {
         } else {
             setAvailableSlots([])
         }
-    }, [bookingDate, property?.id])
+    }, [bookingDate, property?.id, fetchSlots])
 
 
     useEffect(() => {
@@ -168,6 +172,7 @@ export default function PublicPropertyDetailsPage() {
                     .select('*')
                     .eq('id', params.id)
                     .eq('country', 'United States')
+                    .eq('status', 'available')
                     .eq('publication_status', 'published')
                     .single()
 
@@ -186,7 +191,7 @@ export default function PublicPropertyDetailsPage() {
                 if (typedProperty.landlord_id) {
                     const { data: profileData, error: profileError } = await supabase
                         .from('profiles')
-                        .select('*')
+                        .select('id, name, bio, is_verified, profile_image_url')
                         .eq('id', typedProperty.landlord_id)
                         .maybeSingle()
 
@@ -196,8 +201,8 @@ export default function PublicPropertyDetailsPage() {
                         setLandlord(profileData as LandlordProfile)
                     }
                 }
-            } catch (error: any) {
-                console.error("Error fetching details:", error?.message || error)
+            } catch (error: unknown) {
+                console.error("Error fetching details:", error instanceof Error ? error.message : error)
             } finally {
                 setLoading(false)
             }
@@ -271,7 +276,7 @@ export default function PublicPropertyDetailsPage() {
             const convId = await getOrCreateConversation(user.id, property.landlord_id)
             router.push(`/messages?convId=${convId}`)
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : (error as any)?.message || String(error)
+            const errorMessage = error instanceof Error ? error.message : String(error)
             console.error("Error creating chat:", errorMessage)
             alert(`Failed to contact landlord: ${errorMessage}`)
         }
@@ -314,9 +319,9 @@ export default function PublicPropertyDetailsPage() {
             alert("Inspection request submitted successfully! You will be notified when the landlord reviews it.")
             setIsBookingOpen(false)
             router.push("/dashboard/inspections")
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Error booking inspection:", error)
-            alert(`Failed to book inspection: ${error.message}`)
+            alert(`Failed to book inspection: ${error instanceof Error ? error.message : String(error)}`)
         } finally {
             setBookingLoading(false)
         }
@@ -347,6 +352,9 @@ export default function PublicPropertyDetailsPage() {
     const hasImages = property.images && property.images.length > 0
     const multipleImages = hasImages && property.images.length > 1
     const amenitiesList = property.amenities || []
+    const hasSale = property.listing_purpose === "sale" || property.listing_purpose === "both"
+    const hasRent = property.listing_purpose !== "sale"
+    const showingSale = hasSale && (property.listing_purpose === "sale" || searchParams.get("purpose") === "sale")
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300 font-sans">
@@ -476,6 +484,7 @@ export default function PublicPropertyDetailsPage() {
                             <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-slate-900 dark:text-white leading-tight">
                                 {property.title}
                             </h1>
+                            {hasSale && hasRent && <div className="flex gap-2"><Link href={`/listings/${property.id}?purpose=rent`} className={`rounded-full px-4 py-2 text-sm font-semibold ${!showingSale ? "bg-blue-600 text-white" : "bg-white text-slate-700"}`}>For rent</Link><Link href={`/listings/${property.id}?purpose=sale`} className={`rounded-full px-4 py-2 text-sm font-semibold ${showingSale ? "bg-blue-600 text-white" : "bg-white text-slate-700"}`}>For sale</Link></div>}
                             <div className="flex items-center text-sm font-semibold text-slate-500 dark:text-slate-400 gap-1.5">
                                 <MapPin className="h-4.5 w-4.5 text-red-500" />
                                 <span>{property.address && `${property.address}, `}{property.city}, {property.state || 'United States'}</span>
@@ -488,20 +497,21 @@ export default function PublicPropertyDetailsPage() {
                                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Property Type</span>
                                 <span className="font-extrabold text-sm text-slate-855 dark:text-slate-200">{property.type || 'Apartment'}</span>
                             </div>
-                            <div className="flex flex-col gap-0.5">
+                            {property.type !== "Land" && <div className="flex flex-col gap-0.5">
                                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Bedrooms</span>
                                 <div className="flex items-center gap-1.5 text-slate-855 dark:text-slate-200 font-extrabold text-sm">
                                     <Bed className="h-4 w-4 text-blue-500" />
                                     <span>{property.bedrooms ?? '-'} Rooms</span>
                                 </div>
-                            </div>
-                            <div className="flex flex-col gap-0.5">
+                            </div>}
+                            {property.type !== "Land" && <div className="flex flex-col gap-0.5">
                                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Bathrooms</span>
                                 <div className="flex items-center gap-1.5 text-slate-855 dark:text-slate-200 font-extrabold text-sm">
                                     <Bath className="h-4 w-4 text-blue-500" />
                                     <span>{property.bathrooms ?? '-'} Baths</span>
                                 </div>
-                            </div>
+                            </div>}
+                            {property.type === "Land" && <div className="flex flex-col gap-0.5"><span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Lot size</span><span className="font-extrabold text-sm">{property.lot_size_sqft ? `${Number(property.lot_size_sqft).toLocaleString()} sq ft` : "Ask owner"}</span></div>}
                             <div className="flex flex-col gap-0.5">
                                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Area Size</span>
                                 <div className="flex items-center gap-1.5 text-slate-855 dark:text-slate-200 font-extrabold text-sm">
@@ -549,10 +559,10 @@ export default function PublicPropertyDetailsPage() {
                         {/* Action Card */}
                         <Card className="border border-slate-200/60 dark:border-slate-800/80 bg-white/80 dark:bg-slate-900/85 backdrop-blur shadow-xl rounded-2xl overflow-hidden font-sans">
                             <CardHeader className="pb-4">
-                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest block mb-0.5">Annual Rent</span>
+                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest block mb-0.5">{showingSale ? "Asking price" : "Rent"}</span>
                                 <CardTitle className="text-3xl font-black text-blue-600 dark:text-blue-400">
-                                    ${property.price.toLocaleString()}
-                                    <span className="text-xs font-normal text-slate-400 ml-1">/ year</span>
+                                    ${Number(showingSale ? property.sale_price ?? property.price : property.price).toLocaleString()}
+                                    {!showingSale && <span className="text-xs font-normal text-slate-400 ml-1">/ {property.frequency?.toLowerCase() === "yearly" ? "year" : "month"}</span>}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
@@ -565,7 +575,7 @@ export default function PublicPropertyDetailsPage() {
                                     </Badge>
                                 </div>
 
-                                <div className="space-y-2 pt-2">
+                                {showingSale ? <SaleInquiryForm key={property.id} propertyId={property.id} sellerId={property.landlord_id} user={user} /> : <div className="space-y-2 pt-2">
                                     {/* Apply trigger */}
                                     <Button
                                         className="w-full h-11 text-sm font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/10"
@@ -603,30 +613,30 @@ export default function PublicPropertyDetailsPage() {
                                             </Button>
                                         </a>
                                     )}
-                                </div>
-                                <p className="text-[10px] text-center text-slate-400 leading-normal">
+                                </div>}
+                                {!showingSale && <p className="text-[10px] text-center text-slate-400 leading-normal">
                                     Account creation and identity verification is required to sign leases and send payment escrows.
-                                </p>
+                                </p>}
                             </CardContent>
                         </Card>
 
                         {/* Landlord Profile Card */}
                         <Card className="border border-slate-200/60 dark:border-slate-800/80 bg-white/85 dark:bg-slate-900/85 backdrop-blur shadow-md rounded-2xl font-sans">
                             <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
-                                <CardTitle className="text-sm font-extrabold uppercase tracking-widest text-slate-400">Landlord Profile</CardTitle>
+                                <CardTitle className="text-sm font-extrabold uppercase tracking-widest text-slate-400">{showingSale ? "Owner Profile" : "Landlord Profile"}</CardTitle>
                             </CardHeader>
                             <CardContent className="pt-5 space-y-4">
                                 <div className="flex items-center gap-3">
                                     <div className="h-12 w-12 rounded-full overflow-hidden border-2 border-slate-200 dark:border-slate-800 flex items-center justify-center bg-slate-100 dark:bg-slate-900 text-slate-400">
                                         {landlord?.profile_image_url ? (
-                                            <img src={landlord.profile_image_url} alt="Profile" className="h-full w-full object-cover" />
+                                            <Image src={landlord.profile_image_url} alt="Property owner" width={48} height={48} unoptimized className="h-full w-full object-cover" />
                                         ) : (
                                             <User className="h-6 w-6" />
                                         )}
                                     </div>
                                     <div>
                                         <p className="font-extrabold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-1">
-                                            {landlord?.name || 'Vetted Landlord'}
+                                            {landlord?.name || 'Property Owner'}
                                             {landlord?.is_verified && (
                                                 <span title="Identity Verified">
                                                     <ShieldCheck className="h-4 w-4 text-emerald-500" />
@@ -639,7 +649,7 @@ export default function PublicPropertyDetailsPage() {
 
                                 {landlord?.bio && (
                                     <p className="text-xs text-slate-450 dark:text-slate-400 leading-relaxed italic border-t border-slate-100 dark:border-slate-800 pt-3">
-                                        "{landlord.bio}"
+                                        &ldquo;{landlord.bio}&rdquo;
                                     </p>
                                 )}
 
@@ -655,7 +665,7 @@ export default function PublicPropertyDetailsPage() {
                         </Card>
 
                         {/* Safety Escrow Tips Card */}
-                        <Card className="border border-slate-200/60 dark:border-slate-800/80 bg-white/85 dark:bg-slate-900/85 backdrop-blur shadow-md rounded-2xl font-sans">
+                        {!showingSale && <Card className="border border-slate-200/60 dark:border-slate-800/80 bg-white/85 dark:bg-slate-900/85 backdrop-blur shadow-md rounded-2xl font-sans">
                             <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
                                 <CardTitle className="text-sm font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-1.5"><AlertCircle className="h-4 w-4 text-blue-500" /> Secure Escrow Tips</CardTitle>
                             </CardHeader>
@@ -666,7 +676,7 @@ export default function PublicPropertyDetailsPage() {
                                     <li>No landlord can access rent payouts prior to digital lease execution.</li>
                                 </ul>
                             </CardContent>
-                        </Card>
+                        </Card>}
                     </div>
 
                 </div>
@@ -732,7 +742,7 @@ export default function PublicPropertyDetailsPage() {
                                     id="type" 
                                     required 
                                     value={bookingType}
-                                    onChange={(e) => setBookingType(e.target.value as any)}
+                                    onChange={(e) => setBookingType(e.target.value as "Physical Visit" | "Virtual Tour")}
                                     className="h-11 w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
                                 >
                                     <option value="Physical Visit">Physical Visit</option>
@@ -827,8 +837,12 @@ export default function PublicPropertyDetailsPage() {
     )
 }
 
+export default function PublicPropertyDetailsPage() {
+    return <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>}><PublicPropertyDetailsContent /></Suspense>
+}
+
 // X Icon placeholder helper
-function X(props: any) {
+function X(props: React.SVGProps<SVGSVGElement>) {
     return (
         <svg
             {...props}

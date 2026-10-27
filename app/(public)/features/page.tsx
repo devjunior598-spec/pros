@@ -23,9 +23,9 @@ import Link from "next/link";
 const tenantFeatures = [
   {
     icon: Search,
-    title: "Smart Property Search",
+    title: "Rent or Buy Search",
     description:
-      "Search and filter rental listings by location, price, size, and amenities.",
+      "Search U.S. homes for rent or sale by location, price, and property type. Explore land listings, too.",
     iconBg: "bg-blue-600/20",
     iconColor: "text-blue-700",
     border: "border-blue-500/20",
@@ -62,9 +62,9 @@ const tenantFeatures = [
 const landlordFeatures = [
   {
     icon: BarChart3,
-    title: "Portfolio Dashboard",
+    title: "Listings and Buyer Inquiries",
     description:
-      "Review your properties, occupancy, recorded rent activity, and maintenance requests from one dashboard.",
+      "List a home for rent or sale, review buyer messages, and keep your rental portfolio organized.",
     iconBg: "bg-blue-600/20",
     iconColor: "text-blue-700",
     border: "border-blue-500/20",
@@ -172,7 +172,7 @@ export default function FeaturesPage() {
   return (
     <PublicPageShell
       pageTitle="Platform Features"
-      pageSubtitle="Everything you need to manage, rent, and grow your property portfolio in one powerful platform."
+      pageSubtitle="Search, list, rent, or buy U.S. property from one clear starting point."
       badge="⚡ Features"
     >
       {/* ── For Tenants ───────────────────────────────────────────────────── */}
@@ -187,7 +187,7 @@ export default function FeaturesPage() {
             className="flex justify-center mb-6"
           >
             <span className="inline-flex items-center gap-2 border border-blue-500/30 bg-blue-500/10 text-blue-700 text-xs font-semibold rounded-full px-3 py-1 uppercase tracking-widest">
-              For Tenants
+              For Renters &amp; Buyers
             </span>
           </motion.div>
 
@@ -199,7 +199,7 @@ export default function FeaturesPage() {
             custom={1}
             className="text-center text-3xl md:text-4xl lg:text-5xl font-black tracking-tight text-slate-900 mb-4"
           >
-            Find, Apply &amp;{" "}
+            Find, Inquire &amp;{" "}
             <span className="text-blue-700">
               Live with Confidence
             </span>
@@ -212,8 +212,7 @@ export default function FeaturesPage() {
             custom={2}
             className="text-center text-slate-700 text-lg max-w-2xl mx-auto mb-16"
           >
-            PRMS removes every friction point from renting — from discovery to move-in
-            and beyond.
+            Explore homes to rent or buy, then connect with the owner or apply for a rental.
           </motion.p>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -277,8 +276,7 @@ export default function FeaturesPage() {
             custom={2}
             className="text-center text-slate-700 text-lg max-w-2xl mx-auto mb-16"
           >
-            From a single apartment to a 50-unit complex, PRMS scales with your
-            ambitions.
+            List a home or land for sale, offer a rental, or manage a multi-unit portfolio.
           </motion.p>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
