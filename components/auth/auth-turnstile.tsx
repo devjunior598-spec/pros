@@ -37,6 +37,7 @@ export const AuthTurnstile = forwardRef<AuthTurnstileHandle, AuthTurnstileProps>
     ref
 ) {
     const [ready, setReady] = useState(false)
+    const [verificationStarted, setVerificationStarted] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const widgetIdRef = useRef<string | null>(null)
@@ -49,7 +50,7 @@ export const AuthTurnstile = forwardRef<AuthTurnstileHandle, AuthTurnstileProps>
 
     useEffect(() => {
         const turnstile = (window as unknown as { turnstile?: TurnstileApi }).turnstile
-        if (!turnstileSiteKey || !ready || !turnstile || !containerRef.current || widgetIdRef.current) return
+        if (!turnstileSiteKey || !verificationStarted || !ready || !turnstile || !containerRef.current || widgetIdRef.current) return
 
         widgetIdRef.current = turnstile.render(containerRef.current, {
             sitekey: turnstileSiteKey,
@@ -86,7 +87,12 @@ export const AuthTurnstile = forwardRef<AuthTurnstileHandle, AuthTurnstileProps>
                 widgetIdRef.current = null
             }
         }
-    }, [ready, onTokenChange, onErrorChange])
+    }, [ready, verificationStarted, onTokenChange, onErrorChange])
+
+    const startVerification = () => {
+        setSecurityError(null)
+        setVerificationStarted(true)
+    }
 
     const reset = () => {
         tokenStore.current.clear()
@@ -113,15 +119,34 @@ export const AuthTurnstile = forwardRef<AuthTurnstileHandle, AuthTurnstileProps>
 
     return (
         <div className="space-y-2">
-            <Script
-                src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
-                strategy="afterInteractive"
-                onReady={() => setReady(true)}
-                onError={() => setSecurityError("Security verification could not load. Please refresh and try again.")}
-            />
-            <div className="flex min-h-[70px] items-center justify-center rounded-lg border border-border bg-secondary/20 p-2">
-                <div ref={containerRef} />
-            </div>
+            {verificationStarted && (
+                <Script
+                    src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+                    strategy="afterInteractive"
+                    onReady={() => setReady(true)}
+                    onError={() => setSecurityError("Security verification could not load. Please refresh and try again.")}
+                />
+            )}
+            {verificationStarted ? (
+                <div className="space-y-2">
+                    <p className="text-center text-xs font-medium text-prms-slate">Complete the security check below to continue.</p>
+                    <div className="flex min-h-[70px] items-center justify-center rounded-lg border border-border bg-secondary/20 p-2">
+                        <div ref={containerRef} />
+                    </div>
+                </div>
+            ) : (
+                <button
+                    type="button"
+                    onClick={startVerification}
+                    className="flex min-h-[70px] w-full items-center justify-center gap-3 rounded-lg border border-border bg-secondary/20 px-4 text-left transition-colors hover:border-primary/40 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                >
+                    <span aria-hidden="true" className="flex h-5 w-5 shrink-0 rounded border-2 border-prms-slate/60 bg-white" />
+                    <span>
+                        <span className="block text-sm font-semibold text-prms-navy">Check to verify you&apos;re human</span>
+                        <span className="block text-xs text-prms-slate">The security check starts only after you choose it.</span>
+                    </span>
+                </button>
+            )}
             {error && <div className="space-y-1" role="alert">
                 <p className="text-xs font-medium text-red-600">{error}</p>
                 <button type="button" onClick={reset} className="text-xs font-semibold text-blue-600 underline">Retry verification</button>
