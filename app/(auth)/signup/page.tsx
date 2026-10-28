@@ -165,8 +165,8 @@ export default function SignupPage() {
                 {/* Name row */}
                 <div className="grid grid-cols-2 gap-3">
                     {[
-                        { id: "firstName", label: "First Name", placeholder: "Chinedu" },
-                        { id: "lastName",  label: "Last Name",  placeholder: "Okafor" },
+                        { id: "firstName", label: "First Name", placeholder: "Jordan" },
+                        { id: "lastName",  label: "Last Name",  placeholder: "Taylor" },
                     ].map(f => (
                         <div key={f.id} className="space-y-1.5">
                             <label htmlFor={f.id} className="text-sm font-medium text-prms-navy">{f.label}</label>
@@ -271,7 +271,7 @@ export default function SignupPage() {
 
                 {/* Role picker */}
                 <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-prms-navy">I am a…</label>
+                    <label className="text-sm font-medium text-prms-navy">What would you like to do?</label>
                     <div className="grid grid-cols-2 gap-3">
                         {(["tenant", "landlord"] as const).map(r => (
                             <button
@@ -292,7 +292,7 @@ export default function SignupPage() {
                                 ].join(" ")}>
                                     {formData.role === r && <span className="h-2 w-2 rounded-full bg-primary" />}
                                 </span>
-                                <span className="capitalize">{r}</span>
+                                <span className="text-left">{r === "tenant" ? "Find a home · Rent or buy" : "List a property · Rent or sell"}</span>
                             </button>
                         ))}
                     </div>

@@ -17,12 +17,15 @@ import { Property } from "@/types"
 
 interface PropertyCardProps {
     property: Property
+    purpose?: "rent" | "sale"
 }
 
-export function PropertyCard({ property }: PropertyCardProps) {
+export function PropertyCard({ property, purpose }: PropertyCardProps) {
     const [imgError, setImgError] = useState(false)
     const [isSaved, setIsSaved] = useState(false)
     const imageUrl = !imgError && property.images && property.images.length > 0 ? property.images[0] : null
+    const showSale = purpose === "sale" || (!purpose && property.listing_purpose === "sale")
+    const displayPrice = showSale ? property.sale_price ?? property.price : property.price
 
     useEffect(() => {
         const saved = localStorage.getItem("saved_properties")
@@ -71,6 +74,9 @@ export function PropertyCard({ property }: PropertyCardProps) {
                 <div className="absolute inset-0 bg-gradient-to-t from-prms-navy/30 via-transparent to-transparent pointer-events-none" />
 
                 <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+                    <Badge className="rounded-full bg-prms-blue px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white">
+                        {showSale ? "For sale" : "For rent"}
+                    </Badge>
                     <Badge variant="secondary" className="rounded-full border-white/30 bg-white/95 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-foreground shadow-sm backdrop-blur">
                         {property.type}
                     </Badge>
@@ -113,19 +119,19 @@ export function PropertyCard({ property }: PropertyCardProps) {
 
                 <div className="flex items-center text-xs text-muted-foreground">
                     <MapPin className="mr-1 h-3.5 w-3.5 shrink-0" />
-                    <span className="line-clamp-1">{property.area}, {property.city}</span>
+                    <span className="line-clamp-1">{[property.area, property.city, property.state].filter(Boolean).join(", ")}</span>
                 </div>
             </CardHeader>
 
             <CardContent className="p-5 pt-0">
                 <div className="mt-1 flex items-baseline gap-1 border-b border-border pb-4">
-                    <span className="text-2xl font-semibold tracking-tight text-foreground">${property.price.toLocaleString()}</span>
-                    <span className="text-[10px] font-semibold uppercase text-muted-foreground">
-                        / {property.frequency ? (property.frequency.toLowerCase() === 'monthly' ? 'month' : 'year') : 'year'}
-                    </span>
+                    <span className="text-2xl font-semibold tracking-tight text-foreground">${Number(displayPrice).toLocaleString()}</span>
+                    {!showSale && <span className="text-[10px] font-semibold uppercase text-muted-foreground">
+                        / {property.frequency?.toLowerCase() === 'yearly' ? 'year' : 'month'}
+                    </span>}
                 </div>
 
-                <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                {property.type === "Land" ? <p className="mt-4 text-xs text-muted-foreground">{property.lot_size_sqft ? `${Number(property.lot_size_sqft).toLocaleString()} sq ft lot` : "Land listing"}</p> : <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                     <div className="flex items-center gap-1.5">
                         <Bed className="h-4 w-4" />
                         <span>{property.bedrooms ?? '-'} Beds</span>
@@ -134,16 +140,16 @@ export function PropertyCard({ property }: PropertyCardProps) {
                         <Bath className="h-4 w-4" />
                         <span>{property.bathrooms ?? '-'} Baths</span>
                     </div>
-                </div>
+                </div>}
             </CardContent>
 
             <CardFooter className="mt-auto flex gap-2 p-5 pt-0">
-                <Link href={`/listings/${property.id}`} className="flex-1">
+                <Link href={`/listings/${property.id}${showSale ? "?purpose=sale" : ""}`} className="flex-1">
                     <Button className="h-10 w-full rounded-xl text-xs" variant="outline">
                         View Details
                     </Button>
                 </Link>
-                <Link href={`/listings/${property.id}`} className="flex-shrink-0">
+                <Link href={`/listings/${property.id}${showSale ? "?purpose=sale" : ""}`} className="flex-shrink-0">
                     <Button size="icon" className="h-10 w-10 rounded-xl bg-primary/10 text-primary transition-all hover:bg-primary hover:text-white" variant="ghost">
                         <MessageSquare className="h-4 w-4" />
                     </Button>

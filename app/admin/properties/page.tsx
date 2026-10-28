@@ -68,11 +68,11 @@ export default function AdminPropertiesPage() {
         try {
             const { error } = await supabase
                 .from('properties')
-                .update({ is_approved: true })
+                .update({ is_approved: true, verification_status: 'approved' })
                 .eq('id', propertyId)
             if (error) throw error
             setProperties(prev =>
-                prev.map(p => p.id === propertyId ? { ...p, is_approved: true } : p)
+                prev.map(p => p.id === propertyId ? { ...p, is_approved: true, verification_status: 'approved' } : p)
             )
         } catch (err: any) {
             alert(err.message || 'Failed to approve property')
@@ -87,11 +87,11 @@ export default function AdminPropertiesPage() {
         try {
             const { error } = await supabase
                 .from('properties')
-                .update({ is_approved: false })
+                .update({ is_approved: false, verification_status: 'rejected' })
                 .eq('id', propertyId)
             if (error) throw error
             setProperties(prev =>
-                prev.map(p => p.id === propertyId ? { ...p, is_approved: false } : p)
+                prev.map(p => p.id === propertyId ? { ...p, is_approved: false, verification_status: 'rejected' } : p)
             )
         } catch (err: any) {
             alert(err.message || 'Failed to suspend property')
@@ -119,8 +119,8 @@ export default function AdminPropertiesPage() {
     }
 
     const getApprovalStatus = (property: any): 'approved' | 'pending' | 'suspended' => {
-        if (property.status === 'suspended') return 'suspended'
-        if (property.is_approved === true) return 'approved'
+        if (property.status === 'suspended' || property.verification_status === 'rejected') return 'suspended'
+        if (property.verification_status === 'approved') return 'approved'
         return 'pending'
     }
 
@@ -225,7 +225,7 @@ export default function AdminPropertiesPage() {
                                         <Badge className={cn(
                                             activeRental ? "bg-green-500" : "bg-blue-500"
                                         )}>
-                                            {activeRental ? "Occupied" : "Vacant"}
+                                            {property.listing_purpose === 'sale' ? 'For sale' : activeRental ? "Occupied" : "Vacant"}
                                         </Badge>
                                         {/* Approval status badge */}
                                         <Badge className={cn(
@@ -293,6 +293,7 @@ export default function AdminPropertiesPage() {
                                             <MapPin className="h-3 w-3" />
                                             <span className="line-clamp-1">{property.address}</span>
                                         </div>
+                                        {property.listing_purpose !== 'rent' && <p className="text-xs font-semibold text-emerald-700">For sale{property.listing_purpose === 'both' ? ' and rent' : ''} · Asking ${Number(property.sale_price || property.price || 0).toLocaleString()}</p>}
 
                                         <div className="flex items-center justify-between pt-2 border-t">
                                             <div className="flex items-center gap-2">

@@ -9,6 +9,7 @@ import {
     LayoutDashboard,
     Building,
     MessageSquare,
+    Tag,
     Settings,
     CreditCard,
     Users,
@@ -132,6 +133,12 @@ export function DashboardNav({ className, userRole, isVerified, ...props }: Dash
             href: "/properties",
             icon: Building,
             roles: ["landlord", "property_manager", "manager"],
+        },
+        {
+            title: "Sales inquiries",
+            href: "/dashboard/sale-inquiries",
+            icon: Tag,
+            roles: ["landlord", "tenant"],
         },
         {
             title: "Applications",

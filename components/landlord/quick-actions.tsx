@@ -1,7 +1,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { motion } from "motion/react"
-import { Plus, Users, CalendarCheck, Wrench, CreditCard, FileText, ClipboardList } from "lucide-react"
+import { Plus, Users, CalendarCheck, Wrench, FileText, ClipboardList, Tag, MessageSquare } from "lucide-react"
 
 export function QuickActions() {
   const actions = [
@@ -12,6 +12,22 @@ export function QuickActions() {
       color: "bg-blue-500",
       lightBg: "bg-blue-50 dark:bg-blue-500/10",
       textColor: "text-blue-600 dark:text-blue-400"
+    },
+    {
+      title: "Sell Property",
+      icon: Tag,
+      href: "/dashboard/properties/add/sale",
+      color: "bg-emerald-500",
+      lightBg: "bg-emerald-50 dark:bg-emerald-500/10",
+      textColor: "text-emerald-700 dark:text-emerald-400"
+    },
+    {
+      title: "Buyer Inquiries",
+      icon: MessageSquare,
+      href: "/dashboard/sale-inquiries",
+      color: "bg-teal-500",
+      lightBg: "bg-teal-50 dark:bg-teal-500/10",
+      textColor: "text-teal-700 dark:text-teal-400"
     },
     {
       title: "Review Letters",
@@ -56,7 +72,7 @@ export function QuickActions() {
   ]
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
       {actions.map((action, index) => (
         <motion.div
           key={action.title}

@@ -37,8 +37,9 @@ export default function TermsPage() {
             Subject to your compliance with these Terms, Junior Property Technologies grants you a
             limited, non-exclusive, non-transferable, revocable license to access and use the PRMS
             platform solely for lawful personal or commercial property management purposes. This
-            license is strictly limited to managing, tracking, and administering real estate
-            properties, tenancies, and associated rent payments.
+            license covers browsing, publishing, and inquiring about property listings, as well as
+            managing real estate properties, tenancies, and associated rent records. PRMS does not
+            process property sale payments or create purchase contracts.
           </p>
           <p className="text-slate-700 text-base leading-7 mt-3">
             The following actions are expressly prohibited under this license:

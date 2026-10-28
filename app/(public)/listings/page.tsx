@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
+import Link from "next/link"
 import { supabase } from "@/lib/supabase"
 import { PropertyCard } from "@/components/property-card"
 import { Property } from "@/types"
@@ -80,9 +81,11 @@ const getErrorMessage = (error: unknown): string => {
 
 function ListingsContent() {
   const searchParams = useSearchParams()
+  const purpose = searchParams.get("purpose") === "sale" ? "sale" : "rent"
 
   const [properties, setProperties] = useState<Property[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState("")
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "")
   const [propertyType, setPropertyType] = useState<string>("all")
   const [priceRange, setPriceRange] = useState<string>("all")
@@ -114,6 +117,7 @@ function ListingsContent() {
   const fetchProperties = useCallback(
     async (signal?: AbortSignal) => {
       setLoading(true)
+      setLoadError("")
       try {
         let query = supabase
           .from("properties")
@@ -121,11 +125,12 @@ function ListingsContent() {
           .eq("country", "United States")
           .eq("status", "available")
           .eq("publication_status", "published")
+          .in("listing_purpose", purpose === "sale" ? ["sale", "both"] : ["rent", "both"])
 
         if (searchQuery.trim()) {
-          const q = searchQuery.trim()
+          const q = searchQuery.trim().slice(0, 100).replace(/[^a-zA-Z0-9\s-]/g, "")
           query = query.or(
-            `city.ilike.%${q}%,area.ilike.%${q}%,title.ilike.%${q}%,zip_code.ilike.%${q}%`
+            `city.ilike.%${q}%,state.ilike.%${q}%,area.ilike.%${q}%,title.ilike.%${q}%,zip_code.ilike.%${q}%`
           )
         }
 
@@ -157,9 +162,9 @@ function ListingsContent() {
         if (priceRange !== "all") {
           const [min, max] = priceRange.split("-").map(Number)
           if (max) {
-            query = query.gte("price", min).lte("price", max)
+            query = query.gte(purpose === "sale" ? "sale_price" : "price", min).lte(purpose === "sale" ? "sale_price" : "price", max)
           } else {
-            query = query.gte("price", min)
+            query = query.gte(purpose === "sale" ? "sale_price" : "price", min)
           }
         }
 
@@ -185,13 +190,17 @@ function ListingsContent() {
         )
           return
         console.error("Error fetching properties:", message)
+        if (!signal?.aborted) {
+          setProperties([])
+          setLoadError("Could not load listings. Please try again.")
+        }
       } finally {
         if (!signal?.aborted) {
           setLoading(false)
         }
       }
     },
-    [searchQuery, propertyType, priceRange, bedrooms, bathrooms, availableNow, showSavedOnly, savedIds]
+    [searchQuery, propertyType, priceRange, bedrooms, bathrooms, availableNow, showSavedOnly, savedIds, purpose]
   )
 
   // Sync search params
@@ -199,6 +208,11 @@ function ListingsContent() {
     const q = searchParams.get("q")
     if (q) setSearchQuery(q)
   }, [searchParams])
+
+  useEffect(() => {
+    setPriceRange("all")
+    setPropertyType("all")
+  }, [purpose])
 
   // Debounced fetch
   useEffect(() => {
@@ -232,12 +246,17 @@ function ListingsContent() {
 
   return (
     <PublicPageShell
-      pageTitle="Browse Properties"
-      pageSubtitle="Browse rental homes across the United States by city, state, and ZIP code."
+      pageTitle={purpose === "sale" ? "Buy a Property" : "Find a Rental"}
+      pageSubtitle={purpose === "sale" ? "Explore U.S. homes and land for sale, then contact the owner to arrange a viewing." : "Browse rental homes across the United States by city, state, and ZIP code."}
       badge="Property Marketplace"
       showBanner={true}
     >
       <div className="mx-auto max-w-7xl px-4 pb-20 md:px-8">
+
+        <div className="mb-6 flex gap-2 rounded-xl border border-border bg-white p-1.5 shadow-sm" aria-label="Listing purpose">
+          <Link href="/listings?purpose=rent" className={`flex-1 rounded-lg px-4 py-3 text-center text-sm font-semibold transition ${purpose === "rent" ? "bg-prms-blue text-white" : "text-prms-slate hover:bg-secondary"}`}>Rent</Link>
+          <Link href="/listings?purpose=sale" className={`flex-1 rounded-lg px-4 py-3 text-center text-sm font-semibold transition ${purpose === "sale" ? "bg-prms-blue text-white" : "text-prms-slate hover:bg-secondary"}`}>Buy</Link>
+        </div>
 
         {/* Search & Filter Bar */}
         <motion.div
@@ -274,7 +293,7 @@ function ListingsContent() {
               <FilterSelect
                 label="Property Type"
                 value={propertyType}
-                onChange={setPropertyType}
+                onChange={(value) => { setPropertyType(value); if (value === "Land") { setBedrooms("all"); setBathrooms("all") } }}
               >
                 <option value="all">All Types</option>
                 <option value="Apartment">Apartment</option>
@@ -283,6 +302,10 @@ function ListingsContent() {
                 <option value="Shop">Shop</option>
                 <option value="Studio">Studio</option>
                 <option value="Duplex">Duplex</option>
+                <option value="Condo">Condo</option>
+                <option value="Townhouse">Townhouse</option>
+                <option value="Single-Family Home">Single-Family Home</option>
+                {purpose === "sale" && <option value="Land">Land</option>}
               </FilterSelect>
 
               <FilterSelect
@@ -291,15 +314,23 @@ function ListingsContent() {
                 onChange={setPriceRange}
               >
                 <option value="all">Any Price</option>
-                <option value="0-1000">Under $1,000</option>
-                <option value="1000-2000">$1,000 – $2,000</option>
-                <option value="2000-3000">$2,000 – $3,000</option>
-                <option value="3000-5000">$3,000 – $5,000</option>
-                <option value="5000-10000">$5,000 – $10,000</option>
-                <option value="10000">Above $10,000</option>
+                {purpose === "sale" ? <>
+                  <option value="0-200000">Under $200,000</option>
+                  <option value="200000-400000">$200,000 – $400,000</option>
+                  <option value="400000-600000">$400,000 – $600,000</option>
+                  <option value="600000-1000000">$600,000 – $1,000,000</option>
+                  <option value="1000000">Above $1,000,000</option>
+                </> : <>
+                  <option value="0-1000">Under $1,000</option>
+                  <option value="1000-2000">$1,000 – $2,000</option>
+                  <option value="2000-3000">$2,000 – $3,000</option>
+                  <option value="3000-5000">$3,000 – $5,000</option>
+                  <option value="5000-10000">$5,000 – $10,000</option>
+                  <option value="10000">Above $10,000</option>
+                </>}
               </FilterSelect>
 
-              <FilterSelect
+              {propertyType !== "Land" && <FilterSelect
                 label="Bedrooms"
                 value={bedrooms}
                 onChange={setBedrooms}
@@ -309,9 +340,9 @@ function ListingsContent() {
                 <option value="2">2 Beds</option>
                 <option value="3">3 Beds</option>
                 <option value="4+">4+ Beds</option>
-              </FilterSelect>
+              </FilterSelect>}
 
-              <FilterSelect
+              {propertyType !== "Land" && <FilterSelect
                 label="Bathrooms"
                 value={bathrooms}
                 onChange={setBathrooms}
@@ -320,7 +351,7 @@ function ListingsContent() {
                 <option value="1">1 Bath</option>
                 <option value="2">2 Baths</option>
                 <option value="3+">3+ Baths</option>
-              </FilterSelect>
+              </FilterSelect>}
 
               {/* Saved toggle */}
               <div className="flex flex-col gap-1">
@@ -387,12 +418,14 @@ function ListingsContent() {
           </motion.p>
         )}
 
+        {loadError && !loading && <div role="alert" className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{loadError} <button className="ml-2 font-semibold underline" onClick={() => void fetchProperties()}>Retry</button></div>}
+
         {loading ? (
           <div className="flex flex-col items-center justify-center gap-4 py-32">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="text-sm font-medium text-slate-600">Loading properties...</p>
           </div>
-        ) : properties.length === 0 ? (
+        ) : loadError ? null : properties.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -429,7 +462,7 @@ function ListingsContent() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, delay: Math.min(i * 0.05, 0.4) }}
               >
-                <PropertyCard property={property} />
+                <PropertyCard property={property} purpose={purpose} />
               </motion.div>
             ))}
           </motion.div>
